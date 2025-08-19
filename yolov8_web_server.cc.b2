@@ -9,7 +9,6 @@
 //   --http-fps-limit N
 //   --fps
 //   --npu-core auto|0|1|2|01|012
-//   --log-file FILE NAME
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,11 +23,6 @@
 #include <condition_variable>
 #include <algorithm>
 #include <cmath>
-#include <ctime>
-#include <fstream>
-#include <set>
-#include <map>
-#include <dirent.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -241,7 +235,6 @@ struct Args {
     int http_fps_limit = 0;
     bool show_fps = false;
     std::string npu_core = "auto"; // auto|0|1|2|01|012
-    std::string log_file;
 };
 
 static bool parseSize(const std::string& s, int& w, int& h) {
@@ -280,7 +273,6 @@ static Args parseArgs(int argc, char** argv) {
         else if (k == "--http-fps-limit" && need(1)) a.http_fps_limit = std::max(0, atoi(argv[++i]));
         else if (k == "--fps") a.show_fps = true;
         else if (k == "--npu-core" && need(1)) a.npu_core = argv[++i]; // auto|0|1|2|01|012
-        else if (k == "--log-file" && need(1)) a.log_file = argv[++i];
     }
     return a;
 }
@@ -338,77 +330,14 @@ private:
     json last_meta;
     SimpleTracker tracker; // maintains unique object IDs
 
-// logging
-    bool log_enabled = false;
-    std::string log_base;
-    std::set<int> logged_ids;
-    std::map<int,int> minute_counts; // class_id -> count
-    std::chrono::system_clock::time_point minute_start{std::chrono::system_clock::now()};
-    int event_counter = 0;
-
-    void rotateLogs() {
-        DIR* dir = opendir("/tmp");
-        if (!dir) return;
-        auto now = std::time(nullptr);
-        struct dirent* ent;
-        while ((ent = readdir(dir)) != nullptr) {
-            std::string name = ent->d_name;
-            if (name.rfind("npudet.", 0) == 0) {
-                std::string path = std::string("/tmp/") + name;
-                struct stat st{};
-                if (stat(path.c_str(), &st) == 0) {
-                    if (now - st.st_mtime > 24*3600*10) unlink(path.c_str());
-                }
-            }
-        }
-        closedir(dir);
-    }
-
-    std::string currentLogPath() const {
-        auto t = std::time(nullptr);
-        char datebuf[16];
-        std::strftime(datebuf, sizeof(datebuf), "%d-%m-%Y", std::localtime(&t));
-        std::string base = log_base;
-        auto pos = base.find_last_of('/');
-        if (pos != std::string::npos) base = base.substr(pos+1);
-        return std::string("/tmp/npudet.") + datebuf + "." + base;
-    }
-
-    void appendLog(const std::string& line) {
-        if (!log_enabled) return;
-        std::ofstream ofs(currentLogPath(), std::ios::app);
-        if (ofs) ofs << line << '\n';
-    }
-
-    void logMinuteSummary(const std::chrono::system_clock::time_point& now) {
-        if (minute_counts.empty()) return;
-        auto start_t = std::chrono::system_clock::to_time_t(minute_start);
-        auto end_t = std::chrono::system_clock::to_time_t(now);
-        char datebuf[16], sbuf[16], ebuf[16];
-        std::strftime(datebuf, sizeof(datebuf), "%d-%m-%Y", std::localtime(&start_t));
-        std::strftime(sbuf, sizeof(sbuf), "%H:%M:%S", std::localtime(&start_t));
-        std::strftime(ebuf, sizeof(ebuf), "%H:%M:%S", std::localtime(&end_t));
-        for (auto& kv : minute_counts) {
-            std::string line = std::to_string(kv.second) + " " + coco_cls_to_name(kv.first) + ", " +
-                               datebuf + ", " + sbuf + " - " + ebuf;
-            appendLog(line);
-        }
-        minute_counts.clear();
-        minute_start = now;
-    }
-
-
 public:
     YOLOWebServer(const Args& a)
         : model_path(a.model), server_port(a.port),
           cam_dev(a.dev), cam_w_req(a.cap_w), cam_h_req(a.cap_h),
           cam_fps_req(a.cap_fps), cam_buffers(a.buffers),
           jpeg_q(a.jpeg_q), http_fps_limit(a.http_fps_limit),
-//          show_fps(a.show_fps), npu_mask(npu_mask_from_string(a.npu_core)) {}
-	  show_fps(a.show_fps), npu_mask(npu_mask_from_string(a.npu_core)),
-          log_enabled(!a.log_file.empty()), log_base(a.log_file) {
-        if (log_enabled) rotateLogs();
-    }
+          show_fps(a.show_fps), npu_mask(npu_mask_from_string(a.npu_core)) {}
+
     ~YOLOWebServer() { cleanup(); }
 
     bool initialize() {
@@ -760,30 +689,6 @@ private:
                 //tracker.update(&od);
                 // assign stable IDs to detections
                 tracker.update(&od, &frame);
-
-
-                if (log_enabled) {
-                    auto now = std::chrono::system_clock::now();
-                    for (int i = 0; i < od.count; ++i) {
-                        auto* d = &od.results[i];
-                        if (d->track_id >= 0 && logged_ids.insert(d->track_id).second) {
-                            event_counter++;
-                            auto tt = std::time(nullptr);
-                            char tbuf[32];
-                            std::strftime(tbuf, sizeof(tbuf), "%d-%m-%Y %H:%M:%S", std::localtime(&tt));
-                            std::string line = std::to_string(event_counter) + ", " +
-                                                coco_cls_to_name(d->cls_id) + ", ID " +
-                                                std::to_string(d->track_id) + ", " + tbuf;
-                            appendLog(line);
-                            minute_counts[d->cls_id]++;
-                        }
-                    }
-                    if (now - minute_start >= std::chrono::minutes(1)) {
-                        logMinuteSummary(now);
-                    }
-                }
-
-
                 // ===== DRAW =====
                 TICK(draw);  // DEBUG
                 for (int i = 0; i < od.count; ++i) {
@@ -841,7 +746,6 @@ private:
 
             std::this_thread::sleep_for(std::chrono::milliseconds(2));
         }
-        if (log_enabled) logMinuteSummary(std::chrono::system_clock::now());
     }
 // end main loop
 
@@ -897,7 +801,6 @@ static void printUsage(const char* argv0){
     printf("  --http-fps-limit N   limit MJPEG stream FPS (0=unlimited)\n");
     printf("  --fps                print loop FPS to console and draw labels\n");
     printf("  --npu-core auto|0|1|2|01|012  choose NPU core mask\n");
-    printf("  --log-file FILE NAME     write detection log to /tmp/npudet.DATE.FILE\n");
 }
 
 int main(int argc, char** argv) {
