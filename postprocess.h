@@ -16,9 +16,11 @@
 // class rknn_app_context_t;
 
 typedef struct {
+    //int id;
     image_rect_t box;
     float prop;
     int cls_id;
+    int track_id; // unique id assigned by tracker
 } object_detect_result;
 
 typedef struct {

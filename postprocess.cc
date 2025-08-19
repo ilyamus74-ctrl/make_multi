@@ -643,12 +643,14 @@ int post_process(rknn_app_context_t *app_ctx, void *outputs, letterbox_t *letter
         int id = classId[n];
         float obj_conf = objProbs[i];
 
+	//od_results->results[last_count].id = last_count + 1;
         od_results->results[last_count].box.left = (int)(clamp(x1, 0, model_in_w) / letter_box->scale);
         od_results->results[last_count].box.top = (int)(clamp(y1, 0, model_in_h) / letter_box->scale);
         od_results->results[last_count].box.right = (int)(clamp(x2, 0, model_in_w) / letter_box->scale);
         od_results->results[last_count].box.bottom = (int)(clamp(y2, 0, model_in_h) / letter_box->scale);
         od_results->results[last_count].prop = obj_conf;
         od_results->results[last_count].cls_id = id;
+	od_results->results[last_count].track_id = -1; // tracker will assign stable id
         last_count++;
     }
     od_results->count = last_count;

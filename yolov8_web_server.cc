@@ -21,6 +21,8 @@
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
+#include <algorithm>
+#include <cmath>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -63,6 +65,56 @@ struct StageAcc {
 using json = nlohmann::json;
 using namespace httplib;
 using Clock = std::chrono::high_resolution_clock;
+
+// Simple centroid-based tracker to provide stable IDs across frames
+struct Track {
+    int id;
+    image_rect_t box;
+    int misses;
+};
+
+class SimpleTracker {
+    int next_id = 0;
+    std::vector<Track> tracks;
+    float max_dist = 50.0f; // pixels
+public:
+    void update(object_detect_result_list* dets) {
+        std::vector<bool> assigned(dets->count, false);
+        // reset ids
+        for (int i = 0; i < dets->count; ++i) dets->results[i].track_id = -1;
+        // match existing tracks
+        for (auto& t : tracks) {
+            int best = -1; float best_d = max_dist;
+            float tcx = (t.box.left + t.box.right) / 2.0f;
+            float tcy = (t.box.top + t.box.bottom) / 2.0f;
+            for (int i = 0; i < dets->count; ++i) if (!assigned[i]) {
+                auto& b = dets->results[i].box;
+                float dcx = (b.left + b.right) / 2.0f;
+                float dcy = (b.top + b.bottom) / 2.0f;
+                float d = std::hypot(tcx - dcx, tcy - dcy);
+                if (d < best_d) { best_d = d; best = i; }
+            }
+            if (best != -1) {
+                t.box = dets->results[best].box;
+                t.misses = 0;
+                dets->results[best].track_id = t.id;
+                assigned[best] = true;
+            } else {
+                t.misses++;
+            }
+        }
+        // remove lost tracks
+        tracks.erase(std::remove_if(tracks.begin(), tracks.end(),
+                    [](const Track& t){ return t.misses > 30; }), tracks.end());
+        // add new tracks for unmatched detections
+        for (int i = 0; i < dets->count; ++i) if (!assigned[i]) {
+            Track t{next_id++, dets->results[i].box, 0};
+            dets->results[i].track_id = t.id;
+            tracks.push_back(t);
+        }
+    }
+};
+
 
 // ---------- CLI ----------
 struct Args {
@@ -169,6 +221,7 @@ private:
     std::condition_variable frame_cv;
     std::vector<uint8_t> last_jpeg;
     json last_meta;
+    SimpleTracker tracker; // maintains unique object IDs
 
 public:
     YOLOWebServer(const Args& a)
@@ -525,6 +578,8 @@ private:
             TOCK(infer, acc.infer);  // DEBUG
 
             if (ret == 0) {
+		// assign stable IDs to detections
+                tracker.update(&od);
                 // ===== DRAW =====
                 TICK(draw);  // DEBUG
                 for (int i = 0; i < od.count; ++i) {
@@ -535,7 +590,9 @@ private:
                     draw_rectangle(&frame, x, y, w, h, COLOR_BLUE, 3);
                     if (show_fps) {
                         char text[96];
-                        snprintf(text, sizeof(text), "%s %.1f%%",
+                        //snprintf(text, sizeof(text), "%s %.1f%%",
+                        //         coco_cls_to_name(d->cls_id), d->prop * 100.f);
+			snprintf(text, sizeof(text), "#%d %s %.1f%%", d->track_id,
                                  coco_cls_to_name(d->cls_id), d->prop * 100.f);
                         draw_text(&frame, text, x, std::max(0, y - 18), COLOR_RED, 10);
                     }
@@ -591,6 +648,7 @@ private:
             det["class_name"] = coco_cls_to_name(d->cls_id);
             det["class_id"] = d->cls_id;
             det["confidence"] = d->prop;
+	    det["track_id"] = d->track_id;
             json box;
             box["left"] = d->box.left;
             box["top"] = d->box.top;

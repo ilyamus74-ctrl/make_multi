@@ -94,7 +94,10 @@ int main(int argc, char **argv)
     for (int i = 0; i < od_results.count; i++)
     {
         object_detect_result *det_result = &(od_results.results[i]);
-        printf("%s @ (%d %d %d %d) %.3f\n", coco_cls_to_name(det_result->cls_id),
+        //printf("%s @ (%d %d %d %d) %.3f\n", coco_cls_to_name(det_result->cls_id),
+	//printf("ID:%d %s @ (%d %d %d %d) %.3f\n", det_result->id, coco_cls_to_name(det_result->cls_id),
+        printf("#%d %s @ (%d %d %d %d) %.3f\n", det_result->track_id,
+               coco_cls_to_name(det_result->cls_id),
                det_result->box.left, det_result->box.top,
                det_result->box.right, det_result->box.bottom,
                det_result->prop);
@@ -105,8 +108,11 @@ int main(int argc, char **argv)
 
         draw_rectangle(&src_image, x1, y1, x2 - x1, y2 - y1, COLOR_BLUE, 3);
 
-        sprintf(text, "%s %.1f%%", coco_cls_to_name(det_result->cls_id), det_result->prop * 100);
-        draw_text(&src_image, text, x1, y1 - 20, COLOR_RED, 10);
+        //sprintf(text, "%s %.1f%%", coco_cls_to_name(det_result->cls_id), det_result->prop * 100);
+        //sprintf(text, "ID:%d %s %.1f%%", det_result->id, coco_cls_to_name(det_result->cls_id), det_result->prop * 100);
+        sprintf(text, "#%d %s %.1f%%", det_result->track_id,
+                coco_cls_to_name(det_result->cls_id), det_result->prop * 100);
+	draw_text(&src_image, text, x1, y1 - 20, COLOR_RED, 10);
     }
 
     write_image("out.png", &src_image);
