@@ -3,6 +3,7 @@
 /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles/fileutils.dir
 /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles/rknn_yolov8_demo_src_2.dir
 /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles/yolov8_web_server.dir
+/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles/camera_manager_demo.dir
 /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles/edit_cache.dir
 /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles/rebuild_cache.dir
 /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles/list_install_components.dir

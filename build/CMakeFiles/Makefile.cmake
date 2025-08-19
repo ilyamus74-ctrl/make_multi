@@ -139,4 +139,5 @@ set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/fileutils.dir/DependInfo.cmake"
   "CMakeFiles/rknn_yolov8_demo_src_2.dir/DependInfo.cmake"
   "CMakeFiles/yolov8_web_server.dir/DependInfo.cmake"
+  "CMakeFiles/camera_manager_demo.dir/DependInfo.cmake"
   )

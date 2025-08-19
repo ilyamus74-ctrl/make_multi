@@ -68,6 +68,7 @@ all: CMakeFiles/imageutils.dir/all
 all: CMakeFiles/fileutils.dir/all
 all: CMakeFiles/rknn_yolov8_demo_src_2.dir/all
 all: CMakeFiles/yolov8_web_server.dir/all
+all: CMakeFiles/camera_manager_demo.dir/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
@@ -80,6 +81,7 @@ clean: CMakeFiles/imageutils.dir/clean
 clean: CMakeFiles/fileutils.dir/clean
 clean: CMakeFiles/rknn_yolov8_demo_src_2.dir/clean
 clean: CMakeFiles/yolov8_web_server.dir/clean
+clean: CMakeFiles/camera_manager_demo.dir/clean
 .PHONY : clean
 
 #=============================================================================
@@ -89,7 +91,7 @@ clean: CMakeFiles/yolov8_web_server.dir/clean
 CMakeFiles/imagedrawing.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/imagedrawing.dir/build.make CMakeFiles/imagedrawing.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/imagedrawing.dir/build.make CMakeFiles/imagedrawing.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=3,4 "Built target imagedrawing"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=6,7 "Built target imagedrawing"
 .PHONY : CMakeFiles/imagedrawing.dir/all
 
 # Build rule for subdir invocation for target.
@@ -115,7 +117,7 @@ CMakeFiles/imagedrawing.dir/clean:
 CMakeFiles/imageutils.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/imageutils.dir/build.make CMakeFiles/imageutils.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/imageutils.dir/build.make CMakeFiles/imageutils.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=5,6 "Built target imageutils"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=8,9 "Built target imageutils"
 .PHONY : CMakeFiles/imageutils.dir/all
 
 # Build rule for subdir invocation for target.
@@ -141,7 +143,7 @@ CMakeFiles/imageutils.dir/clean:
 CMakeFiles/fileutils.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/fileutils.dir/build.make CMakeFiles/fileutils.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/fileutils.dir/build.make CMakeFiles/fileutils.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=1,2 "Built target fileutils"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=4,5 "Built target fileutils"
 .PHONY : CMakeFiles/fileutils.dir/all
 
 # Build rule for subdir invocation for target.
@@ -169,7 +171,7 @@ CMakeFiles/rknn_yolov8_demo_src_2.dir/all: CMakeFiles/imageutils.dir/all
 CMakeFiles/rknn_yolov8_demo_src_2.dir/all: CMakeFiles/fileutils.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/rknn_yolov8_demo_src_2.dir/build.make CMakeFiles/rknn_yolov8_demo_src_2.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/rknn_yolov8_demo_src_2.dir/build.make CMakeFiles/rknn_yolov8_demo_src_2.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=7,8,9,10 "Built target rknn_yolov8_demo_src_2"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=10,11,12,13 "Built target rknn_yolov8_demo_src_2"
 .PHONY : CMakeFiles/rknn_yolov8_demo_src_2.dir/all
 
 # Build rule for subdir invocation for target.
@@ -197,7 +199,7 @@ CMakeFiles/yolov8_web_server.dir/all: CMakeFiles/imageutils.dir/all
 CMakeFiles/yolov8_web_server.dir/all: CMakeFiles/fileutils.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/yolov8_web_server.dir/build.make CMakeFiles/yolov8_web_server.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/yolov8_web_server.dir/build.make CMakeFiles/yolov8_web_server.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=11,12,13,14 "Built target yolov8_web_server"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=14,15,16,17 "Built target yolov8_web_server"
 .PHONY : CMakeFiles/yolov8_web_server.dir/all
 
 # Build rule for subdir invocation for target.
@@ -215,6 +217,32 @@ yolov8_web_server: CMakeFiles/yolov8_web_server.dir/rule
 CMakeFiles/yolov8_web_server.dir/clean:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/yolov8_web_server.dir/build.make CMakeFiles/yolov8_web_server.dir/clean
 .PHONY : CMakeFiles/yolov8_web_server.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/camera_manager_demo.dir
+
+# All Build rule for target.
+CMakeFiles/camera_manager_demo.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=1,2,3 "Built target camera_manager_demo"
+.PHONY : CMakeFiles/camera_manager_demo.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/camera_manager_demo.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles 3
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/camera_manager_demo.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles 0
+.PHONY : CMakeFiles/camera_manager_demo.dir/rule
+
+# Convenience name for target.
+camera_manager_demo: CMakeFiles/camera_manager_demo.dir/rule
+.PHONY : camera_manager_demo
+
+# clean rule for target.
+CMakeFiles/camera_manager_demo.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/clean
+.PHONY : CMakeFiles/camera_manager_demo.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

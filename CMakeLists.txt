@@ -172,3 +172,20 @@ endif()
 # ---------- install / rpath ----------
 set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
 install(TARGETS ${PROJECT_NAME} DESTINATION .)
+
+
+# ---------- camera manager demo ----------
+add_executable(camera_manager_demo
+  camera_manager_main.cc
+  camera_manager.cc
+)
+
+target_include_directories(camera_manager_demo PRIVATE
+  ${PROJ}
+)
+
+target_link_libraries(camera_manager_demo
+  Threads::Threads
+)
+
+install(TARGETS camera_manager_demo DESTINATION .)

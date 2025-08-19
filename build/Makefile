@@ -226,6 +226,67 @@ yolov8_web_server/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/yolov8_web_server.dir/build.make CMakeFiles/yolov8_web_server.dir/build
 .PHONY : yolov8_web_server/fast
 
+#=============================================================================
+# Target rules for targets named camera_manager_demo
+
+# Build rule for target.
+camera_manager_demo: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 camera_manager_demo
+.PHONY : camera_manager_demo
+
+# fast build rule for target.
+camera_manager_demo/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/build
+.PHONY : camera_manager_demo/fast
+
+camera_manager.o: camera_manager.cc.o
+.PHONY : camera_manager.o
+
+# target to build an object file
+camera_manager.cc.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o
+.PHONY : camera_manager.cc.o
+
+camera_manager.i: camera_manager.cc.i
+.PHONY : camera_manager.i
+
+# target to preprocess a source file
+camera_manager.cc.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/camera_manager.cc.i
+.PHONY : camera_manager.cc.i
+
+camera_manager.s: camera_manager.cc.s
+.PHONY : camera_manager.s
+
+# target to generate assembly for a file
+camera_manager.cc.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/camera_manager.cc.s
+.PHONY : camera_manager.cc.s
+
+camera_manager_main.o: camera_manager_main.cc.o
+.PHONY : camera_manager_main.o
+
+# target to build an object file
+camera_manager_main.cc.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o
+.PHONY : camera_manager_main.cc.o
+
+camera_manager_main.i: camera_manager_main.cc.i
+.PHONY : camera_manager_main.i
+
+# target to preprocess a source file
+camera_manager_main.cc.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.i
+.PHONY : camera_manager_main.cc.i
+
+camera_manager_main.s: camera_manager_main.cc.s
+.PHONY : camera_manager_main.s
+
+# target to generate assembly for a file
+camera_manager_main.cc.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.s
+.PHONY : camera_manager_main.cc.s
+
 include/utils/file_utils.o: include/utils/file_utils.c.o
 .PHONY : include/utils/file_utils.o
 
@@ -412,11 +473,18 @@ help:
 	@echo "... install/strip"
 	@echo "... list_install_components"
 	@echo "... rebuild_cache"
+	@echo "... camera_manager_demo"
 	@echo "... fileutils"
 	@echo "... imagedrawing"
 	@echo "... imageutils"
 	@echo "... rknn_yolov8_demo_src_2"
 	@echo "... yolov8_web_server"
+	@echo "... camera_manager.o"
+	@echo "... camera_manager.i"
+	@echo "... camera_manager.s"
+	@echo "... camera_manager_main.o"
+	@echo "... camera_manager_main.i"
+	@echo "... camera_manager_main.s"
 	@echo "... include/utils/file_utils.o"
 	@echo "... include/utils/file_utils.i"
 	@echo "... include/utils/file_utils.s"
