@@ -83,30 +83,30 @@ CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/camera_manager_main.cc -o CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.s
 
-CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o: CMakeFiles/camera_manager_demo.dir/flags.make
-CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o: /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/camera_manager.cc
-CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o: CMakeFiles/camera_manager_demo.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o -MF CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o.d -o CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o -c /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/camera_manager.cc
+CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o: CMakeFiles/camera_manager_demo.dir/flags.make
+CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o: /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/camera_manager.cpp
+CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o: CMakeFiles/camera_manager_demo.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o -MF CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o.d -o CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o -c /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/camera_manager.cpp
 
-CMakeFiles/camera_manager_demo.dir/camera_manager.cc.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/camera_manager_demo.dir/camera_manager.cc.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/camera_manager.cc > CMakeFiles/camera_manager_demo.dir/camera_manager.cc.i
+CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/camera_manager.cpp > CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.i
 
-CMakeFiles/camera_manager_demo.dir/camera_manager.cc.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/camera_manager_demo.dir/camera_manager.cc.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/camera_manager.cc -o CMakeFiles/camera_manager_demo.dir/camera_manager.cc.s
+CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/camera_manager.cpp -o CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.s
 
 # Object files for target camera_manager_demo
 camera_manager_demo_OBJECTS = \
 "CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o" \
-"CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o"
+"CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o"
 
 # External object files for target camera_manager_demo
 camera_manager_demo_EXTERNAL_OBJECTS =
 
 camera_manager_demo: CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o
-camera_manager_demo: CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o
+camera_manager_demo: CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o
 camera_manager_demo: CMakeFiles/camera_manager_demo.dir/build.make
 camera_manager_demo: CMakeFiles/camera_manager_demo.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable camera_manager_demo"

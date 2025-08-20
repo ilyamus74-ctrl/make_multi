@@ -239,29 +239,29 @@ camera_manager_demo/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/build
 .PHONY : camera_manager_demo/fast
 
-camera_manager.o: camera_manager.cc.o
+camera_manager.o: camera_manager.cpp.o
 .PHONY : camera_manager.o
 
 # target to build an object file
-camera_manager.cc.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o
-.PHONY : camera_manager.cc.o
+camera_manager.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o
+.PHONY : camera_manager.cpp.o
 
-camera_manager.i: camera_manager.cc.i
+camera_manager.i: camera_manager.cpp.i
 .PHONY : camera_manager.i
 
 # target to preprocess a source file
-camera_manager.cc.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/camera_manager.cc.i
-.PHONY : camera_manager.cc.i
+camera_manager.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.i
+.PHONY : camera_manager.cpp.i
 
-camera_manager.s: camera_manager.cc.s
+camera_manager.s: camera_manager.cpp.s
 .PHONY : camera_manager.s
 
 # target to generate assembly for a file
-camera_manager.cc.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/camera_manager.cc.s
-.PHONY : camera_manager.cc.s
+camera_manager.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/camera_manager_demo.dir/build.make CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.s
+.PHONY : camera_manager.cpp.s
 
 camera_manager_main.o: camera_manager_main.cc.o
 .PHONY : camera_manager_main.o

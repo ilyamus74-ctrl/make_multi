@@ -4,6 +4,8 @@
 #include <set>
 #include <thread>
 #include <atomic>
+#include <vector>
+#include <mutex>
 
 // Simple camera manager that reads configuration from JSON file
 // and monitors /dev/v4l/by-id for matching devices. When a camera is
@@ -25,12 +27,29 @@ public:
     // Stop monitoring thread.
     void stop();
 
+    struct ConfiguredInfo {
+        std::string id;
+        bool present;
+    };
+
+    // Thread-safe snapshot of configured cameras with presence flag
+    std::vector<ConfiguredInfo> configuredCameras();
+
+    // Thread-safe snapshot of newly discovered camera paths
+    std::vector<std::string> unconfiguredCameras();
+
+    // Append new camera definition to config and start monitoring it
+    bool addCamera(const std::string& id, const std::string& by_id_path);
+
 private:
     void monitorLoop();
-    bool isPresent(const CamConfig& cfg);
+    bool isPresent(const CamConfig& cfg, const std::set<std::string>& current);
 
+    std::string config_path_;
     std::map<std::string, CamConfig> configs_;
     std::set<std::string> active_;
+    std::set<std::string> unconfigured_;
+    std::mutex mutex_;
     std::thread monitor_thread_;
     std::atomic<bool> running_{false};
 };

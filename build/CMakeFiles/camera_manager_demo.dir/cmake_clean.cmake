@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o"
-  "CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o.d"
+  "CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o"
+  "CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o.d"
   "CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o"
   "CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o.d"
   "camera_manager_demo"

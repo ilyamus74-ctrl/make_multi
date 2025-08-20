@@ -1,1 +1,1 @@
-/usr/bin/c++ CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o -o camera_manager_demo 
+/usr/bin/c++ CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o -o camera_manager_demo 

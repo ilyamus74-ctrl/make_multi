@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Camera manager</title>
+  <style>
+    body { font-family: sans-serif; }
+    .cam { padding:4px; margin:2px; }
+    .active { color: green; }
+    .inactive { color: gray; }
+    .newcam { padding:4px; margin:2px; }
+  </style>
+</head>
+<body>
+  <h3>Configured cameras</h3>
+  <div id="configured"></div>
+  <h3>New cameras</h3>
+  <div id="newcams"></div>
+  <script>
+    async function refresh(){
+      try {
+        const configured = await (await fetch('/api/configured', {cache:'no-store'})).json();
+        const confDiv = document.getElementById('configured');
+        confDiv.innerHTML='';
+        configured.forEach(c => {
+          const div=document.createElement('div');
+          div.className='cam ' + (c.present ? 'active':'inactive');
+          div.textContent=c.id;
+          confDiv.appendChild(div);
+        });
+        const news = await (await fetch('/api/new', {cache:'no-store'})).json();
+        const newDiv = document.getElementById('newcams');
+        newDiv.innerHTML='';
+        news.forEach(n => {
+          const div=document.createElement('div');
+          div.className='newcam';
+          div.textContent=n+' ';
+          const btn=document.createElement('button');
+          btn.textContent='Add';
+          btn.onclick=async()=>{
+            const id=prompt('Enter camera id');
+            if(!id) return;
+            await fetch('/api/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,by_id:n})});
+          };
+          div.appendChild(btn);
+          newDiv.appendChild(div);
+        });
+      } catch(e){}
+    }
+    setInterval(refresh,1000);
+    refresh();
+  </script>
+</body>
+</html>

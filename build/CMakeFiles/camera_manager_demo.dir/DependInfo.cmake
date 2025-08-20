@@ -8,7 +8,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/camera_manager.cc" "CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o" "gcc" "CMakeFiles/camera_manager_demo.dir/camera_manager.cc.o.d"
+  "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/camera_manager.cpp" "CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o" "gcc" "CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o.d"
   "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/camera_manager_main.cc" "CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o" "gcc" "CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o.d"
   )
 

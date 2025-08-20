@@ -177,7 +177,7 @@ install(TARGETS ${PROJECT_NAME} DESTINATION .)
 # ---------- camera manager demo ----------
 add_executable(camera_manager_demo
   camera_manager_main.cc
-  camera_manager.cc
+  camera_manager.cpp
 )
 
 target_include_directories(camera_manager_demo PRIVATE
