@@ -63,7 +63,10 @@
       const worker=document.createElement('input'); worker.type='number'; worker.value=cam.npu_worker;
       const auto=document.createElement('input'); auto.type='checkbox'; auto.checked=cam.auto_profiles;
 
-      [w,h,pix,fps,worker,auto].forEach(el=>el.addEventListener('input',()=>advDirty=true));
+      [w,h,pix,fps,worker,auto].forEach(el=>{
+        el.addEventListener('focus',()=>advDirty=true);
+        el.addEventListener('input',()=>advDirty=true);
+      });
 
       advDiv.appendChild(document.createTextNode('w:')); advDiv.appendChild(w);
       advDiv.appendChild(document.createTextNode(' h:')); advDiv.appendChild(h);
@@ -97,48 +100,60 @@
       try{
         const configured = await (await fetch('/api/configured',{cache:'no-store'})).json();
         const confDiv=document.getElementById('configured');
-        confDiv.innerHTML='';
+        const existing=new Map(Array.from(confDiv.querySelectorAll('.cam')).map(d=>[d.dataset.id,d]));
         configured.forEach(c=>{
-          const div=document.createElement('div');
+          let div=existing.get(c.id);
+          if(!div){
+            div=document.createElement('div');
+            div.className='cam';
+            div.dataset.id=c.id;
+            const title=document.createElement('span'); title.className='title'; div.appendChild(title);
+            const preview=document.createElement('div'); preview.className='preview'; div.appendChild(preview);
+            const toggle=document.createElement('button'); toggle.className='toggle'; div.appendChild(toggle);
+            const del=document.createElement('button'); del.className='delete'; div.appendChild(del);
+            const advBtn=document.createElement('button'); advBtn.className='adv'; advBtn.textContent='Дополнительные настройки';
+            div.appendChild(advBtn);
+            confDiv.appendChild(div);
+          }
+          existing.delete(c.id);
           div.className='cam '+(c.present?'active':'inactive');
-          const title=document.createElement('span');
-          title.textContent=c.id+' ';
-          div.appendChild(title);
+          div.querySelector('.title').textContent=c.id+' ';
 
-          let preview;
+          let preview=div.querySelector('.preview');
           if(c.preview && c.present){
-            preview=document.createElement('img');
-            preview.width=320; preview.height=240;
+            if(preview.tagName!=='IMG'){
+              const img=document.createElement('img');
+              img.className='preview';
+              img.width=320; img.height=240;
+              div.replaceChild(img, preview);
+              preview=img;
+            }
             preview.src=`/api/preview?id=${encodeURIComponent(c.id)}&t=${Date.now()}`;
           }else{
-            preview=document.createElement('div');
-            preview.style.width='320px';
-            preview.style.height='240px';
-            preview.style.display='flex';
-            preview.style.alignItems='center';
-            preview.style.justifyContent='center';
-            preview.style.background='#ddd';
+            if(preview.tagName==='IMG'){
+              const ph=document.createElement('div');
+              ph.className='preview';
+              ph.style.width='320px'; ph.style.height='240px';
+              ph.style.display='flex'; ph.style.alignItems='center';
+              ph.style.justifyContent='center'; ph.style.background='#ddd';
+              div.replaceChild(ph, preview);
+              preview=ph;
+            }
             preview.textContent=c.present?'камера подключена':'нет камеры';
           }
-          div.appendChild(preview);
 
-          const toggle=document.createElement('button');
+          const toggle=div.querySelector('button.toggle');
           toggle.textContent=c.preview?'Disable preview':'Enable preview';
           toggle.onclick=async()=>{await fetch('/api/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:c.id,enable:!c.preview})});refresh();};
-          div.appendChild(toggle);
 
-          const del=document.createElement('button');
+          const del=div.querySelector('button.delete');
           del.textContent='Delete';
           del.onclick=async()=>{await fetch('/api/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:c.id})});refresh();};
-          div.appendChild(del);
 
-          const advBtn=document.createElement('button');
-          advBtn.textContent='Дополнительные настройки';
+          const advBtn=div.querySelector('button.adv');
           advBtn.onclick=()=>showAdvSettings(c);
-          div.appendChild(advBtn);
-
-          confDiv.appendChild(div);
         });
+        existing.forEach(div=>div.remove());
 
         if(currentAdvId && !advDirty){
           const cam=configured.find(c=>c.id===currentAdvId);
@@ -175,3 +190,4 @@
   </script>
 </body>
 </html>
+

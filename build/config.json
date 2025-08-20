@@ -2,10 +2,10 @@
   "cameras": [
     {
       "auto_profiles": true,
-      "device": "/dev/video1",
-      "id": "1",
+      "device": "/dev/video3",
+      "id": "2",
       "match": {
-        "by_id_contains": "usb-SHENZHEN_AONI_ELECTRONIC_CO.__LTD_Full_HD_webcam_AN202011030002-video-index0"
+        "by_id_contains": "usb-icSpring_WebCamera_20240603201703-video-index0"
       },
       "npu_worker": 0,
       "preferred": {
@@ -18,12 +18,28 @@
     },
     {
       "auto_profiles": true,
-      "device": "/dev/video3",
+      "device": "/dev/video5",
       "id": "3",
       "match": {
-        "by_id_contains": "usb-icSpring_WebCamera_20240603201703-video-index0"
+        "by_id_contains": "usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN0001-video-index0"
       },
-      "npu_worker": 1,
+      "npu_worker": 0,
+      "preferred": {
+        "fps": 30,
+        "h": 720,
+        "pixfmt": "MJPG",
+        "w": 1280
+      },
+      "preview": false
+    },
+    {
+      "auto_profiles": true,
+      "device": "/dev/video1",
+      "id": "5",
+      "match": {
+        "by_id_contains": "usb-SHENZHEN_AONI_ELECTRONIC_CO.__LTD_Full_HD_webcam_AN202011030002-video-index0"
+      },
+      "npu_worker": 0,
       "preferred": {
         "fps": 30,
         "h": 720,
