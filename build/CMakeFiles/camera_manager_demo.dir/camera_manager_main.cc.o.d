@@ -224,7 +224,28 @@ CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o: \
  /usr/include/c++/12/fstream /usr/include/c++/12/bits/codecvt.h \
  /usr/include/aarch64-linux-gnu/c++/12/bits/basic_file.h \
  /usr/include/aarch64-linux-gnu/c++/12/bits/c++io.h \
- /usr/include/c++/12/bits/fstream.tcc \
+ /usr/include/c++/12/bits/fstream.tcc /usr/include/fcntl.h \
+ /usr/include/aarch64-linux-gnu/bits/fcntl.h \
+ /usr/include/aarch64-linux-gnu/bits/fcntl-linux.h \
+ /usr/include/aarch64-linux-gnu/bits/types/struct_iovec.h \
+ /usr/include/linux/falloc.h /usr/include/aarch64-linux-gnu/bits/stat.h \
+ /usr/include/aarch64-linux-gnu/bits/struct_stat.h \
+ /usr/include/aarch64-linux-gnu/sys/ioctl.h \
+ /usr/include/aarch64-linux-gnu/bits/ioctls.h \
+ /usr/include/aarch64-linux-gnu/asm/ioctls.h \
+ /usr/include/asm-generic/ioctls.h /usr/include/linux/ioctl.h \
+ /usr/include/aarch64-linux-gnu/asm/ioctl.h \
+ /usr/include/asm-generic/ioctl.h \
+ /usr/include/aarch64-linux-gnu/bits/ioctl-types.h \
+ /usr/include/aarch64-linux-gnu/sys/ttydefaults.h \
+ /usr/include/aarch64-linux-gnu/sys/mman.h \
+ /usr/include/aarch64-linux-gnu/bits/mman.h \
+ /usr/include/aarch64-linux-gnu/bits/mman-map-flags-generic.h \
+ /usr/include/aarch64-linux-gnu/bits/mman-linux.h \
+ /usr/include/aarch64-linux-gnu/bits/mman-shared.h \
+ /usr/include/aarch64-linux-gnu/bits/mman_ext.h \
+ /usr/include/linux/videodev2.h /usr/include/linux/v4l2-common.h \
+ /usr/include/linux/v4l2-controls.h /usr/include/linux/const.h \
  /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/include/nlohmann/json.hpp \
  /usr/include/c++/12/algorithm /usr/include/c++/12/bits/stl_algo.h \
  /usr/include/c++/12/bits/algorithmfwd.h \
@@ -301,7 +322,6 @@ CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o: \
  /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/include/httplib.h \
  /usr/include/arpa/inet.h /usr/include/netinet/in.h \
  /usr/include/aarch64-linux-gnu/sys/socket.h \
- /usr/include/aarch64-linux-gnu/bits/types/struct_iovec.h \
  /usr/include/aarch64-linux-gnu/bits/socket.h \
  /usr/include/aarch64-linux-gnu/bits/socket_type.h \
  /usr/include/aarch64-linux-gnu/bits/sockaddr.h \
@@ -330,21 +350,10 @@ CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o: \
  /usr/include/netinet/tcp.h /usr/include/poll.h \
  /usr/include/aarch64-linux-gnu/sys/poll.h \
  /usr/include/aarch64-linux-gnu/bits/poll.h \
- /usr/include/aarch64-linux-gnu/sys/mman.h \
- /usr/include/aarch64-linux-gnu/bits/mman.h \
- /usr/include/aarch64-linux-gnu/bits/mman-map-flags-generic.h \
- /usr/include/aarch64-linux-gnu/bits/mman-linux.h \
- /usr/include/aarch64-linux-gnu/bits/mman-shared.h \
- /usr/include/aarch64-linux-gnu/bits/mman_ext.h \
  /usr/include/aarch64-linux-gnu/sys/un.h /usr/include/c++/12/climits \
- /usr/include/c++/12/condition_variable /usr/include/fcntl.h \
- /usr/include/aarch64-linux-gnu/bits/fcntl.h \
- /usr/include/aarch64-linux-gnu/bits/fcntl-linux.h \
- /usr/include/linux/falloc.h /usr/include/aarch64-linux-gnu/bits/stat.h \
- /usr/include/aarch64-linux-gnu/bits/struct_stat.h \
- /usr/include/c++/12/list /usr/include/c++/12/bits/stl_list.h \
- /usr/include/c++/12/bits/list.tcc /usr/include/c++/12/random \
- /usr/include/c++/12/bits/random.h \
+ /usr/include/c++/12/condition_variable /usr/include/c++/12/list \
+ /usr/include/c++/12/bits/stl_list.h /usr/include/c++/12/bits/list.tcc \
+ /usr/include/c++/12/random /usr/include/c++/12/bits/random.h \
  /usr/include/aarch64-linux-gnu/c++/12/bits/opt_random.h \
  /usr/include/c++/12/bits/random.tcc /usr/include/c++/12/regex \
  /usr/include/c++/12/bitset /usr/include/c++/12/stack \

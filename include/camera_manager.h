@@ -41,13 +41,19 @@ public:
     // Append new camera definition to config and start monitoring it
     bool addCamera(const std::string& id, const std::string& by_id_path);
 
+    // Remove camera from config and stop monitoring it
+    bool removeCamera(const std::string& id);
+
+    // Return device path for active camera id ("/dev/v4l/by-id/..."), empty if not active
+    std::string devicePath(const std::string& id);
+
 private:
     void monitorLoop();
-    bool isPresent(const CamConfig& cfg, const std::set<std::string>& current);
 
     std::string config_path_;
     std::map<std::string, CamConfig> configs_;
     std::set<std::string> active_;
+    std::map<std::string, std::string> active_paths_;
     std::set<std::string> unconfigured_;
     std::mutex mutex_;
     std::thread monitor_thread_;

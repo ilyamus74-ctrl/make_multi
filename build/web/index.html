@@ -25,7 +25,19 @@
         configured.forEach(c => {
           const div=document.createElement('div');
           div.className='cam ' + (c.present ? 'active':'inactive');
-          div.textContent=c.id;
+          const title=document.createElement('span');
+          title.textContent=c.id+' ';
+          div.appendChild(title);
+          const img=document.createElement('img');
+          img.width=320; img.height=240;
+          img.src=`/api/preview?id=${encodeURIComponent(c.id)}&t=${Date.now()}`;
+          div.appendChild(img);
+          const del=document.createElement('button');
+          del.textContent='Delete';
+          del.onclick=async()=>{
+            await fetch('/api/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:c.id})});
+          };
+          div.appendChild(del);
           confDiv.appendChild(div);
         });
         const news = await (await fetch('/api/new', {cache:'no-store'})).json();
@@ -34,7 +46,13 @@
         news.forEach(n => {
           const div=document.createElement('div');
           div.className='newcam';
-          div.textContent=n+' ';
+          const title=document.createElement('span');
+          title.textContent=n+' ';
+          div.appendChild(title);
+          const img=document.createElement('img');
+          img.width=320; img.height=240;
+          img.src=`/api/preview?by=${encodeURIComponent(n)}&t=${Date.now()}`;
+          div.appendChild(img);
           const btn=document.createElement('button');
           btn.textContent='Add';
           btn.onclick=async()=>{

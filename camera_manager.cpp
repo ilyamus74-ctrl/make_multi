@@ -65,13 +65,6 @@ void CameraManager::stop() {
     if (monitor_thread_.joinable()) monitor_thread_.join();
 }
 
-bool CameraManager::isPresent(const CamConfig& cfg, const std::set<std::string>& current) {
-    for (const auto& p : current) {
-        if (p.find(cfg.match_substr) != std::string::npos) return true;
-    }
-    return false;
-}
-
 void CameraManager::monitorLoop() {
     using namespace std::chrono_literals;
     while (running_) {
@@ -89,17 +82,27 @@ void CameraManager::monitorLoop() {
         for (auto& kv : configs_) {
             const auto& id = kv.first;
             const CamConfig& cfg = kv.second;
-            bool present = isPresent(cfg, current);
+            bool present = false;
+            std::string matched;
+            for (const auto& p : current) {
+                if (p.find(cfg.match_substr) != std::string::npos) {
+                    present = true; matched = p; break;
+                }
+            }
             bool active;
             {
                 std::lock_guard<std::mutex> lk(mutex_);
                 active = active_.count(id) > 0;
-                if (present && !active) {
-                    std::cout << "Camera " << id << " connected" << std::endl;
-                    active_.insert(id);
-                } else if (!present && active) {
+                if (present) {
+                    active_paths_[id] = matched;
+                    if (!active) {
+                        std::cout << "Camera " << id << " connected" << std::endl;
+                        active_.insert(id);
+                    }
+                } else if (active) {
                     std::cout << "Camera " << id << " disconnected" << std::endl;
                     active_.erase(id);
+                    active_paths_.erase(id);
                 }
             }
             for (auto it = new_unconfigured.begin(); it != new_unconfigured.end(); ) {
@@ -117,6 +120,38 @@ void CameraManager::monitorLoop() {
 
         std::this_thread::sleep_for(1s);
     }
+}
+
+bool CameraManager::removeCamera(const std::string& id) {
+    std::lock_guard<std::mutex> lk(mutex_);
+    if (!configs_.erase(id)) return false;
+    active_.erase(id);
+    active_paths_.erase(id);
+    json j;
+    {
+        std::ifstream f(config_path_);
+        if (f.is_open()) {
+            try { f >> j; } catch(...) {}
+        }
+    }
+    if (!j.is_object()) j = json::object();
+    if (j.contains("cameras")) {
+        auto& arr = j["cameras"];
+        for (auto it = arr.begin(); it != arr.end(); ++it) {
+            if (it->value("id", "") == id) { arr.erase(it); break; }
+        }
+    }
+    std::ofstream out(config_path_, std::ios::trunc);
+    if (!out.is_open()) return false;
+    out << j.dump(2);
+    return true;
+}
+
+std::string CameraManager::devicePath(const std::string& id) {
+    std::lock_guard<std::mutex> lk(mutex_);
+    auto it = active_paths_.find(id);
+    if (it == active_paths_.end()) return {};
+    return std::string("/dev/v4l/by-id/") + it->second;
 }
 
 std::vector<CameraManager::ConfiguredInfo> CameraManager::configuredCameras() {
