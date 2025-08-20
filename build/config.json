@@ -14,7 +14,7 @@
         "pixfmt": "MJPG",
         "w": 1280
       },
-      "preview": false
+      "preview": true
     },
     {
       "auto_profiles": true,
@@ -30,7 +30,7 @@
         "pixfmt": "MJPG",
         "w": 1280
       },
-      "preview": false
+      "preview": true
     },
     {
       "auto_profiles": true,

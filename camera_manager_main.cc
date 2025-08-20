@@ -8,6 +8,8 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <vector>
+#include <cerrno>
+#include <cstring>
 
 #include "httplib.h"
 #include "nlohmann/json.hpp"
@@ -23,8 +25,11 @@ static void sigint(int) {
 static bool capture_jpeg(const std::string &dev,
                          std::vector<unsigned char> &out) {
   int fd = open(dev.c_str(), O_RDWR);
-  if (fd < 0)
+  if (fd < 0) {
+    std::cerr << "Failed to open " << dev << ": "
+              << std::strerror(errno) << std::endl;
     return false;
+  }
   v4l2_format fmt{};
   fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   fmt.fmt.pix.width = 320;
@@ -32,6 +37,10 @@ static bool capture_jpeg(const std::string &dev,
   fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;
   fmt.fmt.pix.field = V4L2_FIELD_NONE;
   if (ioctl(fd, VIDIOC_S_FMT, &fmt) < 0) {
+
+    int err = errno;
+    std::cerr << "VIDIOC_S_FMT failed for " << dev << ": "
+              << std::strerror(err) << std::endl;
     close(fd);
     return false;
   }
@@ -40,6 +49,9 @@ static bool capture_jpeg(const std::string &dev,
   req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   req.memory = V4L2_MEMORY_MMAP;
   if (ioctl(fd, VIDIOC_REQBUFS, &req) < 0) {
+    int err = errno;
+    std::cerr << "VIDIOC_REQBUFS failed for " << dev << ": "
+              << std::strerror(err) << std::endl;
     close(fd);
     return false;
   }
@@ -48,27 +60,42 @@ static bool capture_jpeg(const std::string &dev,
   buf.memory = V4L2_MEMORY_MMAP;
   buf.index = 0;
   if (ioctl(fd, VIDIOC_QUERYBUF, &buf) < 0) {
+    int err = errno;
+    std::cerr << "VIDIOC_QUERYBUF failed for " << dev << ": "
+              << std::strerror(err) << std::endl;
     close(fd);
     return false;
   }
   void *mem = mmap(NULL, buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, fd,
                    buf.m.offset);
   if (mem == MAP_FAILED) {
+ int err = errno;
+    std::cerr << "mmap failed for " << dev << ": " << std::strerror(err)
+              << std::endl;
     close(fd);
     return false;
   }
   if (ioctl(fd, VIDIOC_QBUF, &buf) < 0) {
+ int err = errno;
+    std::cerr << "VIDIOC_QBUF failed for " << dev << ": "
+              << std::strerror(err) << std::endl;
     munmap(mem, buf.length);
     close(fd);
     return false;
   }
   v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   if (ioctl(fd, VIDIOC_STREAMON, &type) < 0) {
+    int err = errno;
+    std::cerr << "VIDIOC_STREAMON failed for " << dev << ": "
+              << std::strerror(err) << std::endl;
     munmap(mem, buf.length);
     close(fd);
     return false;
   }
   if (ioctl(fd, VIDIOC_DQBUF, &buf) < 0) {
+    int err = errno;
+    std::cerr << "VIDIOC_DQBUF failed for " << dev << ": "
+              << std::strerror(err) << std::endl;
     ioctl(fd, VIDIOC_STREAMOFF, &type);
     munmap(mem, buf.length);
     close(fd);
@@ -188,7 +215,12 @@ int main(int argc, char **argv) {
         else if (req.has_param("by"))
           dev = std::string("/dev/v4l/by-id/") + req.get_param_value("by");
         std::vector<unsigned char> jpg;
-        if (dev.empty() || !capture_jpeg(dev, jpg)) {
+	 if (dev.empty()) {
+          res.status = 404;
+          return;
+        }
+        if (!capture_jpeg(dev, jpg)) {
+          std::cerr << "capture_jpeg failed for device '" << dev << "'" << std::endl;
           res.status = 404;
           return;
         }

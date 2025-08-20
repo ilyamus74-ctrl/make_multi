@@ -241,6 +241,7 @@ CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o: \
  /usr/include/aarch64-linux-gnu/bits/mman-linux.h \
  /usr/include/aarch64-linux-gnu/bits/mman-shared.h \
  /usr/include/aarch64-linux-gnu/bits/mman_ext.h \
+ /usr/include/c++/12/cstring /usr/include/string.h /usr/include/strings.h \
  /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/include/httplib.h \
  /usr/include/arpa/inet.h /usr/include/netinet/in.h \
  /usr/include/aarch64-linux-gnu/sys/socket.h \
@@ -272,8 +273,7 @@ CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o: \
  /usr/include/netinet/tcp.h /usr/include/poll.h \
  /usr/include/aarch64-linux-gnu/sys/poll.h \
  /usr/include/aarch64-linux-gnu/bits/poll.h \
- /usr/include/aarch64-linux-gnu/sys/un.h /usr/include/string.h \
- /usr/include/strings.h /usr/include/c++/12/algorithm \
+ /usr/include/aarch64-linux-gnu/sys/un.h /usr/include/c++/12/algorithm \
  /usr/include/c++/12/bits/stl_algo.h \
  /usr/include/c++/12/bits/algorithmfwd.h \
  /usr/include/c++/12/bits/stl_heap.h \
@@ -287,8 +287,8 @@ CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o: \
  /usr/include/c++/12/bits/shared_ptr.h \
  /usr/include/c++/12/bits/shared_ptr_base.h \
  /usr/include/c++/12/bits/allocated_ptr.h \
- /usr/include/c++/12/ext/concurrence.h /usr/include/c++/12/cstring \
- /usr/include/c++/12/functional /usr/include/c++/12/bits/std_function.h \
+ /usr/include/c++/12/ext/concurrence.h /usr/include/c++/12/functional \
+ /usr/include/c++/12/bits/std_function.h \
  /usr/include/c++/12/unordered_map /usr/include/c++/12/bits/hashtable.h \
  /usr/include/c++/12/bits/hashtable_policy.h \
  /usr/include/c++/12/bits/enable_special_members.h \
