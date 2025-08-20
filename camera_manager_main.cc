@@ -1,3 +1,4 @@
+
 #include "camera_manager.h"
 #include <csignal>
 #include <fcntl.h>
@@ -103,8 +104,16 @@ int main(int argc, char **argv) {
         auto cams = g_mgr.configuredCameras();
         nlohmann::json out = nlohmann::json::array();
         for (auto &c : cams)
-          out.push_back(
-              {{"id", c.id}, {"present", c.present}, {"preview", c.preview}});
+          out.push_back({{"id", c.id},
+                         {"present", c.present},
+                         {"preview", c.preview},
+                         {"preferred",
+                          {{"w", c.preferred.w},
+                           {"h", c.preferred.h},
+                           {"pixfmt", c.preferred.pixfmt},
+                           {"fps", c.preferred.fps}}},
+                         {"npu_worker", c.npu_worker},
+                         {"auto_profiles", c.auto_profiles}});
         res.set_content(out.dump(), "application/json");
       });
 
@@ -146,6 +155,26 @@ int main(int argc, char **argv) {
                     std::string id = j.at("id").get<std::string>();
                     bool enable = j.at("enable").get<bool>();
                     if (!g_mgr.setPreview(id, enable))
+                      res.status = 400;
+                  } catch (...) {
+                    res.status = 400;
+                  }
+                });
+
+  g_server.Post("/api/settings",
+                [](const httplib::Request &req, httplib::Response &res) {
+                  try {
+                    auto j = nlohmann::json::parse(req.body);
+                    std::string id = j.at("id").get<std::string>();
+                    auto pref = j.at("preferred");
+                    CameraManager::CamConfig::VideoMode vm;
+                    vm.w = pref.value("w", 1280);
+                    vm.h = pref.value("h", 720);
+                    vm.pixfmt = pref.value("pixfmt", std::string("MJPG"));
+                    vm.fps = pref.value("fps", 30);
+                    int worker = j.value("npu_worker", 0);
+                    bool auto_profiles = j.value("auto_profiles", true);
+                    if (!g_mgr.updateSettings(id, vm, worker, auto_profiles))
                       res.status = 400;
                   } catch (...) {
                     res.status = 400;

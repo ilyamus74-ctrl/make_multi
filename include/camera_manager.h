@@ -18,6 +18,14 @@ public:
     std::string match_substr; // substring to match in /dev/v4l/by-id path
     std::string device_path;  // last known /dev/videoX path
     bool preview{true};       // preview enabled flag
+    struct VideoMode {
+      int w{1280};
+      int h{720};
+      std::string pixfmt{"MJPG"};
+      int fps{30};
+    } preferred;             // preferred capture parameters
+    int npu_worker{0};       // assigned NPU worker index
+    bool auto_profiles{true};
   };
 
   // Load configuration from JSON file. Returns true on success.
@@ -33,6 +41,9 @@ public:
     std::string id;
     bool present;
     bool preview;
+    CamConfig::VideoMode preferred;
+    int npu_worker;
+    bool auto_profiles;
   };
 
   // Thread-safe snapshot of configured cameras with presence flag
@@ -46,6 +57,10 @@ public:
 
   // Enable or disable preview for camera id
   bool setPreview(const std::string &id, bool enable);
+
+  // Update advanced settings for camera id
+  bool updateSettings(const std::string &id, const CamConfig::VideoMode &pref,
+                      int npu_worker, bool auto_profiles);
 
   // Remove camera from config and stop monitoring it
   bool removeCamera(const std::string &id);

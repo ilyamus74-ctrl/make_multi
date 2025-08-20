@@ -1,10 +1,11 @@
-
 #include "camera_manager.h"
 
 #include "nlohmann/json.hpp"
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 
 using json = nlohmann::json;
@@ -52,6 +53,15 @@ bool CameraManager::loadConfig(const std::string &path) {
         cfg.match_substr = c["match"]["by_id_contains"].get<std::string>();
       cfg.device_path = c.value("device", "");
       cfg.preview = c.value("preview", true);
+      if (c.contains("preferred")) {
+        auto &p = c["preferred"];
+        cfg.preferred.w = p.value("w", 1280);
+        cfg.preferred.h = p.value("h", 720);
+        cfg.preferred.pixfmt = p.value("pixfmt", std::string("MJPG"));
+        cfg.preferred.fps = p.value("fps", 30);
+      }
+      cfg.npu_worker = c.value("npu_worker", 0);
+      cfg.auto_profiles = c.value("auto_profiles", true);
       if (!cfg.id.empty())
         configs_[cfg.id] = cfg;
     }
@@ -80,7 +90,28 @@ void CameraManager::monitorLoop() {
     const std::string base = "/dev/v4l/by-id";
     if (fs::exists(base)) {
       for (auto &p : fs::directory_iterator(base)) {
-        current.insert(p.path().filename().string());
+        std::string byid = p.path().string();
+        std::string cmd = "udevadm info -q property -n " + byid;
+        FILE *fp = popen(cmd.c_str(), "r");
+        bool has_capture = false;
+        if (fp) {
+          char *line = nullptr;
+          size_t len = 0;
+          while (getline(&line, &len, fp) != -1) {
+            std::string s(line);
+            const std::string prefix = "ID_V4L_CAPABILITIES=";
+            if (s.rfind(prefix, 0) == 0) {
+              if (s.find(":capture:") != std::string::npos)
+                has_capture = true;
+              break;
+            }
+          }
+          if (line)
+            free(line);
+          pclose(fp);
+        }
+        if (has_capture)
+          current.insert(p.path().filename().string());
       }
     }
 
@@ -181,7 +212,9 @@ std::vector<CameraManager::ConfiguredInfo> CameraManager::configuredCameras() {
   std::lock_guard<std::mutex> lk(mutex_);
   std::vector<ConfiguredInfo> out;
   for (auto &kv : configs_) {
-    out.push_back({kv.first, active_.count(kv.first) > 0, kv.second.preview});
+    out.push_back({kv.first, active_.count(kv.first) > 0, kv.second.preview,
+                   kv.second.preferred, kv.second.npu_worker,
+                   kv.second.auto_profiles});
   }
   return out;
 }
@@ -228,6 +261,13 @@ bool CameraManager::addCamera(const std::string &id,
   if (!cfg.device_path.empty())
     cam["device"] = cfg.device_path;
   cam["preview"] = true;
+  cam["preferred"] =
+      json{{"w", cfg.preferred.w},
+           {"h", cfg.preferred.h},
+           {"pixfmt", cfg.preferred.pixfmt},
+           {"fps", cfg.preferred.fps}};
+  cam["npu_worker"] = cfg.npu_worker;
+  cam["auto_profiles"] = cfg.auto_profiles;
   j["cameras"].push_back(cam);
   std::ofstream out(config_path_, std::ios::trunc);
   if (!out.is_open())
@@ -261,6 +301,50 @@ bool CameraManager::setPreview(const std::string &id, bool enable) {
   for (auto &c : j["cameras"]) {
     if (c.value("id", "") == id) {
       c["preview"] = enable;
+      if (it->second.device_path.size())
+        c["device"] = it->second.device_path;
+    }
+  }
+  std::ofstream out(config_path_, std::ios::trunc);
+  if (!out.is_open())
+    return false;
+  out << j.dump(2);
+  return true;
+}
+
+bool CameraManager::updateSettings(const std::string &id,
+                                   const CamConfig::VideoMode &pref,
+                                   int npu_worker, bool auto_profiles) {
+  std::lock_guard<std::mutex> lk(mutex_);
+  auto it = configs_.find(id);
+  if (it == configs_.end())
+    return false;
+  it->second.preferred = pref;
+  it->second.npu_worker = npu_worker;
+  it->second.auto_profiles = auto_profiles;
+  json j;
+  {
+    std::ifstream f(config_path_);
+    if (f.is_open()) {
+      try {
+        f >> j;
+      } catch (...) {
+      }
+    }
+  }
+  if (!j.is_object())
+    j = json::object();
+  if (!j.contains("cameras"))
+    j["cameras"] = json::array();
+  for (auto &c : j["cameras"]) {
+    if (c.value("id", "") == id) {
+      c["preferred"] = {
+          {"w", pref.w},
+          {"h", pref.h},
+          {"pixfmt", pref.pixfmt},
+          {"fps", pref.fps}};
+      c["npu_worker"] = npu_worker;
+      c["auto_profiles"] = auto_profiles;
       if (it->second.device_path.size())
         c["device"] = it->second.device_path;
     }
