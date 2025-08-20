@@ -45,11 +45,9 @@
     document.getElementById('tabbtn-settings').onclick=()=>showTab('tab-settings');
 
     let currentAdvId=null;
-    let advDirty=false;
 
     function showAdvSettings(cam){
       currentAdvId = cam.id;
-      advDirty = false;
       const advDiv=document.getElementById('adv-settings');
       advDiv.style.display='block';
       advDiv.innerHTML='';
@@ -62,8 +60,6 @@
       const fps=document.createElement('input'); fps.type='number'; fps.value=cam.preferred.fps;
       const worker=document.createElement('input'); worker.type='number'; worker.value=cam.npu_worker;
       const auto=document.createElement('input'); auto.type='checkbox'; auto.checked=cam.auto_profiles;
-
-      [w,h,pix,fps,worker,auto].forEach(el=>el.addEventListener('input',()=>advDirty=true));
 
       advDiv.appendChild(document.createTextNode('w:')); advDiv.appendChild(w);
       advDiv.appendChild(document.createTextNode(' h:')); advDiv.appendChild(h);
@@ -85,8 +81,6 @@
             npu_worker:parseInt(worker.value),
             auto_profiles:auto.checked})
         });
-        advDirty=false;
-        refresh();
       };
       advDiv.appendChild(document.createElement('br'));
       advDiv.appendChild(apply);
@@ -140,7 +134,7 @@
           confDiv.appendChild(div);
         });
 
-        if(currentAdvId && !advDirty){
+        if(currentAdvId){
           const cam=configured.find(c=>c.id===currentAdvId);
           if(cam) showAdvSettings(cam); else {
             document.getElementById('adv-settings').style.display='none';
