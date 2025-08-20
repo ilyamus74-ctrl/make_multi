@@ -31,6 +31,22 @@
         "w": 1280
       },
       "preview": false
+    },
+    {
+      "auto_profiles": true,
+      "device": "/dev/video5",
+      "id": "3",
+      "match": {
+        "by_id_contains": "usb-icSpring_WebCamera_20240603201703-video-index0"
+      },
+      "npu_worker": 0,
+      "preferred": {
+        "fps": 30,
+        "h": 720,
+        "pixfmt": "MJPG",
+        "w": 1280
+      },
+      "preview": false
     }
   ]
 }
