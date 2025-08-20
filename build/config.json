@@ -1,16 +1,20 @@
 {
   "cameras": [
     {
+      "device": "/dev/video1",
       "id": "1",
       "match": {
         "by_id_contains": "usb-SHENZHEN_AONI_ELECTRONIC_CO.__LTD_Full_HD_webcam_AN202011030002-video-index0"
-      }
+      },
+      "preview": false
     },
     {
-      "id": "2",
+      "device": "/dev/video3",
+      "id": "3",
       "match": {
         "by_id_contains": "usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN0001-video-index0"
-      }
+      },
+      "preview": false
     }
   ]
 }

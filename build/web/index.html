@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -28,14 +29,34 @@
           const title=document.createElement('span');
           title.textContent=c.id+' ';
           div.appendChild(title);
-          const img=document.createElement('img');
-          img.width=320; img.height=240;
-          img.src=`/api/preview?id=${encodeURIComponent(c.id)}&t=${Date.now()}`;
-          div.appendChild(img);
+          let preview;
+          if(c.preview && c.present){
+            preview=document.createElement('img');
+            preview.width=320; preview.height=240;
+            preview.src=`/api/preview?id=${encodeURIComponent(c.id)}&t=${Date.now()}`;
+          }else{
+            preview=document.createElement('div');
+            preview.style.width='320px';
+            preview.style.height='240px';
+            preview.style.display='flex';
+            preview.style.alignItems='center';
+            preview.style.justifyContent='center';
+            preview.style.background='#ddd';
+            preview.textContent = c.present ? 'камера подключена' : 'нет камеры';
+          }
+          div.appendChild(preview);
+          const toggle=document.createElement('button');
+          toggle.textContent=c.preview?'Disable preview':'Enable preview';
+          toggle.onclick=async()=>{
+            await fetch('/api/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:c.id,enable:!c.preview})});
+            refresh();
+          };
+          div.appendChild(toggle);
           const del=document.createElement('button');
           del.textContent='Delete';
           del.onclick=async()=>{
             await fetch('/api/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:c.id})});
+            refresh();
           };
           div.appendChild(del);
           confDiv.appendChild(div);
