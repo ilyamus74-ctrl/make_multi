@@ -147,7 +147,9 @@ int main(int argc, char **argv) {
                           {"fps", c.preferred.fps}}},
                          {"npu_worker", c.npu_worker},
                          {"auto_profiles", c.auto_profiles},
-			 {"profile", c.profile},
+                         {"profile", c.profile},
+			 {"det_port", c.det_port},
+                         {"position", {{"x", c.position.x}, {"y", c.position.y}, {"z", c.position.z}}},
                          {"fps", c.fps}});
         res.set_content(out.dump(), "application/json");
       });

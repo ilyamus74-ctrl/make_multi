@@ -63,10 +63,19 @@ bool CameraManager::loadConfig(const std::string &path) {
       cfg.npu_worker = c.value("npu_worker", 0);
       cfg.auto_profiles = c.value("auto_profiles", true);
       cfg.profile = c.value("profile", std::string("auto"));
+      cfg.det_port = c.value("det_port", 0);
+      if (c.contains("position")) {
+        auto &p = c["position"];
+        cfg.position.x = p.value("x", 0.0);
+        cfg.position.y = p.value("y", 0.0);
+        cfg.position.z = p.value("z", 0.0);
+      }
       cfg.def_preferred = cfg.preferred;
       cfg.def_npu_worker = cfg.npu_worker;
       cfg.def_auto_profiles = cfg.auto_profiles;
       cfg.def_profile = cfg.profile;
+      cfg.def_det_port = cfg.det_port;
+      cfg.def_position = cfg.position;
       if (!cfg.id.empty())
         configs_[cfg.id] = cfg;
     }
@@ -242,7 +251,9 @@ std::vector<CameraManager::ConfiguredInfo> CameraManager::configuredCameras() {
   for (auto &kv : configs_) {
     out.push_back({kv.first, active_.count(kv.first) > 0, kv.second.preview,
                    kv.second.preferred, kv.second.npu_worker,
-		   kv.second.auto_profiles, kv.second.profile, kv.second.fps});
+		   kv.second.auto_profiles, kv.second.profile,
+                   kv.second.det_port, kv.second.position,
+                   kv.second.fps});
   }
   return out;
 }
@@ -259,12 +270,16 @@ bool CameraManager::addCamera(const std::string &id,
   cfg.match_substr = by_id_path;
   cfg.preview = true;
   cfg.profile = "auto";
+  cfg.det_port = 0;
+  cfg.position = {};
   std::error_code ec;
   auto dev = std::filesystem::canonical(
       std::string("/dev/v4l/by-id/") + by_id_path, ec);
   if (!ec)
     cfg.device_path = dev.string();
     cfg.def_preferred = cfg.preferred;
+    cfg.def_det_port = cfg.det_port;
+    cfg.def_position = cfg.position;
     cfg.def_npu_worker = cfg.npu_worker;
     cfg.def_auto_profiles = cfg.auto_profiles;
     cfg.def_profile = cfg.profile;
@@ -299,6 +314,8 @@ bool CameraManager::addCamera(const std::string &id,
            {"h", cfg.preferred.h},
            {"pixfmt", cfg.preferred.pixfmt},
            {"fps", cfg.preferred.fps}};
+  cam["det_port"] = cfg.det_port;
+  cam["position"] = json{{"x", cfg.position.x}, {"y", cfg.position.y}, {"z", cfg.position.z}};
   cam["npu_worker"] = cfg.npu_worker;
   cam["auto_profiles"] = cfg.auto_profiles;
   cam["profile"] = cfg.profile;
@@ -405,6 +422,8 @@ bool CameraManager::resetSettings(const std::string &id) {
   cfg.npu_worker = cfg.def_npu_worker;
   cfg.auto_profiles = cfg.def_auto_profiles;
   cfg.profile = cfg.def_profile;
+  cfg.det_port = cfg.def_det_port;
+  cfg.position = cfg.def_position;
   applyProfile(cfg);
 
 
@@ -431,6 +450,8 @@ bool CameraManager::resetSettings(const std::string &id) {
       c["npu_worker"] = cfg.npu_worker;
       c["auto_profiles"] = cfg.auto_profiles;
       c["profile"] = cfg.profile;
+      c["det_port"] = cfg.det_port;
+      c["position"] = {{"x", cfg.position.x}, {"y", cfg.position.y}, {"z", cfg.position.z}};
       if (!cfg.device_path.empty())
         c["device"] = cfg.device_path;
     }

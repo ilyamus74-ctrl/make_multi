@@ -226,6 +226,11 @@ public:
             else ++lit;
         }
     }
+    bool getColor(int id, float out[3]) const {
+        for (auto& t : tracks) if (t.id == id) { out[0]=t.color[0]; out[1]=t.color[1]; out[2]=t.color[2]; return true; }
+        for (auto& t : lost)   if (t.id == id) { out[0]=t.color[0]; out[1]=t.color[1]; out[2]=t.color[2]; return true; }
+        return false;
+    }
 };
 
 
@@ -808,8 +813,8 @@ private:
                 auto jpg = encode_rgb_to_jpeg(frame.virt_addr, frame.width, frame.height, jpeg_q);
                 TOCK(enc, acc.enc);  // DEBUG
 
-                auto meta = formatDetectionResults(&od, frame.width, frame.height);
-                {
+                auto meta = formatDetectionResults(&od, frame.width, frame.height, tracker);
+		{
                     std::lock_guard<std::mutex> lk(frame_mtx);
                     last_jpeg.swap(jpg);
                     last_meta = std::move(meta);
@@ -844,8 +849,7 @@ private:
         if (log_enabled) logMinuteSummary(std::chrono::system_clock::now());
     }
 // end main loop
-
-    static json formatDetectionResults(object_detect_result_list* results, int img_w, int img_h) {
+    static json formatDetectionResults(object_detect_result_list* results, int img_w, int img_h, const SimpleTracker& tracker) {
         json detections = json::array();
         for (int i = 0; i < results->count; i++) {
             auto* d = &(results->results[i]);
@@ -853,7 +857,11 @@ private:
             det["class_name"] = coco_cls_to_name(d->cls_id);
             det["class_id"] = d->cls_id;
             det["confidence"] = d->prop;
-	    det["track_id"] = d->track_id;
+            det["track_id"] = d->track_id;
+            float col[3];
+            if (tracker.getColor(d->track_id, col)) {
+                det["color"] = {col[0], col[1], col[2]};
+            }
             json box;
             box["left"] = d->box.left;
             box["top"] = d->box.top;

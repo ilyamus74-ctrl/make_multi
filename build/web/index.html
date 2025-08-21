@@ -22,7 +22,7 @@
 
   <div id="tab-main" class="tab active">
     <h3>Main</h3>
-    <div>Placeholder</div>
+    <div id="mosaic" style="display:grid;gap:4px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));"></div>
   </div>
 
   <div id="tab-settings" class="tab">
@@ -40,6 +40,7 @@
     function showTab(id){
       document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
       document.getElementById(id).classList.add('active');
+      if(id==='tab-main') startMain(); else stopMain();
     }
     document.getElementById('tabbtn-main').onclick=()=>showTab('tab-main');
     document.getElementById('tabbtn-settings').onclick=()=>showTab('tab-settings');
@@ -48,6 +49,58 @@
     let advDirty=false;
     let previewEnabled=false;
     const previewTimers=new Map();
+
+// ----- Main tab detection stream -----
+    let mainCams=[];
+    let detTimer=null;
+    let globalNextId=1;
+    const globalObjs=new Map();
+    function startMain(){
+      refreshMain();
+      if(detTimer) clearInterval(detTimer);
+      detTimer=setInterval(fetchDetections,1000);
+    }
+    function stopMain(){
+      if(detTimer){clearInterval(detTimer);detTimer=null;}
+    }
+    async function refreshMain(){
+      const cams=await (await fetch('/api/configured',{cache:'no-store'})).json();
+      mainCams=cams.filter(c=>c.det_port && c.det_port>0);
+      const mosaic=document.getElementById('mosaic');
+      mosaic.innerHTML='';
+      mainCams.forEach(c=>{
+        const img=document.createElement('img');
+        img.width=320; img.height=240;
+        img.src=`http://localhost:${c.det_port}/api/stream.mjpg`;
+        mosaic.appendChild(img);
+      });
+    }
+    function colorDist(a,b){return Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2]);}
+    async function fetchDetections(){
+      for(const cam of mainCams){
+        try{
+          const j=await (await fetch(`http://localhost:${cam.det_port}/api/last.json`)).json();
+          if(!j.detections) continue;
+          j.detections.forEach(det=>{
+            if(!det.color) return;
+            let best=null; let bestd=1e9;
+            globalObjs.forEach((obj,id)=>{const d=colorDist(obj.color,det.color); if(d<bestd){bestd=d; best=id;}});
+            if(best===null || bestd>30){best=globalNextId++; globalObjs.set(best,{color:det.color,cams:new Map()});}
+            const obj=globalObjs.get(best);
+            const cx=det.normalized_box.left + det.normalized_box.width/2;
+            obj.cams.set(cam.id,{cx:cx, cam:cam});
+            if(obj.cams.size>=2){ const arr=[...obj.cams.values()]; obj.distance=triangulate(arr[0],arr[1]); console.log('Object',best,'distance',obj.distance); }
+          });
+        }catch(e){ }
+      }
+    }
+    function triangulate(a,b){
+      const baseline=Math.hypot(a.cam.position.x-b.cam.position.x, a.cam.position.y-b.cam.position.y);
+      const fov=60*Math.PI/180; const focal=0.5/Math.tan(fov/2);
+      const disparity=Math.abs(a.cx-b.cx); if(disparity<1e-6) return null;
+      return (focal*baseline)/disparity;
+    }
+
 
     function showAdvSettings(cam){
       currentAdvId = cam.id;

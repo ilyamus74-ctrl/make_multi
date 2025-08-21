@@ -34,6 +34,10 @@ public:
     bool def_auto_profiles{true};
     std::string profile{"auto"};   // current control profile
     std::string def_profile{"auto"};
+    int det_port{0};                 // port of detection server
+    int def_det_port{0};
+    struct Position { double x{0}; double y{0}; double z{0}; } position;
+    Position def_position{};
     double fps{0.0};
     std::chrono::steady_clock::time_point last_frame{};
   };
@@ -56,6 +60,8 @@ public:
     int npu_worker;
     bool auto_profiles;
     std::string profile;
+    int det_port;
+    CamConfig::Position position;
     double fps;
   };
 
@@ -74,7 +80,7 @@ public:
   // Update advanced settings for camera id
   bool updateSettings(const std::string &id, const CamConfig::VideoMode &pref,
                       int npu_worker, bool auto_profiles,
-                      const std::string &profile);  
+                      const std::string &profile);
   // Reset settings to defaults for camera id
   bool resetSettings(const std::string &id);
 
