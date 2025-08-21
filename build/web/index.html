@@ -102,14 +102,22 @@
     }
 
 
-    function showAdvSettings(cam){
-      currentAdvId = cam.id;
+    async function showAdvSettings(cam){      currentAdvId = cam.id;
       advDirty = false;
       const advDiv=document.getElementById('adv-settings');
       advDiv.style.display='block';
       advDiv.innerHTML='';
       advDiv.appendChild(document.createTextNode('Дополнительные настройки '+cam.id));
       advDiv.appendChild(document.createElement('br'));
+
+      let models={rknn:[],labels:[]};
+      try{ models=await (await fetch('/api/models',{cache:'no-store'})).json(); }catch(e){}
+
+      const modelSel=document.createElement('select');
+      models.rknn.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;if(cam.model_path===m)o.selected=true;modelSel.appendChild(o);});
+      const labelsSel=document.createElement('select');
+      models.labels.forEach(l=>{const o=document.createElement('option');o.value=l;o.textContent=l;if(cam.labels_path===l)o.selected=true;labelsSel.appendChild(o);});
+
 
       const w=document.createElement('input'); w.type='number'; w.value=cam.preferred.w;
       const h=document.createElement('input'); h.type='number'; h.value=cam.preferred.h;
@@ -120,11 +128,14 @@
       const profile=document.createElement('select');
       ['auto','bright','indoor','dark'].forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;if(cam.profile===p)o.selected=true;profile.appendChild(o);});
 
-      [w,h,pix,fps,worker,auto,profile].forEach(el=>{
-        el.addEventListener('focus',()=>advDirty=true);
+      [w,h,pix,fps,worker,auto,profile,modelSel,labelsSel].forEach(el=>{        el.addEventListener('focus',()=>advDirty=true);
         el.addEventListener('input',()=>advDirty=true);
+        el.addEventListener('change',()=>advDirty=true);
       });
 
+      advDiv.appendChild(document.createTextNode('model:')); advDiv.appendChild(modelSel);
+      advDiv.appendChild(document.createTextNode(' labels:')); advDiv.appendChild(labelsSel);
+      advDiv.appendChild(document.createElement('br'));
       advDiv.appendChild(document.createTextNode('w:')); advDiv.appendChild(w);
       advDiv.appendChild(document.createTextNode(' h:')); advDiv.appendChild(h);
       advDiv.appendChild(document.createTextNode(' pixfmt:')); advDiv.appendChild(pix);
@@ -145,7 +156,9 @@
             preferred:{w:parseInt(w.value),h:parseInt(h.value),pixfmt:pix.value,fps:parseInt(fps.value)},
             npu_worker:parseInt(worker.value),
             auto_profiles:auto.checked,
-            profile:profile.value}) 
+            profile:profile.value,
+            model_path:modelSel.value,
+            labels_path:labelsSel.value})
        });
         advDirty=false;
         refresh();
@@ -257,7 +270,7 @@
 
         if(currentAdvId && !advDirty){
           const cam=configured.find(c=>c.id===currentAdvId);
-          if(cam) showAdvSettings(cam); else {
+          if(cam) await showAdvSettings(cam); else {
             document.getElementById('adv-settings').style.display='none';
             currentAdvId=null;
           }

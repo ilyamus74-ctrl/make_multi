@@ -4,34 +4,8 @@
       "auto_profiles": true,
       "det_args": [],
       "det_port": 8000,
-      "device": "/dev/video4",
-      "id": "1",
-      "labels_path": "model/coco_80_labels_list.txt",
-      "match": {
-        "by_id_contains": "usb-SHENZHEN_AONI_ELECTRONIC_CO.__LTD_Full_HD_webcam_AN202011030002-video-index0"
-      },
-      "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
-      "npu_worker": 0,
-      "position": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": 0.0
-      },
-      "preferred": {
-        "fps": 30,
-        "h": 720,
-        "pixfmt": "MJPG",
-        "w": 1280
-      },
-      "preview": true,
-      "profile": "dark"
-    },
-    {
-      "auto_profiles": true,
-      "det_args": [],
-      "det_port": 8001,
       "device": "/dev/video1",
-      "id": "2",
+      "id": "1",
       "labels_path": "model/coco_80_labels_list.txt",
       "match": {
         "by_id_contains": "usb-icSpring_WebCamera_20240603201703-video-index0"
@@ -49,7 +23,33 @@
         "pixfmt": "MJPG",
         "w": 1280
       },
-      "preview": true,
+      "preview": false,
+      "profile": "auto"
+    },
+    {
+      "auto_profiles": true,
+      "det_args": [],
+      "det_port": 8001,
+      "device": "/dev/video1",
+      "id": "2",
+      "labels_path": "model/coco_80_labels_list.txt",
+      "match": {
+        "by_id_contains": "usb-SHENZHEN_AONI_ELECTRONIC_CO.__LTD_Full_HD_webcam_AN202011030002-video-index0"
+      },
+      "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
+      "npu_worker": 0,
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "preferred": {
+        "fps": 30,
+        "h": 720,
+        "pixfmt": "MJPG",
+        "w": 1280
+      },
+      "preview": false,
       "profile": "auto"
     }
   ]

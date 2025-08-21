@@ -127,6 +127,8 @@ bool CameraManager::loadConfig(const std::string &path) {
       cfg.def_profile = cfg.profile;
       cfg.def_det_port = cfg.det_port;
       cfg.def_position = cfg.position;
+      cfg.def_model_path = cfg.model_path;
+      cfg.def_labels_path = cfg.labels_path;
       if (!cfg.id.empty())
         configs_[cfg.id] = cfg;
     }
@@ -378,8 +380,8 @@ std::vector<CameraManager::ConfiguredInfo> CameraManager::configuredCameras() {
                    kv.second.preferred, kv.second.npu_worker,
                    kv.second.auto_profiles, kv.second.profile,
                    kv.second.det_port, kv.second.position,
-                   kv.second.fps});
-  }
+                   kv.second.fps, kv.second.model_path,
+                   kv.second.labels_path});  }
   return out;
 }
 
@@ -416,7 +418,9 @@ bool CameraManager::addCamera(const std::string &id,
   cfg.def_position = cfg.position;
   cfg.def_npu_worker = cfg.npu_worker;
   cfg.def_auto_profiles = cfg.auto_profiles;
-  cfg.def_profile = cfg.profile;  
+  cfg.def_profile = cfg.profile;
+  cfg.def_model_path = cfg.model_path;
+  cfg.def_labels_path = cfg.labels_path;
 
   {
     std::lock_guard<std::mutex> lk(mutex_);
@@ -504,7 +508,9 @@ bool CameraManager::setPreview(const std::string &id, bool enable) {
 bool CameraManager::updateSettings(const std::string &id,
                                    const CamConfig::VideoMode &pref,
                                    int npu_worker, bool auto_profiles,
-                                   const std::string &profile) {
+                                   const std::string &profile,
+                                   const std::string &model_path,
+                                   const std::string &labels_path) {
   std::lock_guard<std::mutex> lk(mutex_);
   auto it = configs_.find(id);
   if (it == configs_.end())
@@ -514,6 +520,10 @@ bool CameraManager::updateSettings(const std::string &id,
   it->second.auto_profiles = auto_profiles;
   if (!profile.empty())
     it->second.profile = profile;
+  if (!model_path.empty())
+    it->second.model_path = model_path;
+  if (!labels_path.empty())
+    it->second.labels_path = labels_path;
   applyProfile(it->second);
   json j;
   {
@@ -539,6 +549,8 @@ bool CameraManager::updateSettings(const std::string &id,
       c["npu_worker"] = npu_worker;
       c["auto_profiles"] = auto_profiles;
       c["profile"] = it->second.profile;
+      c["model_path"] = it->second.model_path;
+      c["labels_path"] = it->second.labels_path;
       if (it->second.device_path.size())
         c["device"] = it->second.device_path;
     }
@@ -562,6 +574,8 @@ bool CameraManager::resetSettings(const std::string &id) {
   cfg.profile = cfg.def_profile;
   cfg.det_port = cfg.def_det_port;
   cfg.position = cfg.def_position;
+  cfg.model_path = cfg.def_model_path;
+  cfg.labels_path = cfg.def_labels_path;
   applyProfile(cfg);
 
   json j;
@@ -589,6 +603,8 @@ bool CameraManager::resetSettings(const std::string &id) {
       c["profile"] = cfg.profile;
       c["det_port"] = cfg.det_port;
       c["position"] = {{"x", cfg.position.x}, {"y", cfg.position.y}, {"z", cfg.position.z}};
+      c["model_path"] = cfg.model_path;
+      c["labels_path"] = cfg.labels_path;
       if (!cfg.device_path.empty())
         c["device"] = cfg.device_path;
     }

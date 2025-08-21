@@ -10,6 +10,7 @@
 #include <vector>
 #include <cerrno>
 #include <cstring>
+#include <filesystem>
 
 #include "httplib.h"
 #include "nlohmann/json.hpp"
@@ -148,11 +149,35 @@ int main(int argc, char **argv) {
                          {"npu_worker", c.npu_worker},
                          {"auto_profiles", c.auto_profiles},
                          {"profile", c.profile},
-			 {"det_port", c.det_port},
+                         {"det_port", c.det_port},
                          {"position", {{"x", c.position.x}, {"y", c.position.y}, {"z", c.position.z}}},
-                         {"fps", c.fps}});
-        res.set_content(out.dump(), "application/json");
+                         {"fps", c.fps},
+                         {"model_path", c.model_path},
+                         {"labels_path", c.labels_path}});        res.set_content(out.dump(), "application/json");
       });
+
+  g_server.Get("/api/models",
+               [](const httplib::Request &, httplib::Response &res) {
+                 nlohmann::json out;
+                 out["rknn"] = nlohmann::json::array();
+                 out["labels"] = nlohmann::json::array();
+                 namespace fs = std::filesystem;
+                 try {
+                   for (auto &p : fs::directory_iterator("model_rknn"))
+                     if (p.is_regular_file())
+                       out["rknn"].push_back(std::string("model_rknn/") +
+                                             p.path().filename().string());
+                 } catch (...) {
+                 }
+                 try {
+                   for (auto &p : fs::directory_iterator("model"))
+                     if (p.is_regular_file())
+                       out["labels"].push_back(std::string("model/") +
+                                               p.path().filename().string());
+                 } catch (...) {
+                 }
+                 res.set_content(out.dump(), "application/json");
+               });
 
   g_server.Get("/api/new",
                [](const httplib::Request &, httplib::Response &res) {
@@ -217,13 +242,18 @@ int main(int argc, char **argv) {
                     bool auto_profiles = j.value("auto_profiles", true);
                     std::string profile =
                         j.value("profile", std::string("auto"));
+                    std::string model_path =
+                        j.value("model_path", std::string(""));
+                    std::string labels_path =
+                        j.value("labels_path", std::string(""));
                     if (!g_mgr.updateSettings(id, vm, worker, auto_profiles,
-                                              profile))
+                                              profile, model_path, labels_path))
                       res.status = 400;
                   } catch (...) {
                     res.status = 400;
                   }
                 });
+
  g_server.Post("/api/settings/reset",
                 [](const httplib::Request &req, httplib::Response &res) {
                   try {

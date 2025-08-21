@@ -39,6 +39,8 @@ public:
     int def_det_port{0};
     std::string model_path{"model_rknn/yolov8.rknn"};
     std::string labels_path{"model/coco_80_labels_list.txt"};
+    std::string def_model_path{"model_rknn/yolov8.rknn"};
+    std::string def_labels_path{"model/coco_80_labels_list.txt"};
     std::vector<std::string> det_args; // additional detector args
     struct Position { double x{0}; double y{0}; double z{0}; } position;
     Position def_position{};
@@ -66,6 +68,8 @@ public:
     int det_port;
     CamConfig::Position position;
     double fps;
+    std::string model_path;
+    std::string labels_path;
   };
 
   // Thread-safe snapshot of configured cameras with presence flag
@@ -83,7 +87,9 @@ public:
   // Update advanced settings for camera id
   bool updateSettings(const std::string &id, const CamConfig::VideoMode &pref,
                       int npu_worker, bool auto_profiles,
-                      const std::string &profile);
+                      const std::string &profile,
+                      const std::string &model_path,
+                      const std::string &labels_path);
   // Reset settings to defaults for camera id
   bool resetSettings(const std::string &id);
 
