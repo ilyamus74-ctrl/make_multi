@@ -226,18 +226,7 @@ void CameraManager::monitorLoop() {
 
     std::set<std::string> new_unconfigured = current;
 
-    // Take a snapshot of configs_ under the lock to avoid concurrent
-    // modifications while iterating. This also keeps the lock held only for
-    // the minimal time and allows heavy work to happen without the mutex.
-    std::vector<std::pair<std::string, CamConfig>> cfg_snapshot;
-    {
-      std::lock_guard<std::mutex> lk(mutex_);
-      cfg_snapshot.reserve(configs_.size());
-      for (auto &kv : configs_)
-        cfg_snapshot.push_back(kv);
-    }
-
-    for (auto &kv : cfg_snapshot) {
+    for (auto &kv : configs_) {
       const auto &id = kv.first;
       CamConfig &cfg = kv.second;
       bool present = false;
@@ -258,9 +247,7 @@ void CameraManager::monitorLoop() {
           auto dev = fs::canonical(base + "/" + matched, ec);
           std::string devpath = ec ? std::string{} : dev.string();
           active_paths_[id] = devpath;
-          auto it = configs_.find(id);
-          if (it != configs_.end())
-            it->second.device_path = devpath;
+          cfg.device_path = devpath;
           if (!active) {
             std::cout << "Camera " << id << " connected" << std::endl;
             active_.insert(id);
@@ -287,104 +274,96 @@ void CameraManager::monitorLoop() {
           ++it;
       }
 
-      // When preview is enabled, ensure detection is stopped so the camera can be
-      // used for previewing. Detection runs only while preview is disabled.
-      if (cfg.preview) {
-        pid_t pid = 0;
-        {
-          std::lock_guard<std::mutex> lk(mutex_);
-          auto itp = det_pids_.find(id);
-          if (itp != det_pids_.end())
-            pid = itp->second;
-        }
+      pid_t pid = 0;
+      {
+        std::lock_guard<std::mutex> lk(mutex_);
+        auto itp = det_pids_.find(id);
+        if (itp != det_pids_.end())
+          pid = itp->second;
+      }
+
+      if (!present || cfg.det_port <= 0 || cfg.preview) {
         if (pid > 0) {
           kill(pid, SIGTERM);
           waitpid(pid, nullptr, 0);
+        {
           std::lock_guard<std::mutex> lk(mutex_);
-          det_pids_.erase(id);
+          det_pids_.erase(id);}
         }
         continue;
       }
 
-      if (present && cfg.det_port > 0 && !cfg.preview) {
-        pid_t pid = 0;
-        {
+      if (pid > 0) {
+        int status;
+        pid_t rc = waitpid(pid, &status, WNOHANG);
+        if (rc == pid) {
+          if (WIFEXITED(status)) {
+            std::cerr << "CameraManager: detection process for camera " << id
+                      << " exited with status " << WEXITSTATUS(status)
+                      << std::endl;
+          } else if (WIFSIGNALED(status)) {
+            std::cerr << "CameraManager: detection process for camera " << id
+                      << " terminated by signal " << WTERMSIG(status)
+                      << std::endl;
+          }
           std::lock_guard<std::mutex> lk(mutex_);
-          auto itp = det_pids_.find(id);
-          if (itp != det_pids_.end())
-            pid = itp->second;
+          det_pids_.erase(id);
+          pid = 0;
         }
-        if (pid > 0) {
-          int status;
-          pid_t rc = waitpid(pid, &status, WNOHANG);
-          if (rc == pid) {
-            if (WIFEXITED(status)) {
-              std::cerr << "CameraManager: detection process for camera " << id
-                        << " exited with status " << WEXITSTATUS(status)
-                        << std::endl;
-            } else if (WIFSIGNALED(status)) {
-              std::cerr << "CameraManager: detection process for camera " << id
-                        << " terminated by signal " << WTERMSIG(status)
-                        << std::endl;
-            }
+      }
+      if (pid == 0) {
+        pid_t child = fork();
+        if (child == 0) {
+          std::string port = std::to_string(cfg.det_port);
+          std::vector<std::string> args;
+          args.push_back("yolov8_web_server");
+          args.push_back(cfg.model_path);
+          args.push_back("--dev");
+          args.push_back(cfg.device_path);
+          args.push_back("--port");
+          args.push_back(port);
+          if (!cfg.labels_path.empty()) {
+            args.push_back("--labels");
+            args.push_back(cfg.labels_path);
+          }
+          args.push_back("--cap-fps");
+          args.push_back(std::to_string(cfg.cap_fps));
+          args.push_back("--buffers");
+          args.push_back(std::to_string(cfg.buffers));
+          args.push_back("--jpeg-quality");
+          args.push_back(std::to_string(cfg.jpeg_quality));
+          args.push_back("--http-fps-limit");
+          args.push_back(std::to_string(cfg.http_fps_limit));
+          if (cfg.show_det_fps)
+            args.push_back("--fps");
+          args.push_back("--npu-core");
+          args.push_back(cfg.npu_core);
+          if (!cfg.log_file.empty()) {
+            args.push_back("--log-file");
+            args.push_back(cfg.log_file);
+          }
+          for (const auto &a : cfg.det_args)
+            args.push_back(a);
+          std::vector<char *> argv;
+          for (auto &a : args)
+            argv.push_back(const_cast<char *>(a.c_str()));
+          argv.push_back(nullptr);
+          execv("./yolov8_web_server", argv.data());
+          std::cerr << "CameraManager: execv failed for camera " << id
+                    << ": " << std::strerror(errno) << std::endl;
+          _exit(1);
+        } else if (child > 0) {
+          {
             std::lock_guard<std::mutex> lk(mutex_);
-            det_pids_.erase(id);
-            pid = 0;
+            det_pids_[id] = child;
+
           }
-        }
-        if (pid == 0) {
-          pid_t child = fork();
-          if (child == 0) {
-            std::string port = std::to_string(cfg.det_port);
-            std::vector<std::string> args;
-            args.push_back("yolov8_web_server");
-            args.push_back(cfg.model_path);
-            args.push_back("--dev");
-            args.push_back(cfg.device_path);
-            args.push_back("--port");
-            args.push_back(port);
-            if (!cfg.labels_path.empty()) {
-              args.push_back("--labels");
-              args.push_back(cfg.labels_path);
-            }
-            args.push_back("--cap-fps");
-            args.push_back(std::to_string(cfg.cap_fps));
-            args.push_back("--buffers");
-            args.push_back(std::to_string(cfg.buffers));
-            args.push_back("--jpeg-quality");
-            args.push_back(std::to_string(cfg.jpeg_quality));
-            args.push_back("--http-fps-limit");
-            args.push_back(std::to_string(cfg.http_fps_limit));
-            if (cfg.show_det_fps)
-              args.push_back("--fps");
-            args.push_back("--npu-core");
-            args.push_back(cfg.npu_core);
-            if (!cfg.log_file.empty()) {
-              args.push_back("--log-file");
-              args.push_back(cfg.log_file);
-            }
-            for (const auto &a : cfg.det_args)
-              args.push_back(a);
-            std::vector<char *> argv;
-            for (auto &a : args)
-              argv.push_back(const_cast<char *>(a.c_str()));
-            argv.push_back(nullptr);
-            execv("./yolov8_web_server", argv.data());
-            std::cerr << "CameraManager: execv failed for camera " << id
-                      << ": " << std::strerror(errno) << std::endl;
-            _exit(1);
-          } else if (child > 0) {
-            {
-              std::lock_guard<std::mutex> lk(mutex_);
-              det_pids_[id] = child;
-            }
-            std::cout << "CameraManager: forked detection pid " << child
-                      << " for device " << cfg.device_path << " port "
-                      << cfg.det_port << std::endl;
-          } else {
-            std::cerr << "CameraManager: fork failed for camera " << id
-                      << ": " << std::strerror(errno) << std::endl;
-          }
+          std::cout << "CameraManager: forked detection pid " << child
+                    << " for device " << cfg.device_path << " port "
+                    << cfg.det_port << std::endl;
+        } else {
+          std::cerr << "CameraManager: fork failed for camera " << id
+                    << ": " << std::strerror(errno) << std::endl;
         }
       }
     }
@@ -396,6 +375,8 @@ void CameraManager::monitorLoop() {
 
     std::this_thread::sleep_for(1s);
   }
+
+
 }
 
 bool CameraManager::removeCamera(const std::string &id) {

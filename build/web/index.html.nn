@@ -21,7 +21,8 @@
   </div>
 
   <div id="tab-main" class="tab active">
-    <h3>Main</h3>
+    <h3>Main</h3> 
+    <button id="det-toggle">Stop</button>
     <div id="mosaic" style="display:grid;gap:4px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));"></div>
   </div>
 
@@ -40,7 +41,7 @@
     function showTab(id){
       document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
       document.getElementById(id).classList.add('active');
-      if(id==='tab-main') startMain(); else stopMain();
+     if(id==='tab-main'){ if(detRunning) startMain(); } else stopMain();
     }
     document.getElementById('tabbtn-main').onclick=()=>showTab('tab-main');
     document.getElementById('tabbtn-settings').onclick=()=>showTab('tab-settings');
@@ -49,6 +50,24 @@
     let advDirty=false;
     let previewEnabled=false;
     const previewTimers=new Map();
+
+
+    let detRunning=true;
+    const detBtn=document.getElementById('det-toggle');
+    detBtn.onclick=async()=>{
+      if(detRunning){
+        await fetch('/api/det/stop',{method:'POST'});
+        detRunning=false;
+        detBtn.textContent='Start';
+        stopMain();
+      }else{
+        await fetch('/api/det/start',{method:'POST'});
+        detRunning=true;
+        detBtn.textContent='Stop';
+        startMain();
+      }
+    };
+    if(detRunning) startMain();
 
 // ----- Main tab detection stream -----
     let mainCams=[];
@@ -230,7 +249,7 @@
           div.querySelector('.title').textContent=c.id+' ';
 
           let preview=div.querySelector('.preview');
-	  if(previewEnabled && c.preview && c.present){
+      if(previewEnabled && c.preview && c.present){
             if(preview.tagName!=='IMG'){
               const img=document.createElement('img');
               img.className='preview';
@@ -285,7 +304,7 @@
           const fps=div.querySelector('span.fps');
           fps.textContent=c.show_fps?` FPS: ${c.fps.toFixed(1)}`:'';
         });
-	existing.forEach(div=>{
+    existing.forEach(div=>{
           const t=previewTimers.get(div.dataset.id);
           if(t){clearInterval(t);previewTimers.delete(div.dataset.id);}
           div.remove();
@@ -303,7 +322,7 @@
         const news = await (await fetch('/api/new',{cache:'no-store'})).json();
         const newDiv=document.getElementById('newcams');
         newDiv.innerHTML='';
-	news.forEach((n,idx)=>{
+    news.forEach((n,idx)=>{
           const div=document.createElement('div');
           div.className='newcam';
           const title=document.createElement('span');
@@ -311,7 +330,7 @@
           div.appendChild(title);
           const img=document.createElement('img');
           img.width=320; img.height=240;
-	  if(previewEnabled)
+      if(previewEnabled)
           setTimeout(()=>{img.src=`/api/preview?by=${encodeURIComponent(n)}&t=${Date.now()}`;},idx*200);
           div.appendChild(img);
           const btn=document.createElement('button');
@@ -328,4 +347,3 @@
   </script>
 </body>
 </html>
-
