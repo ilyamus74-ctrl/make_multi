@@ -72,11 +72,11 @@ bool CameraManager::loadConfig(const std::string &path) {
         need_save = true;
       }
       if (!c.contains("model_path")) {
-        c["model_path"] = "./model/yolov8.rknn";
+        c["model_path"] = "model_rknn/yolov8.rknn";
         need_save = true;
       }
       if (!c.contains("labels_path")) {
-        c["labels_path"] = "./model/coco_80_labels_list.txt";
+        c["labels_path"] = "model/coco_80_labels_list.txt";
         need_save = true;
       }
       if (!c.contains("det_args")) {
@@ -107,8 +107,8 @@ bool CameraManager::loadConfig(const std::string &path) {
       cfg.auto_profiles = c.value("auto_profiles", true);
       cfg.profile = c.value("profile", std::string("auto"));
       cfg.det_port = c.value("det_port", 0);
-      cfg.model_path = c.value("model_path", std::string("./model/yolov8.rknn"));
-      cfg.labels_path = c.value("labels_path", std::string("./model/coco_80_labels_list.txt"));
+      cfg.model_path = c.value("model_path", std::string("model_rknn/yolov8.rknn"));
+      cfg.labels_path = c.value("labels_path", std::string("model/coco_80_labels_list.txt"));
       if (c.contains("det_args") && c["det_args"].is_array())
         cfg.det_args = c["det_args"].get<std::vector<std::string>>();
       if (!c.contains("det_port")) {

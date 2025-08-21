@@ -237,7 +237,7 @@ public:
 // ---------- CLI ----------
 struct Args {
     std::string model;
-    std::string labels = "./model/coco_80_labels_list.txt";
+    std::string labels = "model/coco_80_labels_list.txt";
     std::string dev = "/dev/video0";
     int port = 8080;
     int cap_w = 640, cap_h = 480;

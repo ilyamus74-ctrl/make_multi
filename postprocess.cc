@@ -659,7 +659,7 @@ int post_process(rknn_app_context_t *app_ctx, void *outputs, letterbox_t *letter
 int init_post_process(const char *label_path)
 {
     int ret = 0;
-    const char *path = label_path ? label_path : "./model/coco_80_labels_list.txt";
+    const char *path = label_path ? label_path : "model/coco_80_labels_list.txt";
     ret = loadLabelName(path, labels);
     if (ret < 0)
     {

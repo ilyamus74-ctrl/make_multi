@@ -37,8 +37,8 @@ public:
     std::string def_profile{"auto"};
     int det_port{0};                 // port of detection server
     int def_det_port{0};
-    std::string model_path{"./model/yolov8.rknn"};
-    std::string labels_path{"./model/coco_80_labels_list.txt"};
+    std::string model_path{"model_rknn/yolov8.rknn"};
+    std::string labels_path{"model/coco_80_labels_list.txt"};
     std::vector<std::string> det_args; // additional detector args
     struct Position { double x{0}; double y{0}; double z{0}; } position;
     Position def_position{};
