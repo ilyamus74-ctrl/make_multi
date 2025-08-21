@@ -25,19 +25,17 @@ public:
       int h{720};
       std::string pixfmt{"MJPG"};
       int fps{30};
-    } preferred;             // current capture parameters
-    int npu_worker{0};       // assigned NPU worker index
+    };
+    VideoMode preferred;             // current capture parameters
+    VideoMode def_preferred{};       // default capture parameters
+    int npu_worker{0};               // assigned NPU worker index
+    int def_npu_worker{0};
     bool auto_profiles{true};
+    bool def_auto_profiles{true};
+    double fps{0.0};
+    std::chrono::steady_clock::time_point last_frame{};
   };
 
-  // Defaults for reset
-  VideoMode def_preferred{};
-  int def_npu_worker{0};
-  bool def_auto_profiles{true};
-
-  // FPS tracking
-  double fps{0.0};
-  std::chrono::steady_clock::time_point last_frame{};
 
   // Load configuration from JSON file. Returns true on success.
   bool loadConfig(const std::string &path);
