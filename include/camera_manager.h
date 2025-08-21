@@ -1,6 +1,7 @@
 
 #pragma once
 #include <atomic>
+#include <chrono>
 #include <map>
 #include <mutex>
 #include <set>
@@ -24,10 +25,19 @@ public:
       int h{720};
       std::string pixfmt{"MJPG"};
       int fps{30};
-    } preferred;             // preferred capture parameters
+    } preferred;             // current capture parameters
     int npu_worker{0};       // assigned NPU worker index
     bool auto_profiles{true};
   };
+
+  // Defaults for reset
+  VideoMode def_preferred{};
+  int def_npu_worker{0};
+  bool def_auto_profiles{true};
+
+  // FPS tracking
+  double fps{0.0};
+  std::chrono::steady_clock::time_point last_frame{};
 
   // Load configuration from JSON file. Returns true on success.
   bool loadConfig(const std::string &path);
@@ -45,6 +55,7 @@ public:
     CamConfig::VideoMode preferred;
     int npu_worker;
     bool auto_profiles;
+    double fps;
   };
 
   // Thread-safe snapshot of configured cameras with presence flag
@@ -62,6 +73,12 @@ public:
   // Update advanced settings for camera id
   bool updateSettings(const std::string &id, const CamConfig::VideoMode &pref,
                       int npu_worker, bool auto_profiles);
+  
+  // Reset settings to defaults for camera id
+  bool resetSettings(const std::string &id);
+
+  // Report captured frame for FPS calculation
+  void reportFrame(const std::string &id);
 
   // Remove camera from config and stop monitoring it
   bool removeCamera(const std::string &id);

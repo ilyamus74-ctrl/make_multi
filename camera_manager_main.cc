@@ -146,7 +146,8 @@ int main(int argc, char **argv) {
                            {"pixfmt", c.preferred.pixfmt},
                            {"fps", c.preferred.fps}}},
                          {"npu_worker", c.npu_worker},
-                         {"auto_profiles", c.auto_profiles}});
+                         {"auto_profiles", c.auto_profiles},
+                         {"fps", c.fps}});
         res.set_content(out.dump(), "application/json");
       });
 
@@ -217,8 +218,19 @@ int main(int argc, char **argv) {
                     res.status = 400;
                   }
                 });
-
-  g_server.Get(
+ g_server.Post("/api/settings/reset",
+                [](const httplib::Request &req, httplib::Response &res) {
+                  try {
+                    auto j = nlohmann::json::parse(req.body);
+                    std::string id = j.at("id").get<std::string>();
+                    if (!g_mgr.resetSettings(id))
+                      res.status = 400;
+                  } catch (...) {
+                    res.status = 400;
+                  }
+                });
+ 
+ g_server.Get(
       "/api/preview", [](const httplib::Request &req, httplib::Response &res) {
 	 if (!g_preview_enabled) {
           res.status = 403;
@@ -239,6 +251,8 @@ int main(int argc, char **argv) {
           res.status = 404;
           return;
         }
+        if (req.has_param("id"))
+          g_mgr.reportFrame(req.get_param_value("id"));
         res.set_content(reinterpret_cast<const char *>(jpg.data()), jpg.size(),
                         "image/jpeg");
       });

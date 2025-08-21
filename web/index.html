@@ -76,7 +76,7 @@
       advDiv.appendChild(document.createTextNode(' fps:')); advDiv.appendChild(fps);
       advDiv.appendChild(document.createElement('br'));
       advDiv.appendChild(document.createTextNode('npu_worker:')); advDiv.appendChild(worker);
-      advDiv.appendChild(document.createTextNode(' auto_profiles:')); advDiv.appendChild(auto);
+      advDiv.appendChild(document.createTextNode(' use_profiles:')); advDiv.appendChild(auto);
 
       const apply=document.createElement('button');
       apply.textContent='Apply';
@@ -93,8 +93,21 @@
         advDirty=false;
         refresh();
       };
+      const reset=document.createElement('button');
+      reset.textContent='Reset';
+      reset.onclick=async()=>{
+        await fetch('/api/settings/reset',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({id:cam.id})
+        });
+        advDirty=false;
+        refresh();
+      };
+
       advDiv.appendChild(document.createElement('br'));
       advDiv.appendChild(apply);
+      advDiv.appendChild(reset);
     }
 
     async function refresh(){
@@ -115,6 +128,7 @@
             const del=document.createElement('button'); del.className='delete'; div.appendChild(del);
             const advBtn=document.createElement('button'); advBtn.className='adv'; advBtn.textContent='Дополнительные настройки';
             div.appendChild(advBtn);
+            const fps=document.createElement('span'); fps.className='fps'; div.appendChild(fps);
             confDiv.appendChild(div);
           }
           existing.delete(c.id);
@@ -174,6 +188,8 @@
 
           const advBtn=div.querySelector('button.adv');
           advBtn.onclick=()=>showAdvSettings(c);
+          const fps=div.querySelector('span.fps');
+          fps.textContent=` FPS: ${c.fps.toFixed(1)}`;
         });
 	existing.forEach(div=>{
           const t=previewTimers.get(div.dataset.id);

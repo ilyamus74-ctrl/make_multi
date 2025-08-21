@@ -62,6 +62,9 @@ bool CameraManager::loadConfig(const std::string &path) {
       }
       cfg.npu_worker = c.value("npu_worker", 0);
       cfg.auto_profiles = c.value("auto_profiles", true);
+      cfg.def_preferred = cfg.preferred;
+      cfg.def_npu_worker = cfg.npu_worker;
+      cfg.def_auto_profiles = cfg.auto_profiles;
       if (!cfg.id.empty())
         configs_[cfg.id] = cfg;
     }
@@ -214,7 +217,8 @@ std::vector<CameraManager::ConfiguredInfo> CameraManager::configuredCameras() {
   for (auto &kv : configs_) {
     out.push_back({kv.first, active_.count(kv.first) > 0, kv.second.preview,
                    kv.second.preferred, kv.second.npu_worker,
-                   kv.second.auto_profiles});
+		   kv.second.auto_profiles, kv.second.fps});
+
   }
   return out;
 }
@@ -235,6 +239,9 @@ bool CameraManager::addCamera(const std::string &id,
       std::string("/dev/v4l/by-id/") + by_id_path, ec);
   if (!ec)
     cfg.device_path = dev.string();
+    cfg.def_preferred = cfg.preferred;
+    cfg.def_npu_worker = cfg.npu_worker;
+    cfg.def_auto_profiles = cfg.auto_profiles;
   {
     std::lock_guard<std::mutex> lk(mutex_);
     if (configs_.count(id))
@@ -354,4 +361,65 @@ bool CameraManager::updateSettings(const std::string &id,
     return false;
   out << j.dump(2);
   return true;
+}
+
+bool CameraManager::resetSettings(const std::string &id) {
+  std::lock_guard<std::mutex> lk(mutex_);
+  auto it = configs_.find(id);
+  if (it == configs_.end())
+    return false;
+  CamConfig &cfg = it->second;
+  cfg.preferred = cfg.def_preferred;
+  cfg.npu_worker = cfg.def_npu_worker;
+  cfg.auto_profiles = cfg.def_auto_profiles;
+
+  json j;
+  {
+    std::ifstream f(config_path_);
+    if (f.is_open()) {
+      try {
+        f >> j;
+      } catch (...) {
+      }
+    }
+  }
+  if (!j.is_object())
+    j = json::object();
+  if (!j.contains("cameras"))
+    j["cameras"] = json::array();
+  for (auto &c : j["cameras"]) {
+    if (c.value("id", "") == id) {
+      c["preferred"] = {{"w", cfg.preferred.w},
+                         {"h", cfg.preferred.h},
+                         {"pixfmt", cfg.preferred.pixfmt},
+                         {"fps", cfg.preferred.fps}};
+      c["npu_worker"] = cfg.npu_worker;
+      c["auto_profiles"] = cfg.auto_profiles;
+      if (!cfg.device_path.empty())
+        c["device"] = cfg.device_path;
+    }
+  }
+  std::ofstream out(config_path_, std::ios::trunc);
+  if (!out.is_open())
+    return false;
+  out << j.dump(2);
+  return true;
+}
+
+void CameraManager::reportFrame(const std::string &id) {
+  std::lock_guard<std::mutex> lk(mutex_);
+  auto it = configs_.find(id);
+  if (it == configs_.end())
+    return;
+  auto now = std::chrono::steady_clock::now();
+  CamConfig &cfg = it->second;
+  if (cfg.last_frame.time_since_epoch().count() != 0) {
+    double dt =
+        std::chrono::duration<double>(now - cfg.last_frame).count();
+    if (dt > 0) {
+      double fps_inst = 1.0 / dt;
+      cfg.fps = (cfg.fps == 0.0) ? fps_inst : (0.8 * cfg.fps + 0.2 * fps_inst);
+    }
+  }
+  cfg.last_frame = now;
 }
