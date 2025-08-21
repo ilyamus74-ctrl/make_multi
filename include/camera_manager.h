@@ -8,6 +8,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <sys/types.h>
 
 // Simple camera manager that reads configuration from JSON file
 // and monitors /dev/v4l/by-id for matching devices. When a camera is
@@ -36,12 +37,14 @@ public:
     std::string def_profile{"auto"};
     int det_port{0};                 // port of detection server
     int def_det_port{0};
+    std::string model_path{"./model/yolov8.rknn"};
+    std::string labels_path{"./model/coco_80_labels_list.txt"};
+    std::vector<std::string> det_args; // additional detector args
     struct Position { double x{0}; double y{0}; double z{0}; } position;
     Position def_position{};
     double fps{0.0};
     std::chrono::steady_clock::time_point last_frame{};
   };
-
 
   // Load configuration from JSON file. Returns true on success.
   bool loadConfig(const std::string &path);
@@ -102,6 +105,7 @@ private:
   std::set<std::string> active_;
   std::map<std::string, std::string> active_paths_; // id -> /dev/videoX
   std::set<std::string> unconfigured_;
+  std::map<std::string, pid_t> det_pids_;
   std::mutex mutex_;
   std::thread monitor_thread_;
   std::atomic<bool> running_{false};

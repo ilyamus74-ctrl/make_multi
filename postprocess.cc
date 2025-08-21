@@ -23,7 +23,6 @@
 
 #include <set>
 #include <vector>
-#define LABEL_NALE_TXT_PATH "./model/coco_80_labels_list.txt"
 
 static char *labels[OBJ_CLASS_NUM];
 
@@ -555,7 +554,7 @@ int post_process(rknn_app_context_t *app_ctx, void *outputs, letterbox_t *letter
         }
         else
         {
-            printf("RV1106/1103 only support quantization mode\n", LABEL_NALE_TXT_PATH);
+            printf("RV1106/1103 only support quantization mode\n");
             return -1;
         }
 
@@ -657,13 +656,14 @@ int post_process(rknn_app_context_t *app_ctx, void *outputs, letterbox_t *letter
     return 0;
 }
 
-int init_post_process()
+int init_post_process(const char *label_path)
 {
     int ret = 0;
-    ret = loadLabelName(LABEL_NALE_TXT_PATH, labels);
+    const char *path = label_path ? label_path : "./model/coco_80_labels_list.txt";
+    ret = loadLabelName(path, labels);
     if (ret < 0)
     {
-        printf("Load %s failed!\n", LABEL_NALE_TXT_PATH);
+        printf("Load %s failed!\n", path);
         return -1;
     }
     return 0;

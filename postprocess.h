@@ -29,7 +29,7 @@ typedef struct {
     object_detect_result results[OBJ_NUMB_MAX_SIZE];
 } object_detect_result_list;
 
-int init_post_process();
+int init_post_process(const char *label_path);
 void deinit_post_process();
 const char *coco_cls_to_name(int cls_id);
 int post_process(rknn_app_context_t *app_ctx, void *outputs, letterbox_t *letter_box, float conf_threshold, float nms_threshold, object_detect_result_list *od_results);

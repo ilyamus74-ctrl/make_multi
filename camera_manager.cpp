@@ -1,3 +1,4 @@
+
 #include "camera_manager.h"
 
 #include "nlohmann/json.hpp"
@@ -7,6 +8,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <cstring>
+#include <cerrno>
+#include <vector>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <signal.h>
 
 using json = nlohmann::json;
 
@@ -46,6 +53,42 @@ bool CameraManager::loadConfig(const std::string &path) {
     }
   }
   if (j.contains("cameras")) {
+    bool need_save = false;
+    std::set<int> used_ports;
+    for (auto &c : j["cameras"]) {
+      int p = c.value("det_port", 0);
+      if (p > 0)
+        used_ports.insert(p);
+    }
+    int next_port = 8000;
+    for (auto &c : j["cameras"]) {
+      if (!c.contains("det_port") || c.value("det_port", 0) == 0) {
+        while (used_ports.count(next_port))
+          ++next_port;
+        c["det_port"] = next_port;
+        used_ports.insert(next_port);
+        std::cout << "CameraManager: auto-assigned det_port " << next_port
+                  << " for camera " << c.value("id", "") << std::endl;
+        need_save = true;
+      }
+      if (!c.contains("model_path")) {
+        c["model_path"] = "./model/yolov8.rknn";
+        need_save = true;
+      }
+      if (!c.contains("labels_path")) {
+        c["labels_path"] = "./model/coco_80_labels_list.txt";
+        need_save = true;
+      }
+      if (!c.contains("det_args")) {
+        c["det_args"] = json::array();
+        need_save = true;
+      }
+    }
+    if (need_save) {
+      std::ofstream out(path, std::ios::trunc);
+      if (out.is_open())
+        out << j.dump(2);
+    }
     for (auto &c : j["cameras"]) {
       CamConfig cfg;
       cfg.id = c.value("id", "");
@@ -64,6 +107,14 @@ bool CameraManager::loadConfig(const std::string &path) {
       cfg.auto_profiles = c.value("auto_profiles", true);
       cfg.profile = c.value("profile", std::string("auto"));
       cfg.det_port = c.value("det_port", 0);
+      cfg.model_path = c.value("model_path", std::string("./model/yolov8.rknn"));
+      cfg.labels_path = c.value("labels_path", std::string("./model/coco_80_labels_list.txt"));
+      if (c.contains("det_args") && c["det_args"].is_array())
+        cfg.det_args = c["det_args"].get<std::vector<std::string>>();
+      if (!c.contains("det_port")) {
+        std::cerr << "CameraManager: camera " << cfg.id
+                  << " missing det_port; detection disabled" << std::endl;
+      }
       if (c.contains("position")) {
         auto &p = c["position"];
         cfg.position.x = p.value("x", 0.0);
@@ -156,11 +207,20 @@ void CameraManager::monitorLoop() {
           if (!active) {
             std::cout << "Camera " << id << " connected" << std::endl;
             active_.insert(id);
+            if (cfg.det_port == 0)
+              std::cerr << "CameraManager: detection disabled for camera "
+                        << id << std::endl;
           }
         } else if (active) {
           std::cout << "Camera " << id << " disconnected" << std::endl;
           active_.erase(id);
           active_paths_.erase(id);
+          auto itp = det_pids_.find(id);
+          if (itp != det_pids_.end()) {
+            kill(itp->second, SIGTERM);
+            waitpid(itp->second, nullptr, 0);
+            det_pids_.erase(itp);
+          }
         }
       }
       for (auto it = new_unconfigured.begin(); it != new_unconfigured.end();) {
@@ -168,6 +228,72 @@ void CameraManager::monitorLoop() {
           it = new_unconfigured.erase(it);
         else
           ++it;
+      }
+
+          if (present && cfg.det_port > 0) {
+        pid_t pid = 0;
+        {
+          std::lock_guard<std::mutex> lk(mutex_);
+          auto itp = det_pids_.find(id);
+          if (itp != det_pids_.end())
+            pid = itp->second;
+        }
+        if (pid > 0) {
+          int status;
+          pid_t rc = waitpid(pid, &status, WNOHANG);
+          if (rc == pid) {
+            if (WIFEXITED(status)) {
+              std::cerr << "CameraManager: detection process for camera " << id
+                        << " exited with status " << WEXITSTATUS(status)
+                        << std::endl;
+            } else if (WIFSIGNALED(status)) {
+              std::cerr << "CameraManager: detection process for camera " << id
+                        << " terminated by signal " << WTERMSIG(status)
+                        << std::endl;
+            }
+            std::lock_guard<std::mutex> lk(mutex_);
+            det_pids_.erase(id);
+            pid = 0;
+          }
+        }
+        if (pid == 0) {
+          pid_t child = fork();
+          if (child == 0) {
+            std::string port = std::to_string(cfg.det_port);
+            std::vector<std::string> args;
+            args.push_back("yolov8_web_server");
+            args.push_back(cfg.model_path);
+            args.push_back("--dev");
+            args.push_back(cfg.device_path);
+            args.push_back("--port");
+            args.push_back(port);
+            if (!cfg.labels_path.empty()) {
+              args.push_back("--labels");
+              args.push_back(cfg.labels_path);
+            }
+            for (const auto &a : cfg.det_args)
+              args.push_back(a);
+            std::vector<char *> argv;
+            for (auto &a : args)
+              argv.push_back(const_cast<char *>(a.c_str()));
+            argv.push_back(nullptr);
+            execv("./yolov8_web_server", argv.data());
+            std::cerr << "CameraManager: execv failed for camera " << id
+                      << ": " << std::strerror(errno) << std::endl;
+            _exit(1);
+          } else if (child > 0) {
+            {
+              std::lock_guard<std::mutex> lk(mutex_);
+              det_pids_[id] = child;
+            }
+            std::cout << "CameraManager: forked detection pid " << child
+                      << " for device " << cfg.device_path << " port "
+                      << cfg.det_port << std::endl;
+          } else {
+            std::cerr << "CameraManager: fork failed for camera " << id
+                      << ": " << std::strerror(errno) << std::endl;
+          }
+        }
       }
     }
 
@@ -244,14 +370,13 @@ bool CameraManager::applyProfile(CamConfig &cfg) {
   return true;
 }
 
-
 std::vector<CameraManager::ConfiguredInfo> CameraManager::configuredCameras() {
   std::lock_guard<std::mutex> lk(mutex_);
   std::vector<ConfiguredInfo> out;
   for (auto &kv : configs_) {
     out.push_back({kv.first, active_.count(kv.first) > 0, kv.second.preview,
                    kv.second.preferred, kv.second.npu_worker,
-		   kv.second.auto_profiles, kv.second.profile,
+                   kv.second.auto_profiles, kv.second.profile,
                    kv.second.det_port, kv.second.position,
                    kv.second.fps});
   }
@@ -277,12 +402,22 @@ bool CameraManager::addCamera(const std::string &id,
       std::string("/dev/v4l/by-id/") + by_id_path, ec);
   if (!ec)
     cfg.device_path = dev.string();
-    cfg.def_preferred = cfg.preferred;
-    cfg.def_det_port = cfg.det_port;
-    cfg.def_position = cfg.position;
-    cfg.def_npu_worker = cfg.npu_worker;
-    cfg.def_auto_profiles = cfg.auto_profiles;
-    cfg.def_profile = cfg.profile;
+ {
+    std::set<int> used;
+    for (auto &kv : configs_)
+      used.insert(kv.second.det_port);
+    int port = 8000;
+    while (used.count(port))
+      ++port;
+    cfg.det_port = port;
+  }
+  cfg.def_preferred = cfg.preferred;
+  cfg.def_det_port = cfg.det_port;
+  cfg.def_position = cfg.position;
+  cfg.def_npu_worker = cfg.npu_worker;
+  cfg.def_auto_profiles = cfg.auto_profiles;
+  cfg.def_profile = cfg.profile;  
+
   {
     std::lock_guard<std::mutex> lk(mutex_);
     if (configs_.count(id))
@@ -315,6 +450,9 @@ bool CameraManager::addCamera(const std::string &id,
            {"pixfmt", cfg.preferred.pixfmt},
            {"fps", cfg.preferred.fps}};
   cam["det_port"] = cfg.det_port;
+  cam["model_path"] = cfg.model_path;
+  cam["labels_path"] = cfg.labels_path;
+  cam["det_args"] = json::array();
   cam["position"] = json{{"x", cfg.position.x}, {"y", cfg.position.y}, {"z", cfg.position.z}};
   cam["npu_worker"] = cfg.npu_worker;
   cam["auto_profiles"] = cfg.auto_profiles;
@@ -365,7 +503,7 @@ bool CameraManager::setPreview(const std::string &id, bool enable) {
 
 bool CameraManager::updateSettings(const std::string &id,
                                    const CamConfig::VideoMode &pref,
-				   int npu_worker, bool auto_profiles,
+                                   int npu_worker, bool auto_profiles,
                                    const std::string &profile) {
   std::lock_guard<std::mutex> lk(mutex_);
   auto it = configs_.find(id);
@@ -425,7 +563,6 @@ bool CameraManager::resetSettings(const std::string &id) {
   cfg.det_port = cfg.def_det_port;
   cfg.position = cfg.def_position;
   applyProfile(cfg);
-
 
   json j;
   {

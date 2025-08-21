@@ -237,6 +237,7 @@ public:
 // ---------- CLI ----------
 struct Args {
     std::string model;
+    std::string labels = "./model/coco_80_labels_list.txt";
     std::string dev = "/dev/video0";
     int port = 8080;
     int cap_w = 640, cap_h = 480;
@@ -286,6 +287,7 @@ static Args parseArgs(int argc, char** argv) {
         else if (k == "--fps") a.show_fps = true;
         else if (k == "--npu-core" && need(1)) a.npu_core = argv[++i]; // auto|0|1|2|01|012
         else if (k == "--log-file" && need(1)) a.log_file = argv[++i];
+        else if (k == "--labels" && need(1)) a.labels = argv[++i];
     }
     return a;
 }
@@ -319,6 +321,7 @@ private:
 
     // cfg
     std::string model_path;
+    std::string labels_path;
     int server_port = 8080;
     std::string cam_dev = "/dev/video0";
     int cam_w_req=640, cam_h_req=480, cam_fps_req=30, cam_buffers=3;
@@ -405,7 +408,7 @@ private:
 
 public:
     YOLOWebServer(const Args& a)
-        : model_path(a.model), server_port(a.port),
+        : model_path(a.model), labels_path(a.labels), server_port(a.port),
           cam_dev(a.dev), cam_w_req(a.cap_w), cam_h_req(a.cap_h),
           cam_fps_req(a.cap_fps), cam_buffers(a.buffers),
           jpeg_q(a.jpeg_q), http_fps_limit(a.http_fps_limit),
@@ -417,7 +420,7 @@ public:
     ~YOLOWebServer() { cleanup(); }
 
     bool initialize() {
-        if (init_post_process() != 0) {
+        if (init_post_process(labels_path.c_str()) != 0) {
             fprintf(stderr, "init_post_process failed\n");
             return false;
         }
@@ -906,6 +909,7 @@ static void printUsage(const char* argv0){
     printf("  --fps                print loop FPS to console and draw labels\n");
     printf("  --npu-core auto|0|1|2|01|012  choose NPU core mask\n");
     printf("  --log-file FILE NAME     write detection log to /tmp/npudet.DATE.FILE\n");
+    printf("  --labels PATH         labels file path\n");
 }
 
 int main(int argc, char** argv) {
