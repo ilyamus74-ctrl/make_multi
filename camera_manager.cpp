@@ -83,6 +83,34 @@ bool CameraManager::loadConfig(const std::string &path) {
         c["det_args"] = json::array();
         need_save = true;
       }
+      if (!c.contains("cap_fps")) {
+        c["cap_fps"] = 30;
+        need_save = true;
+      }
+      if (!c.contains("buffers")) {
+        c["buffers"] = 3;
+        need_save = true;
+      }
+      if (!c.contains("jpeg_quality")) {
+        c["jpeg_quality"] = 60;
+        need_save = true;
+      }
+      if (!c.contains("http_fps_limit")) {
+        c["http_fps_limit"] = 20;
+        need_save = true;
+      }
+      if (!c.contains("show_fps")) {
+        c["show_fps"] = false;
+        need_save = true;
+      }
+      if (!c.contains("npu_core")) {
+        c["npu_core"] = "auto";
+        need_save = true;
+      }
+      if (!c.contains("log_file")) {
+        c["log_file"] = "";
+        need_save = true;
+      }
     }
     if (need_save) {
       std::ofstream out(path, std::ios::trunc);
@@ -121,6 +149,13 @@ bool CameraManager::loadConfig(const std::string &path) {
         cfg.position.y = p.value("y", 0.0);
         cfg.position.z = p.value("z", 0.0);
       }
+      cfg.cap_fps = c.value("cap_fps", 30);
+      cfg.buffers = c.value("buffers", 3);
+      cfg.jpeg_quality = c.value("jpeg_quality", 60);
+      cfg.http_fps_limit = c.value("http_fps_limit", 20);
+      cfg.show_det_fps = c.value("show_fps", false);
+      cfg.npu_core = c.value("npu_core", std::string("auto"));
+      cfg.log_file = c.value("log_file", std::string(""));
       cfg.def_preferred = cfg.preferred;
       cfg.def_npu_worker = cfg.npu_worker;
       cfg.def_auto_profiles = cfg.auto_profiles;
@@ -129,6 +164,13 @@ bool CameraManager::loadConfig(const std::string &path) {
       cfg.def_position = cfg.position;
       cfg.def_model_path = cfg.model_path;
       cfg.def_labels_path = cfg.labels_path;
+      cfg.def_cap_fps = cfg.cap_fps;
+      cfg.def_buffers = cfg.buffers;
+      cfg.def_jpeg_quality = cfg.jpeg_quality;
+      cfg.def_http_fps_limit = cfg.http_fps_limit;
+      cfg.def_show_det_fps = cfg.show_det_fps;
+      cfg.def_npu_core = cfg.npu_core;
+      cfg.def_log_file = cfg.log_file;
       if (!cfg.id.empty())
         configs_[cfg.id] = cfg;
     }
@@ -273,6 +315,22 @@ void CameraManager::monitorLoop() {
               args.push_back("--labels");
               args.push_back(cfg.labels_path);
             }
+            args.push_back("--cap-fps");
+            args.push_back(std::to_string(cfg.cap_fps));
+            args.push_back("--buffers");
+            args.push_back(std::to_string(cfg.buffers));
+            args.push_back("--jpeg-quality");
+            args.push_back(std::to_string(cfg.jpeg_quality));
+            args.push_back("--http-fps-limit");
+            args.push_back(std::to_string(cfg.http_fps_limit));
+            if (cfg.show_det_fps)
+              args.push_back("--fps");
+            args.push_back("--npu-core");
+            args.push_back(cfg.npu_core);
+            if (!cfg.log_file.empty()) {
+              args.push_back("--log-file");
+              args.push_back(cfg.log_file);
+            }
             for (const auto &a : cfg.det_args)
               args.push_back(a);
             std::vector<char *> argv;
@@ -376,12 +434,28 @@ std::vector<CameraManager::ConfiguredInfo> CameraManager::configuredCameras() {
   std::lock_guard<std::mutex> lk(mutex_);
   std::vector<ConfiguredInfo> out;
   for (auto &kv : configs_) {
-    out.push_back({kv.first, active_.count(kv.first) > 0, kv.second.preview,
-                   kv.second.preferred, kv.second.npu_worker,
-                   kv.second.auto_profiles, kv.second.profile,
-                   kv.second.det_port, kv.second.position,
-                   kv.second.fps, kv.second.model_path,
-                   kv.second.labels_path});  }
+    ConfiguredInfo ci{};
+    ci.id = kv.first;
+    ci.present = active_.count(kv.first) > 0;
+    ci.preview = kv.second.preview;
+    ci.preferred = kv.second.preferred;
+    ci.npu_worker = kv.second.npu_worker;
+    ci.auto_profiles = kv.second.auto_profiles;
+    ci.profile = kv.second.profile;
+    ci.det_port = kv.second.det_port;
+    ci.position = kv.second.position;
+    ci.fps = kv.second.fps;
+    ci.model_path = kv.second.model_path;
+    ci.labels_path = kv.second.labels_path;
+    ci.cap_fps = kv.second.cap_fps;
+    ci.buffers = kv.second.buffers;
+    ci.jpeg_quality = kv.second.jpeg_quality;
+    ci.http_fps_limit = kv.second.http_fps_limit;
+    ci.show_det_fps = kv.second.show_det_fps;
+    ci.npu_core = kv.second.npu_core;
+    ci.log_file = kv.second.log_file;
+    out.push_back(ci);
+  } 
   return out;
 }
 
@@ -421,6 +495,13 @@ bool CameraManager::addCamera(const std::string &id,
   cfg.def_profile = cfg.profile;
   cfg.def_model_path = cfg.model_path;
   cfg.def_labels_path = cfg.labels_path;
+  cfg.def_cap_fps = cfg.cap_fps;
+  cfg.def_buffers = cfg.buffers;
+  cfg.def_jpeg_quality = cfg.jpeg_quality;
+  cfg.def_http_fps_limit = cfg.http_fps_limit;
+  cfg.def_show_det_fps = cfg.show_det_fps;
+  cfg.def_npu_core = cfg.npu_core;
+  cfg.def_log_file = cfg.log_file;
 
   {
     std::lock_guard<std::mutex> lk(mutex_);
@@ -461,6 +542,13 @@ bool CameraManager::addCamera(const std::string &id,
   cam["npu_worker"] = cfg.npu_worker;
   cam["auto_profiles"] = cfg.auto_profiles;
   cam["profile"] = cfg.profile;
+  cam["cap_fps"] = cfg.cap_fps;
+  cam["buffers"] = cfg.buffers;
+  cam["jpeg_quality"] = cfg.jpeg_quality;
+  cam["http_fps_limit"] = cfg.http_fps_limit;
+  cam["show_fps"] = cfg.show_det_fps;
+  cam["npu_core"] = cfg.npu_core;
+  cam["log_file"] = cfg.log_file;
   j["cameras"].push_back(cam);
   std::ofstream out(config_path_, std::ios::trunc);
   if (!out.is_open())
@@ -510,7 +598,11 @@ bool CameraManager::updateSettings(const std::string &id,
                                    int npu_worker, bool auto_profiles,
                                    const std::string &profile,
                                    const std::string &model_path,
-                                   const std::string &labels_path) {
+                                   const std::string &labels_path,
+                                   int cap_fps, int buffers, int jpeg_quality,
+                                   int http_fps_limit, bool show_det_fps,
+                                   const std::string &npu_core,
+                                   const std::string &log_file) {
   std::lock_guard<std::mutex> lk(mutex_);
   auto it = configs_.find(id);
   if (it == configs_.end())
@@ -524,6 +616,14 @@ bool CameraManager::updateSettings(const std::string &id,
     it->second.model_path = model_path;
   if (!labels_path.empty())
     it->second.labels_path = labels_path;
+  it->second.cap_fps = cap_fps;
+  it->second.buffers = buffers;
+  it->second.jpeg_quality = jpeg_quality;
+  it->second.http_fps_limit = http_fps_limit;
+  it->second.show_det_fps = show_det_fps;
+  if (!npu_core.empty())
+    it->second.npu_core = npu_core;
+  it->second.log_file = log_file;
   applyProfile(it->second);
   json j;
   {
@@ -551,6 +651,13 @@ bool CameraManager::updateSettings(const std::string &id,
       c["profile"] = it->second.profile;
       c["model_path"] = it->second.model_path;
       c["labels_path"] = it->second.labels_path;
+      c["cap_fps"] = cap_fps;
+      c["buffers"] = buffers;
+      c["jpeg_quality"] = jpeg_quality;
+      c["http_fps_limit"] = http_fps_limit;
+      c["show_fps"] = show_det_fps;
+      c["npu_core"] = it->second.npu_core;
+      c["log_file"] = it->second.log_file;
       if (it->second.device_path.size())
         c["device"] = it->second.device_path;
     }
@@ -576,6 +683,13 @@ bool CameraManager::resetSettings(const std::string &id) {
   cfg.position = cfg.def_position;
   cfg.model_path = cfg.def_model_path;
   cfg.labels_path = cfg.def_labels_path;
+  cfg.cap_fps = cfg.def_cap_fps;
+  cfg.buffers = cfg.def_buffers;
+  cfg.jpeg_quality = cfg.def_jpeg_quality;
+  cfg.http_fps_limit = cfg.def_http_fps_limit;
+  cfg.show_det_fps = cfg.def_show_det_fps;
+  cfg.npu_core = cfg.def_npu_core;
+  cfg.log_file = cfg.def_log_file;
   applyProfile(cfg);
 
   json j;
@@ -605,6 +719,13 @@ bool CameraManager::resetSettings(const std::string &id) {
       c["position"] = {{"x", cfg.position.x}, {"y", cfg.position.y}, {"z", cfg.position.z}};
       c["model_path"] = cfg.model_path;
       c["labels_path"] = cfg.labels_path;
+      c["cap_fps"] = cfg.cap_fps;
+      c["buffers"] = cfg.buffers;
+      c["jpeg_quality"] = cfg.jpeg_quality;
+      c["http_fps_limit"] = cfg.http_fps_limit;
+      c["show_fps"] = cfg.show_det_fps;
+      c["npu_core"] = cfg.npu_core;
+      c["log_file"] = cfg.log_file;
       if (!cfg.device_path.empty())
         c["device"] = cfg.device_path;
     }

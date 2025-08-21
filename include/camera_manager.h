@@ -44,6 +44,20 @@ public:
     std::vector<std::string> det_args; // additional detector args
     struct Position { double x{0}; double y{0}; double z{0}; } position;
     Position def_position{};
+    int cap_fps{30};                 // --cap-fps
+    int def_cap_fps{30};
+    int buffers{3};                  // --buffers
+    int def_buffers{3};
+    int jpeg_quality{60};            // --jpeg-quality
+    int def_jpeg_quality{60};
+    int http_fps_limit{20};          // --http-fps-limit
+    int def_http_fps_limit{20};
+    bool show_det_fps{false};        // --fps
+    bool def_show_det_fps{false};
+    std::string npu_core{"auto"};   // --npu-core
+    std::string def_npu_core{"auto"};
+    std::string log_file;            // --log-file
+    std::string def_log_file;
     double fps{0.0};
     std::chrono::steady_clock::time_point last_frame{};
   };
@@ -70,6 +84,13 @@ public:
     double fps;
     std::string model_path;
     std::string labels_path;
+    int cap_fps;
+    int buffers;
+    int jpeg_quality;
+    int http_fps_limit;
+    bool show_det_fps;
+    std::string npu_core;
+    std::string log_file;
   };
 
   // Thread-safe snapshot of configured cameras with presence flag
@@ -89,7 +110,11 @@ public:
                       int npu_worker, bool auto_profiles,
                       const std::string &profile,
                       const std::string &model_path,
-                      const std::string &labels_path);
+                      const std::string &labels_path,
+                      int cap_fps, int buffers, int jpeg_quality,
+                      int http_fps_limit, bool show_det_fps,
+                      const std::string &npu_core,
+                      const std::string &log_file);
   // Reset settings to defaults for camera id
   bool resetSettings(const std::string &id);
 

@@ -153,7 +153,15 @@ int main(int argc, char **argv) {
                          {"position", {{"x", c.position.x}, {"y", c.position.y}, {"z", c.position.z}}},
                          {"fps", c.fps},
                          {"model_path", c.model_path},
-                         {"labels_path", c.labels_path}});        res.set_content(out.dump(), "application/json");
+                         {"labels_path", c.labels_path},
+                         {"cap_fps", c.cap_fps},
+                         {"buffers", c.buffers},
+                         {"jpeg_quality", c.jpeg_quality},
+                         {"http_fps_limit", c.http_fps_limit},
+                         {"show_fps", c.show_det_fps},
+                         {"npu_core", c.npu_core},
+                         {"log_file", c.log_file}});
+        res.set_content(out.dump(), "application/json");
       });
 
   g_server.Get("/api/models",
@@ -246,8 +254,20 @@ int main(int argc, char **argv) {
                         j.value("model_path", std::string(""));
                     std::string labels_path =
                         j.value("labels_path", std::string(""));
+                    int cap_fps = j.value("cap_fps", 30);
+                    int buffers = j.value("buffers", 3);
+                    int jpeg_quality = j.value("jpeg_quality", 60);
+                    int http_fps_limit = j.value("http_fps_limit", 20);
+                    bool show_fps = j.value("show_fps", false);
+                    std::string npu_core =
+                        j.value("npu_core", std::string("auto"));
+                    std::string log_file =
+                        j.value("log_file", std::string(""));
                     if (!g_mgr.updateSettings(id, vm, worker, auto_profiles,
-                                              profile, model_path, labels_path))
+                                              profile, model_path, labels_path,
+                                              cap_fps, buffers, jpeg_quality,
+                                              http_fps_limit, show_fps,
+                                              npu_core, log_file))
                       res.status = 400;
                   } catch (...) {
                     res.status = 400;

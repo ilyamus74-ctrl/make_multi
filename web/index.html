@@ -128,8 +128,16 @@
       const profile=document.createElement('select');
       ['auto','bright','indoor','dark'].forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;if(cam.profile===p)o.selected=true;profile.appendChild(o);});
 
-      [w,h,pix,fps,worker,auto,profile,modelSel,labelsSel].forEach(el=>{        el.addEventListener('focus',()=>advDirty=true);
-        el.addEventListener('input',()=>advDirty=true);
+      const capfps=document.createElement('input'); capfps.type='number'; capfps.value=cam.cap_fps;
+      const buffers=document.createElement('input'); buffers.type='number'; buffers.value=cam.buffers;
+      const jpegq=document.createElement('input'); jpegq.type='number'; jpegq.value=cam.jpeg_quality;
+      const httpfps=document.createElement('input'); httpfps.type='number'; httpfps.value=cam.http_fps_limit;
+      const showfps=document.createElement('input'); showfps.type='checkbox'; showfps.checked=cam.show_fps;
+      const npucore=document.createElement('input'); npucore.value=cam.npu_core;
+      const logfile=document.createElement('input'); logfile.value=cam.log_file;
+
+      [w,h,pix,fps,worker,auto,profile,modelSel,labelsSel,capfps,buffers,jpegq,httpfps,showfps,npucore,logfile].forEach(el=>{
+        el.addEventListener('focus',()=>advDirty=true);        el.addEventListener('input',()=>advDirty=true);
         el.addEventListener('change',()=>advDirty=true);
       });
 
@@ -144,6 +152,15 @@
       advDiv.appendChild(document.createTextNode('npu_worker:')); advDiv.appendChild(worker);
       advDiv.appendChild(document.createTextNode(' use_profiles:')); advDiv.appendChild(auto);
       advDiv.appendChild(document.createTextNode(' profile:')); advDiv.appendChild(profile);
+      advDiv.appendChild(document.createElement('br'));
+      advDiv.appendChild(document.createTextNode('cap-fps:')); advDiv.appendChild(capfps);
+      advDiv.appendChild(document.createTextNode(' buffers:')); advDiv.appendChild(buffers);
+      advDiv.appendChild(document.createTextNode(' jpeg-quality:')); advDiv.appendChild(jpegq);
+      advDiv.appendChild(document.createTextNode(' http-fps-limit:')); advDiv.appendChild(httpfps);
+      advDiv.appendChild(document.createTextNode(' fps:')); advDiv.appendChild(showfps);
+      advDiv.appendChild(document.createElement('br'));
+      advDiv.appendChild(document.createTextNode(' npu-core:')); advDiv.appendChild(npucore);
+      advDiv.appendChild(document.createTextNode(' log-file:')); advDiv.appendChild(logfile);
 
       const apply=document.createElement('button');
       apply.textContent='Apply';
@@ -158,7 +175,14 @@
             auto_profiles:auto.checked,
             profile:profile.value,
             model_path:modelSel.value,
-            labels_path:labelsSel.value})
+            labels_path:labelsSel.value,
+            cap_fps:parseInt(capfps.value),
+            buffers:parseInt(buffers.value),
+            jpeg_quality:parseInt(jpegq.value),
+            http_fps_limit:parseInt(httpfps.value),
+            show_fps:showfps.checked,
+            npu_core:npucore.value,
+            log_file:logfile.value})
        });
         advDirty=false;
         refresh();
@@ -259,7 +283,7 @@
           const advBtn=div.querySelector('button.adv');
           advBtn.onclick=()=>showAdvSettings(c);
           const fps=div.querySelector('span.fps');
-          fps.textContent=` FPS: ${c.fps.toFixed(1)}`;
+          fps.textContent=c.show_fps?` FPS: ${c.fps.toFixed(1)}`:'';
         });
 	existing.forEach(div=>{
           const t=previewTimers.get(div.dataset.id);
