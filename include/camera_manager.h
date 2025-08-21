@@ -32,6 +32,8 @@ public:
     int def_npu_worker{0};
     bool auto_profiles{true};
     bool def_auto_profiles{true};
+    std::string profile{"auto"};   // current control profile
+    std::string def_profile{"auto"};
     double fps{0.0};
     std::chrono::steady_clock::time_point last_frame{};
   };
@@ -53,6 +55,7 @@ public:
     CamConfig::VideoMode preferred;
     int npu_worker;
     bool auto_profiles;
+    std::string profile;
     double fps;
   };
 
@@ -70,8 +73,8 @@ public:
 
   // Update advanced settings for camera id
   bool updateSettings(const std::string &id, const CamConfig::VideoMode &pref,
-                      int npu_worker, bool auto_profiles);
-  
+                      int npu_worker, bool auto_profiles,
+                      const std::string &profile);  
   // Reset settings to defaults for camera id
   bool resetSettings(const std::string &id);
 
@@ -87,7 +90,7 @@ public:
 
 private:
   void monitorLoop();
-
+  bool applyProfile(CamConfig &cfg);
   std::string config_path_;
   std::map<std::string, CamConfig> configs_;
   std::set<std::string> active_;

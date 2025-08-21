@@ -141,12 +141,13 @@ int main(int argc, char **argv) {
                          {"present", c.present},
                          {"preview", c.preview},
                          {"preferred",
-                          {{"w", c.preferred.w},
-                           {"h", c.preferred.h},
-                           {"pixfmt", c.preferred.pixfmt},
-                           {"fps", c.preferred.fps}}},
+                         {{"w", c.preferred.w},
+                          {"h", c.preferred.h},
+                          {"pixfmt", c.preferred.pixfmt},
+                          {"fps", c.preferred.fps}}},
                          {"npu_worker", c.npu_worker},
                          {"auto_profiles", c.auto_profiles},
+			 {"profile", c.profile},
                          {"fps", c.fps}});
         res.set_content(out.dump(), "application/json");
       });
@@ -212,7 +213,10 @@ int main(int argc, char **argv) {
                     vm.fps = pref.value("fps", 30);
                     int worker = j.value("npu_worker", 0);
                     bool auto_profiles = j.value("auto_profiles", true);
-                    if (!g_mgr.updateSettings(id, vm, worker, auto_profiles))
+                    std::string profile =
+                        j.value("profile", std::string("auto"));
+                    if (!g_mgr.updateSettings(id, vm, worker, auto_profiles,
+                                              profile))
                       res.status = 400;
                   } catch (...) {
                     res.status = 400;

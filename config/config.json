@@ -21,14 +21,16 @@
       "match": {"by_id_contains": "usb-SHENZHEN_AONI_ELECTRONIC_CO.__LTD_Full_HD_webcam_AN202011030002-video-index0"},
       "preferred": {"w": 1280, "h": 720, "pixfmt": "MJPG", "fps": 30},
       "npu_worker": 0,
-      "auto_profiles": true
+      "auto_profiles": true,
+      "profile": "auto"
     },
     {
       "id": "cam2",
       "match": {"by_id_contains": "@platform-fdee0000.hdmirx-controller-video-index0"},
       "preferred": {"w": 1280, "h": 720, "pixfmt": "MJPG", "fps": 30},
       "npu_worker": 1,
-      "auto_profiles": true
+      "auto_profiles": true,
+      "profile": "auto"
     }
   ]
 }

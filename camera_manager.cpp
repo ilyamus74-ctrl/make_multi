@@ -62,9 +62,11 @@ bool CameraManager::loadConfig(const std::string &path) {
       }
       cfg.npu_worker = c.value("npu_worker", 0);
       cfg.auto_profiles = c.value("auto_profiles", true);
+      cfg.profile = c.value("profile", std::string("auto"));
       cfg.def_preferred = cfg.preferred;
       cfg.def_npu_worker = cfg.npu_worker;
       cfg.def_auto_profiles = cfg.auto_profiles;
+      cfg.def_profile = cfg.profile;
       if (!cfg.id.empty())
         configs_[cfg.id] = cfg;
     }
@@ -211,14 +213,36 @@ std::string CameraManager::devicePath(const std::string &id) {
   return it->second;
 }
 
+bool CameraManager::applyProfile(CamConfig &cfg) {
+  if (cfg.device_path.empty())
+    return false;
+  std::string ctrl;
+  if (cfg.profile == "bright")
+    ctrl = "--set-ctrl=auto_exposure=1,exposure_time_absolute=3,gain=0,gamma=120,saturation=128";
+  else if (cfg.profile == "indoor")
+    ctrl = "--set-ctrl=auto_exposure=1,exposure_time_absolute=6,gain=16,gamma=133,saturation=128";
+  else if (cfg.profile == "dark")
+    ctrl = "--set-ctrl=auto_exposure=1,exposure_time_absolute=12,gain=32,gamma=150,saturation=0";
+  else
+    ctrl = "--set-ctrl=auto_exposure=3"; // auto
+  std::string cmd = "v4l2-ctl -d " + cfg.device_path + " " + ctrl;
+  int rc = std::system(cmd.c_str());
+  if (rc != 0) {
+    std::cerr << "CameraManager: failed to apply profile '" << cfg.profile
+              << "' for camera " << cfg.id << std::endl;
+    return false;
+  }
+  return true;
+}
+
+
 std::vector<CameraManager::ConfiguredInfo> CameraManager::configuredCameras() {
   std::lock_guard<std::mutex> lk(mutex_);
   std::vector<ConfiguredInfo> out;
   for (auto &kv : configs_) {
     out.push_back({kv.first, active_.count(kv.first) > 0, kv.second.preview,
                    kv.second.preferred, kv.second.npu_worker,
-		   kv.second.auto_profiles, kv.second.fps});
-
+		   kv.second.auto_profiles, kv.second.profile, kv.second.fps});
   }
   return out;
 }
@@ -234,6 +258,7 @@ bool CameraManager::addCamera(const std::string &id,
   cfg.id = id;
   cfg.match_substr = by_id_path;
   cfg.preview = true;
+  cfg.profile = "auto";
   std::error_code ec;
   auto dev = std::filesystem::canonical(
       std::string("/dev/v4l/by-id/") + by_id_path, ec);
@@ -242,6 +267,7 @@ bool CameraManager::addCamera(const std::string &id,
     cfg.def_preferred = cfg.preferred;
     cfg.def_npu_worker = cfg.npu_worker;
     cfg.def_auto_profiles = cfg.auto_profiles;
+    cfg.def_profile = cfg.profile;
   {
     std::lock_guard<std::mutex> lk(mutex_);
     if (configs_.count(id))
@@ -275,6 +301,7 @@ bool CameraManager::addCamera(const std::string &id,
            {"fps", cfg.preferred.fps}};
   cam["npu_worker"] = cfg.npu_worker;
   cam["auto_profiles"] = cfg.auto_profiles;
+  cam["profile"] = cfg.profile;
   j["cameras"].push_back(cam);
   std::ofstream out(config_path_, std::ios::trunc);
   if (!out.is_open())
@@ -321,7 +348,8 @@ bool CameraManager::setPreview(const std::string &id, bool enable) {
 
 bool CameraManager::updateSettings(const std::string &id,
                                    const CamConfig::VideoMode &pref,
-                                   int npu_worker, bool auto_profiles) {
+				   int npu_worker, bool auto_profiles,
+                                   const std::string &profile) {
   std::lock_guard<std::mutex> lk(mutex_);
   auto it = configs_.find(id);
   if (it == configs_.end())
@@ -329,6 +357,9 @@ bool CameraManager::updateSettings(const std::string &id,
   it->second.preferred = pref;
   it->second.npu_worker = npu_worker;
   it->second.auto_profiles = auto_profiles;
+  if (!profile.empty())
+    it->second.profile = profile;
+  applyProfile(it->second);
   json j;
   {
     std::ifstream f(config_path_);
@@ -352,6 +383,7 @@ bool CameraManager::updateSettings(const std::string &id,
           {"fps", pref.fps}};
       c["npu_worker"] = npu_worker;
       c["auto_profiles"] = auto_profiles;
+      c["profile"] = it->second.profile;
       if (it->second.device_path.size())
         c["device"] = it->second.device_path;
     }
@@ -372,6 +404,9 @@ bool CameraManager::resetSettings(const std::string &id) {
   cfg.preferred = cfg.def_preferred;
   cfg.npu_worker = cfg.def_npu_worker;
   cfg.auto_profiles = cfg.def_auto_profiles;
+  cfg.profile = cfg.def_profile;
+  applyProfile(cfg);
+
 
   json j;
   {
@@ -395,6 +430,7 @@ bool CameraManager::resetSettings(const std::string &id) {
                          {"fps", cfg.preferred.fps}};
       c["npu_worker"] = cfg.npu_worker;
       c["auto_profiles"] = cfg.auto_profiles;
+      c["profile"] = cfg.profile;
       if (!cfg.device_path.empty())
         c["device"] = cfg.device_path;
     }

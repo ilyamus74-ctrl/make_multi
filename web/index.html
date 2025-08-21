@@ -64,8 +64,10 @@
       const fps=document.createElement('input'); fps.type='number'; fps.value=cam.preferred.fps;
       const worker=document.createElement('input'); worker.type='number'; worker.value=cam.npu_worker;
       const auto=document.createElement('input'); auto.type='checkbox'; auto.checked=cam.auto_profiles;
+      const profile=document.createElement('select');
+      ['auto','bright','indoor','dark'].forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;if(cam.profile===p)o.selected=true;profile.appendChild(o);});
 
-      [w,h,pix,fps,worker,auto].forEach(el=>{
+      [w,h,pix,fps,worker,auto,profile].forEach(el=>{
         el.addEventListener('focus',()=>advDirty=true);
         el.addEventListener('input',()=>advDirty=true);
       });
@@ -77,6 +79,7 @@
       advDiv.appendChild(document.createElement('br'));
       advDiv.appendChild(document.createTextNode('npu_worker:')); advDiv.appendChild(worker);
       advDiv.appendChild(document.createTextNode(' use_profiles:')); advDiv.appendChild(auto);
+      advDiv.appendChild(document.createTextNode(' profile:')); advDiv.appendChild(profile);
 
       const apply=document.createElement('button');
       apply.textContent='Apply';
@@ -88,8 +91,9 @@
             id:cam.id,
             preferred:{w:parseInt(w.value),h:parseInt(h.value),pixfmt:pix.value,fps:parseInt(fps.value)},
             npu_worker:parseInt(worker.value),
-            auto_profiles:auto.checked})
-        });
+            auto_profiles:auto.checked,
+            profile:profile.value}) 
+       });
         advDirty=false;
         refresh();
       };
