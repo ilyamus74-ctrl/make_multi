@@ -16,6 +16,7 @@
 
 static CameraManager g_mgr;
 static httplib::Server g_server;
+static bool g_preview_enabled = true;
 
 static void sigint(int) {
   g_mgr.stop();
@@ -118,12 +119,18 @@ int main(int argc, char **argv) {
   std::ifstream jf(cfg);
   nlohmann::json j;
   jf >> j;
+  g_preview_enabled = j.value("preview_enabled", true);
   int port = j.value("http", nlohmann::json::object()).value("port", 8080);
 
   std::signal(SIGINT, sigint);
   g_mgr.start();
 
   g_server.set_mount_point("/", "./web");
+  g_server.Get("/api/config", [](const httplib::Request &, httplib::Response &res) {
+    nlohmann::json out{{"preview_enabled", g_preview_enabled}};
+    res.set_content(out.dump(), "application/json");
+  });
+
 
   g_server.Get(
       "/api/configured", [](const httplib::Request &, httplib::Response &res) {
@@ -176,6 +183,10 @@ int main(int argc, char **argv) {
 
   g_server.Post("/api/preview",
                 [](const httplib::Request &req, httplib::Response &res) {
+		    if (!g_preview_enabled) {
+                    res.status = 403;
+                    return;
+                  }
                   try {
                     auto j = nlohmann::json::parse(req.body);
                     std::string id = j.at("id").get<std::string>();
@@ -209,6 +220,10 @@ int main(int argc, char **argv) {
 
   g_server.Get(
       "/api/preview", [](const httplib::Request &req, httplib::Response &res) {
+	 if (!g_preview_enabled) {
+          res.status = 403;
+          return;
+        }
         std::string dev;
         if (req.has_param("id"))
           dev = g_mgr.devicePath(req.get_param_value("id"));

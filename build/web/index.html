@@ -46,6 +46,8 @@
 
     let currentAdvId=null;
     let advDirty=false;
+    let previewEnabled=false;
+    const previewTimers=new Map();
 
     function showAdvSettings(cam){
       currentAdvId = cam.id;
@@ -101,7 +103,7 @@
         const configured = await (await fetch('/api/configured',{cache:'no-store'})).json();
         const confDiv=document.getElementById('configured');
         const existing=new Map(Array.from(confDiv.querySelectorAll('.cam')).map(d=>[d.dataset.id,d]));
-        configured.forEach(c=>{
+        configured.forEach((c,idx)=>{
           let div=existing.get(c.id);
           if(!div){
             div=document.createElement('div');
@@ -120,7 +122,7 @@
           div.querySelector('.title').textContent=c.id+' ';
 
           let preview=div.querySelector('.preview');
-          if(c.preview && c.present){
+	  if(previewEnabled && c.preview && c.present){
             if(preview.tagName!=='IMG'){
               const img=document.createElement('img');
               img.className='preview';
@@ -128,7 +130,6 @@
               div.replaceChild(img, preview);
               preview=img;
             }
-            preview.src=`/api/preview?id=${encodeURIComponent(c.id)}&t=${Date.now()}`;
           }else{
             if(preview.tagName==='IMG'){
               const ph=document.createElement('div');
@@ -142,8 +143,29 @@
             preview.textContent=c.present?'камера подключена':'нет камеры';
           }
 
+          const id=c.id;
+          let timer=previewTimers.get(id);
+          if(previewEnabled && c.preview && c.present){
+            if(!timer){
+              setTimeout(()=>{
+                const update=()=>{
+                  const img=div.querySelector('img.preview');
+                  if(img) img.src=`/api/preview?id=${encodeURIComponent(id)}&t=${Date.now()}`;
+                };
+                update();
+                const t=setInterval(update,1000);
+                previewTimers.set(id,t);
+              },idx*200);
+            }
+          }else if(timer){
+            clearInterval(timer);
+            previewTimers.delete(id);
+          }
+
+
           const toggle=div.querySelector('button.toggle');
           toggle.textContent=c.preview?'Disable preview':'Enable preview';
+          toggle.disabled=!previewEnabled;
           toggle.onclick=async()=>{await fetch('/api/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:c.id,enable:!c.preview})});refresh();};
 
           const del=div.querySelector('button.delete');
@@ -153,7 +175,12 @@
           const advBtn=div.querySelector('button.adv');
           advBtn.onclick=()=>showAdvSettings(c);
         });
-        existing.forEach(div=>div.remove());
+	existing.forEach(div=>{
+          const t=previewTimers.get(div.dataset.id);
+          if(t){clearInterval(t);previewTimers.delete(div.dataset.id);}
+          div.remove();
+        });
+
 
         if(currentAdvId && !advDirty){
           const cam=configured.find(c=>c.id===currentAdvId);
@@ -166,7 +193,7 @@
         const news = await (await fetch('/api/new',{cache:'no-store'})).json();
         const newDiv=document.getElementById('newcams');
         newDiv.innerHTML='';
-        news.forEach(n=>{
+	news.forEach((n,idx)=>{
           const div=document.createElement('div');
           div.className='newcam';
           const title=document.createElement('span');
@@ -174,7 +201,8 @@
           div.appendChild(title);
           const img=document.createElement('img');
           img.width=320; img.height=240;
-          img.src=`/api/preview?by=${encodeURIComponent(n)}&t=${Date.now()}`;
+	  if(previewEnabled)
+          setTimeout(()=>{img.src=`/api/preview?by=${encodeURIComponent(n)}&t=${Date.now()}`;},idx*200);
           div.appendChild(img);
           const btn=document.createElement('button');
           btn.textContent='Add';
@@ -186,7 +214,7 @@
       }catch(e){}
     }
     setInterval(refresh,1000);
-    refresh();
+    fetch('/api/config',{cache:'no-store'}).then(r=>r.json()).then(c=>{previewEnabled=c.preview_enabled; refresh();});
   </script>
 </body>
 </html>

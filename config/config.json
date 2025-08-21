@@ -1,5 +1,6 @@
 {
   "http": { "port": 8080, "http_fps_limit": 20, "display_camera": "cam1" },
+  "preview_enabled": true,
   "npu": { "workers": [
     {"core": "0"}, {"core": "1"}, {"core": "2"}
   ]},
