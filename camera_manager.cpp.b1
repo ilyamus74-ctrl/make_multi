@@ -1,4 +1,3 @@
-
 #include "camera_manager.h"
 
 #include "nlohmann/json.hpp"
@@ -239,7 +238,7 @@ void CameraManager::monitorLoop() {
 
     for (auto &kv : cfg_snapshot) {
       const auto &id = kv.first;
-      CamConfig &cfg = kv.second;
+      CamConfig cfg = kv.second;
       bool present = false;
       std::string matched;
       for (const auto &p : current) {
@@ -287,9 +286,7 @@ void CameraManager::monitorLoop() {
           ++it;
       }
 
-      // When preview is enabled, ensure detection is stopped so the camera can be
-      // used for previewing. Detection runs only while preview is disabled.
-      if (cfg.preview) {
+      if (!cfg.preview) {
         pid_t pid = 0;
         {
           std::lock_guard<std::mutex> lk(mutex_);
@@ -306,7 +303,7 @@ void CameraManager::monitorLoop() {
         continue;
       }
 
-      if (present && cfg.det_port > 0 && !cfg.preview) {
+      if (present && cfg.det_port > 0 && cfg.preview) {
         pid_t pid = 0;
         {
           std::lock_guard<std::mutex> lk(mutex_);
@@ -487,7 +484,7 @@ std::vector<CameraManager::ConfiguredInfo> CameraManager::configuredCameras() {
     ci.npu_core = kv.second.npu_core;
     ci.log_file = kv.second.log_file;
     out.push_back(ci);
-  } 
+  }
   return out;
 }
 
@@ -510,7 +507,7 @@ bool CameraManager::addCamera(const std::string &id,
       std::string("/dev/v4l/by-id/") + by_id_path, ec);
   if (!ec)
     cfg.device_path = dev.string();
- {
+  {
     std::set<int> used;
     for (auto &kv : configs_)
       used.insert(kv.second.det_port);
@@ -741,9 +738,9 @@ bool CameraManager::resetSettings(const std::string &id) {
   for (auto &c : j["cameras"]) {
     if (c.value("id", "") == id) {
       c["preferred"] = {{"w", cfg.preferred.w},
-                         {"h", cfg.preferred.h},
-                         {"pixfmt", cfg.preferred.pixfmt},
-                         {"fps", cfg.preferred.fps}};
+                        {"h", cfg.preferred.h},
+                        {"pixfmt", cfg.preferred.pixfmt},
+                        {"fps", cfg.preferred.fps}};
       c["npu_worker"] = cfg.npu_worker;
       c["auto_profiles"] = cfg.auto_profiles;
       c["profile"] = cfg.profile;
@@ -786,3 +783,4 @@ void CameraManager::reportFrame(const std::string &id) {
   }
   cfg.last_frame = now;
 }
+

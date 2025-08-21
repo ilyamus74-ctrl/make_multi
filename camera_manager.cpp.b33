@@ -226,18 +226,7 @@ void CameraManager::monitorLoop() {
 
     std::set<std::string> new_unconfigured = current;
 
-    // Take a snapshot of configs_ under the lock to avoid concurrent
-    // modifications while iterating. This also keeps the lock held only for
-    // the minimal time and allows heavy work to happen without the mutex.
-    std::vector<std::pair<std::string, CamConfig>> cfg_snapshot;
-    {
-      std::lock_guard<std::mutex> lk(mutex_);
-      cfg_snapshot.reserve(configs_.size());
-      for (auto &kv : configs_)
-        cfg_snapshot.push_back(kv);
-    }
-
-    for (auto &kv : cfg_snapshot) {
+    for (auto &kv : configs_) {
       const auto &id = kv.first;
       CamConfig &cfg = kv.second;
       bool present = false;
@@ -258,9 +247,7 @@ void CameraManager::monitorLoop() {
           auto dev = fs::canonical(base + "/" + matched, ec);
           std::string devpath = ec ? std::string{} : dev.string();
           active_paths_[id] = devpath;
-          auto it = configs_.find(id);
-          if (it != configs_.end())
-            it->second.device_path = devpath;
+          cfg.device_path = devpath;
           if (!active) {
             std::cout << "Camera " << id << " connected" << std::endl;
             active_.insert(id);
@@ -287,26 +274,7 @@ void CameraManager::monitorLoop() {
           ++it;
       }
 
-      // When preview is enabled, ensure detection is stopped so the camera can be
-      // used for previewing. Detection runs only while preview is disabled.
-      if (cfg.preview) {
-        pid_t pid = 0;
-        {
-          std::lock_guard<std::mutex> lk(mutex_);
-          auto itp = det_pids_.find(id);
-          if (itp != det_pids_.end())
-            pid = itp->second;
-        }
-        if (pid > 0) {
-          kill(pid, SIGTERM);
-          waitpid(pid, nullptr, 0);
-          std::lock_guard<std::mutex> lk(mutex_);
-          det_pids_.erase(id);
-        }
-        continue;
-      }
-
-      if (present && cfg.det_port > 0 && !cfg.preview) {
+          if (present && cfg.det_port > 0) {
         pid_t pid = 0;
         {
           std::lock_guard<std::mutex> lk(mutex_);
