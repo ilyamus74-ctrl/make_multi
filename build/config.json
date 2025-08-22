@@ -41,7 +41,7 @@
       "det_port": 8001,
       "device": "/dev/video1",
       "http_fps_limit": 20,
-      "id": "3",
+      "id": "2",
       "jpeg_quality": 60,
       "labels_path": "model/coco_80_labels_list.txt",
       "log_file": "",
