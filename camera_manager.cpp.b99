@@ -208,30 +208,36 @@ void CameraManager::stop() {
 void CameraManager::monitorLoop() {
   namespace fs = std::filesystem;
   using namespace std::chrono_literals;
- 
-  while (running_) {
+  std::error_code ec;
+  fs::file_time_type last_cfg_time{};
+  if (!config_path_.empty())
+    last_cfg_time = fs::last_write_time(config_path_, ec);
 
-    if (!config_path_.empty()) {
-      if (loadConfig(config_path_)) {
-        std::lock_guard<std::mutex> lk(mutex_);
-        for (auto it = active_.begin(); it != active_.end();) {
-          if (!configs_.count(*it)) {
-            auto id = *it;
-            it = active_.erase(it);
-            active_paths_.erase(id);
-            auto itp = det_pids_.find(id);
-            if (itp != det_pids_.end()) {
-              kill(itp->second, SIGTERM);
-              waitpid(itp->second, nullptr, 0);
-              det_pids_.erase(itp);
+  while (running_) {
+     if (!config_path_.empty()) {
+      auto t = fs::last_write_time(config_path_, ec);
+      if (!ec && t != last_cfg_time) {
+        if (loadConfig(config_path_)) {
+          last_cfg_time = t;
+          std::lock_guard<std::mutex> lk(mutex_);
+          for (auto it = active_.begin(); it != active_.end();) {
+            if (!configs_.count(*it)) {
+              auto id = *it;
+              it = active_.erase(it);
+              active_paths_.erase(id);
+              auto itp = det_pids_.find(id);
+              if (itp != det_pids_.end()) {
+                kill(itp->second, SIGTERM);
+                waitpid(itp->second, nullptr, 0);
+                det_pids_.erase(itp);
+              }
+            } else {
+              ++it;
             }
-          } else {
-            ++it;
           }
         }
       }
     }
-    std::error_code ec;
     std::set<std::string> current;
     const std::string base = "/dev/v4l/by-id";
     if (fs::exists(base)) {
