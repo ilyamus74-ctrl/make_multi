@@ -456,6 +456,7 @@ std::vector<CameraManager::ConfiguredInfo> CameraManager::configuredCameras() {
     ci.auto_profiles = kv.second.auto_profiles;
     ci.profile = kv.second.profile;
     ci.det_port = kv.second.det_port;
+    ci.det_running = det_pids_.count(kv.first) > 0;
     ci.position = kv.second.position;
     ci.fps = kv.second.fps;
     ci.model_path = kv.second.model_path;

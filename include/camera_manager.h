@@ -80,6 +80,7 @@ public:
     bool auto_profiles;
     std::string profile;
     int det_port;
+    bool det_running;
     CamConfig::Position position;
     double fps;
     std::string model_path;

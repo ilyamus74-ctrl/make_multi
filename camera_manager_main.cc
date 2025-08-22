@@ -150,6 +150,7 @@ int main(int argc, char **argv) {
                          {"auto_profiles", c.auto_profiles},
                          {"profile", c.profile},
                          {"det_port", c.det_port},
+                         {"det_running", c.det_running},
                          {"position", {{"x", c.position.x}, {"y", c.position.y}, {"z", c.position.z}}},
                          {"fps", c.fps},
                          {"model_path", c.model_path},

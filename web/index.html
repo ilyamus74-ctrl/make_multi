@@ -65,13 +65,13 @@
     }
     async function refreshMain(){
       const cams=await (await fetch('/api/configured',{cache:'no-store'})).json();
-      mainCams=cams.filter(c=>c.det_port && c.det_port>0);
+      mainCams=cams.filter(c=>c.det_running);
       const mosaic=document.getElementById('mosaic');
       mosaic.innerHTML='';
       mainCams.forEach(c=>{
         const img=document.createElement('img');
         img.width=320; img.height=240;
-        img.src=`http://localhost:${c.det_port}/api/stream.mjpg`;
+        img.src=`${location.protocol}//${location.hostname}:${c.det_port}/api/stream.mjpg`;
         mosaic.appendChild(img);
       });
     }
@@ -79,7 +79,7 @@
     async function fetchDetections(){
       for(const cam of mainCams){
         try{
-          const j=await (await fetch(`http://localhost:${cam.det_port}/api/last.json`)).json();
+          const j=await (await fetch(`${location.protocol}//${location.hostname}:${cam.det_port}/api/last.json`)).json();
           if(!j.detections) continue;
           j.detections.forEach(det=>{
             if(!det.color) return;
