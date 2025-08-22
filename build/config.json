@@ -15,7 +15,7 @@
       "match": {
         "by_id_contains": "usb-SHENZHEN_AONI_ELECTRONIC_CO.__LTD_Full_HD_webcam_AN202011030002-video-index0"
       },
-      "model_path": "model_rknn/yolov8.rknn",
+      "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
       "npu_core": "auto",
       "npu_worker": 0,
       "position": {
@@ -29,8 +29,8 @@
         "pixfmt": "MJPG",
         "w": 1280
       },
-      "preview": false,
-      "profile": "auto",
+      "preview": true,
+      "profile": "dark",
       "show_fps": false
     },
     {
@@ -48,7 +48,7 @@
       "match": {
         "by_id_contains": "usb-icSpring_WebCamera_20240603201703-video-index0"
       },
-      "model_path": "model_rknn/yolov8.rknn",
+      "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
       "npu_core": "auto",
       "npu_worker": 0,
       "position": {

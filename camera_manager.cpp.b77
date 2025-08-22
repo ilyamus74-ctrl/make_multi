@@ -206,14 +206,9 @@ void CameraManager::stop() {
 }
 
 void CameraManager::monitorLoop() {
-  namespace fs = std::filesystem;
   using namespace std::chrono_literals;
-  std::error_code ec;
-  fs::file_time_type last_cfg_time{};
-  if (!config_path_.empty())
-    last_cfg_time = fs::last_write_time(config_path_, ec);
-
   while (running_) {
+    namespace fs = std::filesystem;
     std::set<std::string> current;
     const std::string base = "/dev/v4l/by-id";
     if (fs::exists(base)) {
@@ -262,6 +257,7 @@ void CameraManager::monitorLoop() {
         std::lock_guard<std::mutex> lk(mutex_);
         active = active_.count(id) > 0;
         if (present) {
+          std::error_code ec;
           auto dev = fs::canonical(base + "/" + matched, ec);
           std::string devpath = ec ? std::string{} : dev.string();
           active_paths_[id] = devpath;
