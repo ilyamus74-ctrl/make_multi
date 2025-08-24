@@ -26,11 +26,12 @@
   </div>
 
   <div id="tab-settings" class="tab">
-    <h3>Configured cameras</h3>
+    <h3>Configured cameras <button onclick="showStereoSettings()">Stereo Settings</button></h3>
     <div id="configured"></div>
 
     <!-- Persistent advanced-settings panel -->
     <div id="adv-settings" data-loaded="0"></div>
+    <div id="stereo-settings" style="display:none;position:fixed;top:10%;left:10%;background:#fff;border:1px solid #888;padding:10px;"></div>
 
     <h3>New cameras</h3>
     <div id="newcams"></div>
@@ -62,6 +63,42 @@
     let advDirty=false;
     let previewEnabled=false;
     const previewTimers=new Map();
+
+
+    async function showStereoSettings(){
+      const panel=document.getElementById('stereo-settings');
+      panel.style.display='block';
+      panel.innerHTML='Loading...';
+      let cfg={};
+      try{
+        cfg=await (await fetch('/api/stereo',{cache:'no-store'})).json();
+      }catch(e){}
+      panel.innerHTML='';
+      const baseline=document.createElement('input'); baseline.type='number'; baseline.id='stereo-baseline'; baseline.value=cfg.baseline||0;
+      const fov=document.createElement('input'); fov.type='number'; fov.id='stereo-fov'; fov.value=cfg.fov||0;
+      const save=document.createElement('button');
+      save.textContent='Save';
+      save.onclick=async()=>{
+        await fetch('/api/stereo',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({baseline:parseFloat(baseline.value),fov:parseFloat(fov.value)})
+        });
+        panel.style.display='none';
+      };
+      const close=document.createElement('button');
+      close.textContent='Close';
+      close.onclick=()=>{panel.style.display='none';};
+
+      panel.appendChild(document.createTextNode('baseline:'));
+      panel.appendChild(baseline);
+      panel.appendChild(document.createElement('br'));
+      panel.appendChild(document.createTextNode('fov:'));
+      panel.appendChild(fov);
+      panel.appendChild(document.createElement('br'));
+      panel.appendChild(save);
+      panel.appendChild(close);
+    }
 
 // ----- Main tab detection stream -----
     let mainCams=[];
