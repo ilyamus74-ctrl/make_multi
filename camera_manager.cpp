@@ -14,6 +14,22 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <signal.h>
+#include <opencv2/calib3d.hpp>
+
+// Структура, описывающая стереопару. Она хранит идентификаторы камер,
+// использующихся как левый и правый канал, матрицу Q из калибровки и
+// объект StereoSGBM для расчёта диспаритета.
+struct StereoPair {
+  std::string cam0;
+  std::string cam1;
+  cv::Mat Q;                         // матрица для reprojectImageTo3D
+  cv::Ptr<cv::StereoSGBM> matcher;   // алгоритм расчёта диспаритета
+};
+
+// Глобальный список активных стереопар. Он экспортируется в основной модуль
+// для последующей обработки кадра.
+std::vector<StereoPair> g_active_pairs;
+
 
 using json = nlohmann::json;
 
@@ -175,6 +191,30 @@ bool CameraManager::loadConfig(const std::string &path) {
         configs_[cfg.id] = cfg;
     }
   }
+
+ // Загрузка описаний стереопар из конфигурации. Для каждой пары создаётся
+  // объект StereoSGBM с параметрами, указанными в файле калибровки. Это
+  // позволяет в дальнейшем рассчитывать карту диспаритета.
+  if (j.contains("stereo_pairs") && j["stereo_pairs"].is_array()) {
+    g_active_pairs.clear();
+    for (auto &p : j["stereo_pairs"]) {
+      StereoPair sp;
+      sp.cam0 = p.value("cam0", std::string());
+      sp.cam1 = p.value("cam1", std::string());
+      if (p.contains("Q") && p["Q"].is_array()) {
+        std::vector<double> qv = p["Q"].get<std::vector<double>>();
+        if (qv.size() == 16)
+          sp.Q = cv::Mat(4, 4, CV_64F, qv.data()).clone();
+      }
+      int min_disp = p.value("min_disparity", 0);
+      int num_disp = p.value("num_disparities", 64);
+      int block_size = p.value("block_size", 5);
+      sp.matcher = cv::StereoSGBM::create(min_disp, num_disp, block_size);
+      g_active_pairs.push_back(sp);
+    }
+  }
+
+
   return true;
 }
 

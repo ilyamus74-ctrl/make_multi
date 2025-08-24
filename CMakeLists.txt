@@ -49,8 +49,7 @@ set(LIBRKNNRT_INCLUDES "${PROJ}/include")
 # ---------- Threads / OpenCV ----------
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs videoio)
-
+find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs videoio calib3d video)
 # ---------- TurboJPEG (system or bundled) ----------
 set(TJPEG_BUNDLED_ROOT ${PROJ}/include/3rdparty/jpeg_turbo)
 
@@ -182,10 +181,12 @@ add_executable(camera_manager_demo
 
 target_include_directories(camera_manager_demo PRIVATE
   ${PROJ}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 target_link_libraries(camera_manager_demo
   Threads::Threads
+  ${OpenCV_LIBS}
 )
 
 install(TARGETS camera_manager_demo DESTINATION .)

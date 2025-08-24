@@ -131,7 +131,12 @@ yolov8_web_server: /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/includ
 yolov8_web_server: /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/lib/librknnrt.so
 yolov8_web_server: /usr/lib/aarch64-linux-gnu/libturbojpeg.so
 yolov8_web_server: /usr/local/lib/libopencv_videoio.so.4.13.0
+yolov8_web_server: /usr/local/lib/libopencv_video.so.4.13.0
 yolov8_web_server: /usr/local/lib/libopencv_imgcodecs.so.4.13.0
+yolov8_web_server: /usr/local/lib/libopencv_calib3d.so.4.13.0
+yolov8_web_server: /usr/local/lib/libopencv_features2d.so.4.13.0
+yolov8_web_server: /usr/local/lib/libopencv_flann.so.4.13.0
+yolov8_web_server: /usr/local/lib/libopencv_dnn.so.4.13.0
 yolov8_web_server: /usr/local/lib/libopencv_imgproc.so.4.13.0
 yolov8_web_server: /usr/local/lib/libopencv_core.so.4.13.0
 yolov8_web_server: CMakeFiles/yolov8_web_server.dir/link.txt

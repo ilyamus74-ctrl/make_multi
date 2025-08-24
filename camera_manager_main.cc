@@ -11,9 +11,23 @@
 #include <cerrno>
 #include <cstring>
 #include <filesystem>
+#include <atomic>
 
 #include "httplib.h"
 #include "nlohmann/json.hpp"
+#include <opencv2/opencv.hpp>
+
+// Описание стереопары синхронизировано с camera_manager.cpp. Для доступа к
+// активным парам используется внешний вектор g_active_pairs.
+struct StereoPair {
+  std::string cam0;
+  std::string cam1;
+  cv::Mat Q;
+  cv::Ptr<cv::StereoSGBM> matcher;
+};
+
+extern std::vector<StereoPair> g_active_pairs;
+
 
 static CameraManager g_mgr;
 static httplib::Server g_server;
@@ -111,6 +125,75 @@ static bool capture_jpeg(const std::string &dev,
   return true;
 }
 
+
+// Захват кадра в формате cv::Mat. Используется существующая функция
+// capture_jpeg, после чего изображение декодируется в градации серого.
+static cv::Mat capture_mat(const std::string &dev) {
+  std::vector<unsigned char> buf;
+  if (!capture_jpeg(dev, buf))
+    return cv::Mat();
+  return cv::imdecode(buf, cv::IMREAD_GRAYSCALE);
+}
+
+// Флаг работы стерео-потока.
+static std::atomic<bool> g_stereo_running{true};
+
+// Основной цикл обработки стереопар. Для каждой активной пары вычисляется
+// карта диспаритета, точки переводятся в систему cam0, после чего карты глубин
+// объединяются. Также выполняется простой KLT-трекер для оценки движения
+// между кадрами.
+static void stereo_loop() {
+  cv::Mat prev_gray;
+  std::vector<cv::Point2f> prev_pts;
+  while (g_stereo_running) {
+    cv::Mat merged;
+    for (auto &pair : g_active_pairs) {
+      std::string dev0 = g_mgr.devicePath(pair.cam0);
+      std::string dev1 = g_mgr.devicePath(pair.cam1);
+      if (dev0.empty() || dev1.empty())
+        continue;
+      cv::Mat left = capture_mat(dev0);
+      cv::Mat right = capture_mat(dev1);
+      if (left.empty() || right.empty())
+        continue;
+      cv::Mat disp;
+      pair.matcher->compute(left, right, disp);
+      cv::Mat pts3d;
+      cv::reprojectImageTo3D(disp, pts3d, pair.Q);
+      cv::Mat zmap;
+      cv::extractChannel(pts3d, zmap, 2);
+      if (merged.empty())
+        merged = zmap;
+      else
+        cv::min(merged, zmap, merged);
+    }
+
+    if (!merged.empty()) {
+      cv::Mat gray;
+      merged.convertTo(gray, CV_8U, 255.0 / 10.0);
+      if (prev_pts.empty()) {
+        cv::goodFeaturesToTrack(gray, prev_pts, 200, 0.01, 3);
+      } else {
+        std::vector<cv::Point2f> next_pts;
+        std::vector<uchar> status;
+        std::vector<float> err;
+        cv::calcOpticalFlowPyrLK(prev_gray, gray, prev_pts, next_pts, status,
+                                 err);
+        prev_pts.clear();
+        for (size_t i = 0; i < status.size(); ++i) {
+          if (status[i])
+            prev_pts.push_back(next_pts[i]);
+        }
+      }
+      prev_gray = gray;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+  }
+}
+
+
+
 int main(int argc, char **argv) {
   std::string cfg = "config.json";
   if (argc > 1)
@@ -125,6 +208,11 @@ int main(int argc, char **argv) {
 
   std::signal(SIGINT, sigint);
   g_mgr.start();
+
+
+  // Отдельный поток обработки стереопар.
+  std::thread stereo_thread(stereo_loop);
+
 
   g_server.set_mount_point("/", "./web");
   g_server.Get("/api/config", [](const httplib::Request &, httplib::Response &res) {
@@ -321,5 +409,8 @@ int main(int argc, char **argv) {
   }
   if (http_thr.joinable())
     http_thr.join();
+  g_stereo_running = false;
+  if (stereo_thread.joinable())
+    stereo_thread.join();
   return 0;
 }

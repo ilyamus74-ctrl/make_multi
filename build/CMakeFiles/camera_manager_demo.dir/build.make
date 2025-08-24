@@ -108,6 +108,15 @@ camera_manager_demo_EXTERNAL_OBJECTS =
 camera_manager_demo: CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o
 camera_manager_demo: CMakeFiles/camera_manager_demo.dir/camera_manager.cpp.o
 camera_manager_demo: CMakeFiles/camera_manager_demo.dir/build.make
+camera_manager_demo: /usr/local/lib/libopencv_videoio.so.4.13.0
+camera_manager_demo: /usr/local/lib/libopencv_video.so.4.13.0
+camera_manager_demo: /usr/local/lib/libopencv_imgcodecs.so.4.13.0
+camera_manager_demo: /usr/local/lib/libopencv_calib3d.so.4.13.0
+camera_manager_demo: /usr/local/lib/libopencv_features2d.so.4.13.0
+camera_manager_demo: /usr/local/lib/libopencv_flann.so.4.13.0
+camera_manager_demo: /usr/local/lib/libopencv_dnn.so.4.13.0
+camera_manager_demo: /usr/local/lib/libopencv_imgproc.so.4.13.0
+camera_manager_demo: /usr/local/lib/libopencv_core.so.4.13.0
 camera_manager_demo: CMakeFiles/camera_manager_demo.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable camera_manager_demo"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/camera_manager_demo.dir/link.txt --verbose=$(VERBOSE)

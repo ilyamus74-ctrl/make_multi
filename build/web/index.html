@@ -76,6 +76,51 @@
       panel.innerHTML='';
       const baseline=document.createElement('input'); baseline.type='number'; baseline.id='stereo-baseline'; baseline.value=cfg.baseline||0;
       const fov=document.createElement('input'); fov.type='number'; fov.id='stereo-fov'; fov.value=cfg.fov||0;
+
+
+      // fetch list of configured cameras
+      let camCfg=[];
+      try{
+        camCfg=await (await fetch('/api/configured',{cache:'no-store'})).json();
+      }catch(e){}
+      const camSel=document.createElement('select');
+      camSel.id='stereo-cams';
+      camSel.multiple=true;
+      camCfg.forEach(c=>{
+        const opt=document.createElement('option');
+        opt.value=c.id; opt.textContent=c.id;
+        camSel.appendChild(opt);
+      });
+
+      const imgPaths=document.createElement('input');
+      imgPaths.type='text';
+      imgPaths.id='stereo-imgs';
+      imgPaths.placeholder='image paths, comma separated';
+
+      const runMono=document.createElement('button');
+      runMono.textContent='Run Mono';
+      runMono.onclick=async()=>{
+        const cam=camSel.value;
+        const paths=imgPaths.value.split(',').map(s=>s.trim()).filter(s=>s);
+        await fetch('/api/calibrate/mono',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({camera:cam,images:paths})
+        });
+      };
+      const runStereo=document.createElement('button');
+      runStereo.textContent='Run Stereo';
+      runStereo.onclick=async()=>{
+        const cams=Array.from(camSel.selectedOptions).map(o=>o.value);
+        const paths=imgPaths.value.split(',').map(s=>s.trim()).filter(s=>s);
+        await fetch('/api/calibrate/stereo',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({cameras:cams,images:paths})
+        });
+      };
+
+
       const save=document.createElement('button');
       save.textContent='Save';
       save.onclick=async()=>{
@@ -95,6 +140,15 @@
       panel.appendChild(document.createElement('br'));
       panel.appendChild(document.createTextNode('fov:'));
       panel.appendChild(fov);
+      panel.appendChild(document.createElement('br'));
+      panel.appendChild(document.createTextNode('cameras:'));
+      panel.appendChild(camSel);
+      panel.appendChild(document.createElement('br'));
+      panel.appendChild(document.createTextNode('images:'));
+      panel.appendChild(imgPaths);
+      panel.appendChild(document.createElement('br'));
+      panel.appendChild(runMono);
+      panel.appendChild(runStereo);
       panel.appendChild(document.createElement('br'));
       panel.appendChild(save);
       panel.appendChild(close);

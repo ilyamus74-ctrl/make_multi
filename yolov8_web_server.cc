@@ -576,6 +576,60 @@ private:
             if (jpg.empty()) { res.status = 503; res.set_content("no frame", "text/plain"); return; }
             res.set_content(std::string(reinterpret_cast<const char*>(jpg.data()), jpg.size()), "image/jpeg");
         });
+        server.Post("/api/calibrate/mono", [](const Request& req, Response& res) {
+            json resp;
+            try {
+                auto j = json::parse(req.body);
+                std::string cam = j.value("camera", "");
+                std::vector<std::string> imgs = j.value("images", std::vector<std::string>{});
+                if (cam.empty() || imgs.empty()) {
+                    res.status = 400;
+                    res.set_content("{\"error\":\"missing camera or images\"}", "application/json");
+                    return;
+                }
+                mkdir("out", 0755);
+                std::string outfile = "out/cam" + cam + ".yml";
+                std::string cmd = "opencv_calib_mono -o " + outfile;
+                for (auto& p : imgs) cmd += " " + p;
+                int rc = system(cmd.c_str());
+                resp["status"] = rc == 0 ? "ok" : "error";
+                resp["out"] = outfile;
+                resp["cmd"] = cmd;
+            } catch (...) {
+                res.status = 400;
+                res.set_content("{\"error\":\"invalid json\"}", "application/json");
+                return;
+            }
+            res.set_content(resp.dump(), "application/json");
+        });
+
+        server.Post("/api/calibrate/stereo", [](const Request& req, Response& res) {
+            json resp;
+            try {
+                auto j = json::parse(req.body);
+                std::vector<std::string> cams = j.value("cameras", std::vector<std::string>{});
+                std::vector<std::string> imgs = j.value("images", std::vector<std::string>{});
+                if (cams.size() < 2 || imgs.empty()) {
+                    res.status = 400;
+                    res.set_content("{\"error\":\"need cameras and images\"}", "application/json");
+                    return;
+                }
+                mkdir("out", 0755);
+                std::string outfile = "out/stereo_" + cams[0] + cams[1] + ".yml";
+                std::string cmd = "opencv_calib_stereo -o " + outfile;
+                for (auto& c : cams) cmd += " --cam " + c;
+                for (auto& p : imgs) cmd += " " + p;
+                int rc = system(cmd.c_str());
+                resp["status"] = rc == 0 ? "ok" : "error";
+                resp["out"] = outfile;
+                resp["cmd"] = cmd;
+            } catch (...) {
+                res.status = 400;
+                res.set_content("{\"error\":\"invalid json\"}", "application/json");
+                return;
+            }
+            res.set_content(resp.dump(), "application/json");
+        });
     }
 
     // ---------- Camera (V4L2 MJPEG) ----------
