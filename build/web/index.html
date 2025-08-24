@@ -40,7 +40,20 @@
     function showTab(id){
       document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
       document.getElementById(id).classList.add('active');
-      if(id==='tab-main') startMain(); else stopMain();
+
+      if(id==='tab-main'){
+        startMain();
+      }else{
+        stopMain();
+        if(id==='tab-settings'){
+          const advDiv=document.getElementById('adv-settings');
+          advDiv.style.display='none';
+          advDiv.dataset.loaded='0';
+          advDiv.innerHTML='';
+          currentAdvId=null;
+          advDirty=false;
+        }
+      }
     }
     document.getElementById('tabbtn-main').onclick=()=>showTab('tab-main');
     document.getElementById('tabbtn-settings').onclick=()=>showTab('tab-settings');
@@ -308,7 +321,15 @@
           const advBtn=div.querySelector('button.adv');
           advBtn.onclick=()=>showAdvSettings(c);
           const fps=div.querySelector('span.fps');
-          fps.textContent=c.show_fps?` FPS: ${c.fps.toFixed(1)}`:'';
+          if(c.show_fps && c.det_running){
+            fps.textContent=' FPS: ...';
+            fetch(`${location.protocol}//${location.hostname}:${c.det_port}/api/health`,{cache:'no-store'})
+              .then(r=>r.json())
+              .then(h=>{ fps.textContent=` FPS: ${h.cap_real_fps.toFixed(1)}`; })
+              .catch(()=>{ fps.textContent=''; });
+          }else{
+            fps.textContent='';
+          }
         });
 	existing.forEach(div=>{
           const t=previewTimers.get(div.dataset.id);
