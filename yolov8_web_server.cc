@@ -346,6 +346,12 @@ private:
     json last_meta;
     SimpleTracker tracker; // maintains unique object IDs
 
+    // stereo config
+    struct StereoPairCfg { int a=0; int b=0; std::string file; };
+    std::vector<StereoPairCfg> stereo_pairs;
+    json stereo_cfg;
+
+
 // logging
     bool log_enabled = false;
     std::string log_base;
@@ -406,6 +412,36 @@ private:
     }
 
 
+    void parseStereoConfig() {
+        stereo_pairs.clear();
+        if (stereo_cfg.contains("pairs") && stereo_cfg["pairs"].is_array()) {
+            for (auto &p : stereo_cfg["pairs"]) {
+                StereoPairCfg sp;
+                sp.a = p.value("a", 0);
+                sp.b = p.value("b", 0);
+                sp.file = p.value("file", std::string());
+                stereo_pairs.push_back(sp);
+            }
+        }
+    }
+
+    void loadStereoConfig() {
+        std::ifstream f("config/stereo_config.json");
+        if (f) {
+            try { f >> stereo_cfg; } catch (...) { stereo_cfg = json::object(); }
+        } else {
+            stereo_cfg = json::object();
+        }
+        parseStereoConfig();
+    }
+
+    void saveStereoConfig() {
+        mkdir("config", 0755);
+        std::ofstream f("config/stereo_config.json");
+        if (f) f << stereo_cfg.dump(2);
+    }
+
+
 public:
     YOLOWebServer(const Args& a)
         : model_path(a.model), labels_path(a.labels), server_port(a.port),
@@ -436,6 +472,8 @@ public:
             else                        fprintf(stderr, "rknn core mask set: %d\n", npu_mask);
         }
         model_initialized = true;
+
+        loadStereoConfig();
 
         server.set_keep_alive_max_count(100);
         server.set_read_timeout(5, 0);
@@ -576,6 +614,23 @@ private:
             if (jpg.empty()) { res.status = 503; res.set_content("no frame", "text/plain"); return; }
             res.set_content(std::string(reinterpret_cast<const char*>(jpg.data()), jpg.size()), "image/jpeg");
         });
+
+        server.Get("/api/stereo-config", [this](const Request&, Response& res) {
+            res.set_content(stereo_cfg.dump(), "application/json");
+        });
+
+        server.Post("/api/stereo-config", [this](const Request& req, Response& res) {
+            try {
+                stereo_cfg = json::parse(req.body);
+                parseStereoConfig();
+                saveStereoConfig();
+                res.set_content("{\"status\":\"ok\"}", "application/json");
+            } catch (...) {
+                res.status = 400;
+                res.set_content("{\"error\":\"invalid json\"}", "application/json");
+            }
+        });
+
         server.Post("/api/calibrate/mono", [](const Request& req, Response& res) {
             json resp;
             try {

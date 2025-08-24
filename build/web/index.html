@@ -71,11 +71,11 @@
       panel.innerHTML='Loading...';
       let cfg={};
       try{
-        cfg=await (await fetch('/api/stereo',{cache:'no-store'})).json();
+        cfg=await (await fetch('/api/stereo-config',{cache:'no-store'})).json();
       }catch(e){}
       panel.innerHTML='';
-      const baseline=document.createElement('input'); baseline.type='number'; baseline.id='stereo-baseline'; baseline.value=cfg.baseline||0;
-      const fov=document.createElement('input'); fov.type='number'; fov.id='stereo-fov'; fov.value=cfg.fov||0;
+      const baseline=document.createElement('input'); baseline.type='number'; baseline.id='stereo-baseline'; baseline.value=(cfg.cam0&&cfg.cam0.baseline)||0;
+      const fov=document.createElement('input'); fov.type='number'; fov.id='stereo-fov'; fov.value=(cfg.cam0&&cfg.cam0.fov)||0;
 
 
       // fetch list of configured cameras
@@ -124,10 +124,12 @@
       const save=document.createElement('button');
       save.textContent='Save';
       save.onclick=async()=>{
-        await fetch('/api/stereo',{
-          method:'POST',
+        cfg.cam0=cfg.cam0||{};
+        cfg.cam0.baseline=parseFloat(baseline.value);
+        cfg.cam0.fov=parseFloat(fov.value);
+        await fetch('/api/stereo-config',{          method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({baseline:parseFloat(baseline.value),fov:parseFloat(fov.value)})
+          body:JSON.stringify(cfg)
         });
         panel.style.display='none';
       };
