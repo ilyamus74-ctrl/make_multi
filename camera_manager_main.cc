@@ -12,6 +12,7 @@
 #include <cstring>
 #include <filesystem>
 #include <atomic>
+#include <sys/stat.h>
 
 #include "httplib.h"
 #include "nlohmann/json.hpp"
@@ -32,6 +33,47 @@ extern std::vector<StereoPair> g_active_pairs;
 static CameraManager g_mgr;
 static httplib::Server g_server;
 static bool g_preview_enabled = true;
+
+
+static bool fileExists(const std::string &p) {
+  struct stat st {
+  };
+  return stat(p.c_str(), &st) == 0;
+}
+
+static bool dirExists(const std::string &p) {
+  struct stat st {
+  };
+  return stat(p.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+static nlohmann::json readMainConfig() {
+  nlohmann::json cfg = nlohmann::json::object();
+  auto p = std::filesystem::absolute("config/config.json");
+  printf("readMainConfig path: %s\n", p.c_str());
+  std::ifstream f(p);
+  if (f) {
+    try {
+      f >> cfg;
+    } catch (...) {
+    }
+  }
+  return cfg;
+}
+
+static bool writeMainConfig(const nlohmann::json &j) {
+  auto dir = std::filesystem::absolute("config");
+  auto file = dir / "config.json";
+  printf("writeMainConfig path: %s\n", file.c_str());
+  if (mkdir(dir.c_str(), 0755) != 0 && errno != EEXIST)
+    return false;
+  std::ofstream f(file);
+  if (!f)
+    return false;
+  f << j.dump(2);
+  return f.good();
+}
+
 
 static void sigint(int) {
   g_mgr.stop();
@@ -307,9 +349,70 @@ int main(int argc, char **argv) {
                   }
                 });
 
+  g_server.Post("/api/calib/setup",
+                [](const httplib::Request &req, httplib::Response &res) {
+                  try {
+                    auto j = nlohmann::json::parse(req.body);
+                    std::string cam = j.value("camera", "");
+                    if (cam.empty()) {
+                      res.status = 400;
+                      res.set_content("{\"error\":\"missing camera\"}",
+                                      "application/json");
+                      return;
+                    }
+                    auto cfg = readMainConfig();
+                    cfg["calib_camera"] = cam;
+                    if (!writeMainConfig(cfg)) {
+                      res.status = 500;
+                      res.set_content("{\"error\":\"write failure\"}",
+                                      "application/json");
+                      return;
+                    }
+                    std::string dir = "CalibCam" + cam;
+                    auto absDir = std::filesystem::absolute(dir);
+                    printf("calibration dir: %s\n", absDir.c_str());
+                    if (mkdir(absDir.c_str(), 0755) != 0 && errno != EEXIST) {
+                      res.status = 500;
+                      res.set_content("{\"error\":\"mkdir failure\"}",
+                                      "application/json");
+                      return;
+                    }
+                    res.set_content("{\"status\":\"ok\"}",
+                                    "application/json");
+                  } catch (...) {
+                    res.status = 400;
+                    res.set_content("{\"error\":\"invalid json\"}",
+                                    "application/json");
+                  }
+                });
+
+  g_server.Get("/api/calib/status",
+               [](const httplib::Request &req, httplib::Response &res) {
+                 std::string cam;
+                 if (req.has_param("camera")) {
+                   cam = req.get_param_value("camera");
+                 } else {
+                   auto cfg = readMainConfig();
+                   cam = cfg.value("calib_camera", "");
+                 }
+                 nlohmann::json resp;
+                 resp["camera"] = cam;
+                 std::string dir = cam.empty() ? std::string() : "CalibCam" + cam;
+                 bool folder = !cam.empty() && dirExists(dir);
+                 bool mono_done =
+                     !cam.empty() && fileExists("out/cam" + cam + ".yml");
+                 bool stereo_ready = mono_done && fileExists("out/cam0.yml") &&
+                                     !fileExists("out/stereo_0" + cam + ".yml");
+                 resp["folder_exists"] = folder;
+                 resp["mono_done"] = mono_done;
+                 resp["stereo_ready"] = stereo_ready;
+                 res.set_content(resp.dump(), "application/json");
+               });
+
+
   g_server.Post("/api/preview",
                 [](const httplib::Request &req, httplib::Response &res) {
-		    if (!g_preview_enabled) {
+                    if (!g_preview_enabled) {
                     res.status = 403;
                     return;
                   }

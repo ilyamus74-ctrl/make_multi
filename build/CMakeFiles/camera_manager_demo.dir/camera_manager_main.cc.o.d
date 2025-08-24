@@ -257,6 +257,11 @@ CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o: \
  /usr/include/c++/12/bits/shared_ptr_base.h \
  /usr/include/c++/12/bits/allocated_ptr.h \
  /usr/include/c++/12/bits/fs_dir.h /usr/include/c++/12/bits/fs_ops.h \
+ /usr/include/aarch64-linux-gnu/sys/stat.h \
+ /usr/include/aarch64-linux-gnu/bits/statx.h /usr/include/linux/stat.h \
+ /usr/include/aarch64-linux-gnu/bits/statx-generic.h \
+ /usr/include/aarch64-linux-gnu/bits/types/struct_statx_timestamp.h \
+ /usr/include/aarch64-linux-gnu/bits/types/struct_statx.h \
  /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/include/httplib.h \
  /usr/include/arpa/inet.h /usr/include/netinet/in.h \
  /usr/include/aarch64-linux-gnu/sys/socket.h \
@@ -352,11 +357,6 @@ CMakeFiles/camera_manager_demo.dir/camera_manager_main.cc.o: \
  /usr/include/c++/12/bits/regex.h /usr/include/c++/12/bits/regex.tcc \
  /usr/include/c++/12/bits/regex_executor.h \
  /usr/include/c++/12/bits/regex_executor.tcc \
- /usr/include/aarch64-linux-gnu/sys/stat.h \
- /usr/include/aarch64-linux-gnu/bits/statx.h /usr/include/linux/stat.h \
- /usr/include/aarch64-linux-gnu/bits/statx-generic.h \
- /usr/include/aarch64-linux-gnu/bits/types/struct_statx_timestamp.h \
- /usr/include/aarch64-linux-gnu/bits/types/struct_statx.h \
  /usr/include/c++/12/unordered_set \
  /usr/include/c++/12/bits/unordered_set.h /usr/include/c++/12/utility \
  /usr/include/c++/12/bits/stl_relops.h \

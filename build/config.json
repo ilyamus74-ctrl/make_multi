@@ -31,7 +31,7 @@
       },
       "preview": true,
       "profile": "auto",
-      "show_fps": false
+      "show_fps": true
     },
     {
       "auto_profiles": true,
