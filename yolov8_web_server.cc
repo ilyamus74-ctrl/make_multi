@@ -29,6 +29,8 @@
 #include <set>
 #include <map>
 #include <dirent.h>
+#include <filesystem>
+#include <errno.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -77,8 +79,8 @@ using Clock = std::chrono::high_resolution_clock;
 
 static bool fileExists(const std::string& p){ struct stat st{}; return stat(p.c_str(), &st)==0; }
 static bool dirExists(const std::string& p){ struct stat st{}; return stat(p.c_str(), &st)==0 && S_ISDIR(st.st_mode); }
-static json readMainConfig(){ json cfg=json::object(); std::ifstream f("config/config.json"); if(f){ try{f>>cfg;}catch(...){} } return cfg; }
-static void writeMainConfig(const json& j){ mkdir("config",0755); std::ofstream f("config/config.json"); if(f) f<<j.dump(2); }
+static json readMainConfig(){ json cfg=json::object(); auto p=std::filesystem::absolute("config/config.json"); printf("readMainConfig path: %s\n",p.c_str()); std::ifstream f(p); if(f){ try{f>>cfg;}catch(...){} } return cfg; }
+static bool writeMainConfig(const json& j){ auto dir=std::filesystem::absolute("config"); auto file=dir/"config.json"; printf("writeMainConfig path: %s\n",file.c_str()); if(mkdir(dir.c_str(),0755)!=0 && errno!=EEXIST) return false; std::ofstream f(file); if(!f) return false; f<<j.dump(2); return f.good(); }
 static std::string deviceForCam(const std::string& id){ auto cfg=readMainConfig(); if(cfg.contains("cameras")) for(auto& c:cfg["cameras"]) if(c.value("id","")==id) return c.value("device",""); return ""; }
 
 // Simple centroid-based tracker to provide stable IDs across frames
@@ -647,25 +649,32 @@ private:
                 if(cam.empty()){res.status=400;res.set_content("{\"error\":\"missing camera\"}","application/json");return;}
                 auto cfg=readMainConfig();
                 cfg["calib_camera"]=cam;
-                writeMainConfig(cfg);
+                if(!writeMainConfig(cfg)){res.status=500;res.set_content("{\"error\":\"write failure\"}","application/json");return;}
                 std::string dir="CalibCam"+cam;
-                mkdir(dir.c_str(),0755);
+                auto absDir=std::filesystem::absolute(dir);
+                printf("calibration dir: %s\n",absDir.c_str());
+                if(mkdir(absDir.c_str(),0755)!=0 && errno!=EEXIST){res.status=500;res.set_content("{\"error\":\"mkdir failure\"}","application/json");return;}
                 res.set_content("{\"status\":\"ok\"}","application/json");
             }catch(...){res.status=400;res.set_content("{\"error\":\"invalid json\"}","application/json");}
         });
 
-        server.Get("/api/calib/status", [](const Request&, Response& res){
-            auto cfg=readMainConfig();
-            std::string cam=cfg.value("calib_camera","");
-            json resp; resp["camera"]=cam;
-            std::string dir=cam.empty()?std::string():"CalibCam"+cam;
-            bool folder=!cam.empty() && dirExists(dir);
-            bool mono_done=!cam.empty() && fileExists("out/cam"+cam+".yml");
-            bool stereo_ready=mono_done && fileExists("out/cam0.yml") && !fileExists("out/stereo_0"+cam+".yml");
-            resp["folder_exists"]=folder;
-            resp["mono_done"]=mono_done;
-            resp["stereo_ready"]=stereo_ready;
-            res.set_content(resp.dump(),"application/json");
+       server.Get("/api/calib/status", [](const Request& req, Response& res){
+            std::string cam;
+            if(req.has_param("camera")) {
+                cam = req.get_param_value("camera");
+            } else {
+                auto cfg = readMainConfig();
+                cam = cfg.value("calib_camera", "");
+            }
+            json resp; resp["camera"] = cam;
+            std::string dir = cam.empty()?std::string():"CalibCam"+cam;
+            bool folder = !cam.empty() && dirExists(dir);
+            bool mono_done = !cam.empty() && fileExists("out/cam"+cam+".yml");
+            bool stereo_ready = mono_done && fileExists("out/cam0.yml") && !fileExists("out/stereo_0"+cam+".yml");
+            resp["folder_exists"] = folder;
+            resp["mono_done"] = mono_done;
+            resp["stereo_ready"] = stereo_ready;
+            res.set_content(resp.dump(), "application/json");
         });
 
         server.Post("/api/calib/mono", [](const Request& req, Response& res){
@@ -678,6 +687,8 @@ private:
                 if(dev.empty()){res.status=400;res.set_content("{\"error\":\"camera not found\"}","application/json");return;}
                 std::string dir="CalibCam"+cam;
                 mkdir(dir.c_str(),0755);
+                auto absDir = std::filesystem::absolute(dir);
+                printf("calibration dir %s\n", absDir.c_str());
                 std::this_thread::sleep_for(std::chrono::seconds(5));
                 cv::VideoCapture cap(dev);
                 if(!cap.isOpened()){res.status=500;res.set_content("{\"error\":\"open camera\"}","application/json");return;}
@@ -709,7 +720,9 @@ private:
                 std::string dev1=deviceForCam(cam);
                 if(dev0.empty()||dev1.empty()){res.status=400;res.set_content("{\"error\":\"camera not found\"}","application/json");return;}
                 std::string dir="CalibStereo0"+cam;
-                mkdir(dir.c_str(),0755);
+                auto absDir=std::filesystem::absolute(dir);
+                printf("calibration dir: %s\n",absDir.c_str());
+                if(mkdir(absDir.c_str(),0755)!=0 && errno!=EEXIST){res.status=500;res.set_content("{\"error\":\"mkdir failure\"}","application/json");return;}
                 std::this_thread::sleep_for(std::chrono::seconds(5));
                 cv::VideoCapture c0(dev0), c1(dev1);
                 if(!c0.isOpened()||!c1.isOpened()){res.status=500;res.set_content("{\"error\":\"open camera\"}","application/json");return;}

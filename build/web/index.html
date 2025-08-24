@@ -92,19 +92,30 @@
 
       async function refreshButtons(){
         let st={};
-        try{ st=await (await fetch('/api/calib/status',{cache:'no-store'})).json(); }catch(e){}
+        try{ st=await (await fetch(`/api/calib/status?camera=${sel.value}`,{cache:'no-store'})).json(); }catch(e){}
         mono.disabled=!(st.folder_exists && !st.mono_done);
         stereo.disabled=!(st.stereo_ready);
       }
 
-      save.onclick=async()=>{
-        await fetch('/api/calib/setup',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({camera:sel.value})
-        });
-        await refreshButtons();
-      };
+        save.onclick=async()=>{
+          try{
+            const resp=await fetch('/api/calib/setup',{
+              method:'POST',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({camera:sel.value})
+            });
+            if(!resp.ok){
+              const txt=await resp.text();
+              alert(`Error ${resp.status}: ${txt}`);
+            }else{
+              alert('Calibration folder created');
+            }
+          }catch(e){
+            alert('Network error: '+e);
+          }
+          await refreshButtons();
+        };
+
       mono.onclick=async()=>{
         mono.disabled=true;
         await fetch('/api/calib/mono',{
