@@ -46,6 +46,7 @@
 #include "file_utils.h"
 #include "httplib.h"
 #include "nlohmann/json.hpp"
+#include <opencv2/opencv.hpp>
 
 //debug start
 #include <chrono>
@@ -71,6 +72,14 @@ struct StageAcc {
 using json = nlohmann::json;
 using namespace httplib;
 using Clock = std::chrono::high_resolution_clock;
+
+
+
+static bool fileExists(const std::string& p){ struct stat st{}; return stat(p.c_str(), &st)==0; }
+static bool dirExists(const std::string& p){ struct stat st{}; return stat(p.c_str(), &st)==0 && S_ISDIR(st.st_mode); }
+static json readMainConfig(){ json cfg=json::object(); std::ifstream f("config/config.json"); if(f){ try{f>>cfg;}catch(...){} } return cfg; }
+static void writeMainConfig(const json& j){ mkdir("config",0755); std::ofstream f("config/config.json"); if(f) f<<j.dump(2); }
+static std::string deviceForCam(const std::string& id){ auto cfg=readMainConfig(); if(cfg.contains("cameras")) for(auto& c:cfg["cameras"]) if(c.value("id","")==id) return c.value("device",""); return ""; }
 
 // Simple centroid-based tracker to provide stable IDs across frames
 // Simple tracker with basic re-identification using color similarity
@@ -630,6 +639,100 @@ private:
                 res.set_content("{\"error\":\"invalid json\"}", "application/json");
             }
         });
+
+        server.Post("/api/calib/setup", [](const Request& req, Response& res){
+            try{
+                auto j=json::parse(req.body);
+                std::string cam=j.value("camera","");
+                if(cam.empty()){res.status=400;res.set_content("{\"error\":\"missing camera\"}","application/json");return;}
+                auto cfg=readMainConfig();
+                cfg["calib_camera"]=cam;
+                writeMainConfig(cfg);
+                std::string dir="CalibCam"+cam;
+                mkdir(dir.c_str(),0755);
+                res.set_content("{\"status\":\"ok\"}","application/json");
+            }catch(...){res.status=400;res.set_content("{\"error\":\"invalid json\"}","application/json");}
+        });
+
+        server.Get("/api/calib/status", [](const Request&, Response& res){
+            auto cfg=readMainConfig();
+            std::string cam=cfg.value("calib_camera","");
+            json resp; resp["camera"]=cam;
+            std::string dir=cam.empty()?std::string():"CalibCam"+cam;
+            bool folder=!cam.empty() && dirExists(dir);
+            bool mono_done=!cam.empty() && fileExists("out/cam"+cam+".yml");
+            bool stereo_ready=mono_done && fileExists("out/cam0.yml") && !fileExists("out/stereo_0"+cam+".yml");
+            resp["folder_exists"]=folder;
+            resp["mono_done"]=mono_done;
+            resp["stereo_ready"]=stereo_ready;
+            res.set_content(resp.dump(),"application/json");
+        });
+
+        server.Post("/api/calib/mono", [](const Request& req, Response& res){
+            json resp;
+            try{
+                auto j=json::parse(req.body);
+                std::string cam=j.value("camera","");
+                if(cam.empty()){res.status=400;res.set_content("{\"error\":\"missing camera\"}","application/json");return;}
+                std::string dev=deviceForCam(cam);
+                if(dev.empty()){res.status=400;res.set_content("{\"error\":\"camera not found\"}","application/json");return;}
+                std::string dir="CalibCam"+cam;
+                mkdir(dir.c_str(),0755);
+                std::this_thread::sleep_for(std::chrono::seconds(5));
+                cv::VideoCapture cap(dev);
+                if(!cap.isOpened()){res.status=500;res.set_content("{\"error\":\"open camera\"}","application/json");return;}
+                for(int i=0;i<30;i++){
+                    cv::Mat frame; cap>>frame; if(frame.empty()) break;
+                    char buf[64]; snprintf(buf,sizeof(buf),"%s/img_%02d.jpg",dir.c_str(),i);
+                    cv::imwrite(buf,frame);
+                    std::this_thread::sleep_for(std::chrono::seconds(2));
+                }
+                cap.release();
+                mkdir("out",0755);
+                std::string outfile="out/cam"+cam+".yml";
+                std::string cmd="opencv_calib_mono -o "+outfile+" "+dir+"/img_*.jpg";
+                int rc=system(cmd.c_str());
+                resp["status"]=rc==0?"ok":"error";
+                resp["out"]=outfile;
+                resp["cmd"]=cmd;
+            }catch(...){res.status=400;res.set_content("{\"error\":\"invalid json\"}","application/json");return;}
+            res.set_content(resp.dump(),"application/json");
+        });
+
+        server.Post("/api/calibrate/stereo-auto", [](const Request& req, Response& res){
+            json resp;
+            try{
+                auto j=json::parse(req.body);
+                std::string cam=j.value("camera","");
+                if(cam.empty()){res.status=400;res.set_content("{\"error\":\"missing camera\"}","application/json");return;}
+                std::string dev0=deviceForCam("0");
+                std::string dev1=deviceForCam(cam);
+                if(dev0.empty()||dev1.empty()){res.status=400;res.set_content("{\"error\":\"camera not found\"}","application/json");return;}
+                std::string dir="CalibStereo0"+cam;
+                mkdir(dir.c_str(),0755);
+                std::this_thread::sleep_for(std::chrono::seconds(5));
+                cv::VideoCapture c0(dev0), c1(dev1);
+                if(!c0.isOpened()||!c1.isOpened()){res.status=500;res.set_content("{\"error\":\"open camera\"}","application/json");return;}
+                for(int i=0;i<30;i++){
+                    cv::Mat f0,f1; c0>>f0; c1>>f1; if(f0.empty()||f1.empty()) break;
+                    char b0[80], b1[80];
+                    snprintf(b0,sizeof(b0),"%s/pair_%02d_cam0.jpg",dir.c_str(),i);
+                    snprintf(b1,sizeof(b1),"%s/pair_%02d_cam%s.jpg",dir.c_str(),i,cam.c_str());
+                    cv::imwrite(b0,f0); cv::imwrite(b1,f1);
+                    std::this_thread::sleep_for(std::chrono::seconds(2));
+                }
+                c0.release(); c1.release();
+                mkdir("out",0755);
+                std::string outfile="out/stereo_0"+cam+".yml";
+                std::string cmd="opencv_calib_stereo -o "+outfile+" --cam 0 --cam "+cam+" "+dir+"/pair_*";
+                int rc=system(cmd.c_str());
+                resp["status"]=rc==0?"ok":"error";
+                resp["out"]=outfile;
+                resp["cmd"]=cmd;
+            }catch(...){res.status=400;res.set_content("{\"error\":\"invalid json\"}","application/json");return;}
+            res.set_content(resp.dump(),"application/json");
+        });
+
 
         server.Post("/api/calibrate/mono", [](const Request& req, Response& res) {
             json resp;

@@ -69,63 +69,91 @@
       const panel=document.getElementById('stereo-settings');
       panel.style.display='block';
       panel.innerHTML='Loading...';
-      let cams=[];
+      let cfg={};
       try{
-        cams=await (await fetch('/api/configured',{cache:'no-store'})).json();
+        cfg=await (await fetch('/api/stereo-config',{cache:'no-store'})).json();
       }catch(e){}
       panel.innerHTML='';
+      const baseline=document.createElement('input'); baseline.type='number'; baseline.id='stereo-baseline'; baseline.value=(cfg.cam0&&cfg.cam0.baseline)||0;
+      const fov=document.createElement('input'); fov.type='number'; fov.id='stereo-fov'; fov.value=(cfg.cam0&&cfg.cam0.fov)||0;
 
 
-      // camera selection
-      const sel=document.createElement('select'); sel.id='calib-camera';
-      cams.forEach(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.id;sel.appendChild(o);});
-      panel.appendChild(document.createTextNode('camera:'));
-      panel.appendChild(sel);
+      // fetch list of configured cameras
+      let camCfg=[];
+      try{
+        camCfg=await (await fetch('/api/configured',{cache:'no-store'})).json();
+      }catch(e){}
+      const camSel=document.createElement('select');
+      camSel.id='stereo-cams';
+      camSel.multiple=true;
+      camCfg.forEach(c=>{
+        const opt=document.createElement('option');
+        opt.value=c.id; opt.textContent=c.id;
+        camSel.appendChild(opt);
+      });
+
+      const imgPaths=document.createElement('input');
+      imgPaths.type='text';
+      imgPaths.id='stereo-imgs';
+      imgPaths.placeholder='image paths, comma separated';
+
+      const runMono=document.createElement('button');
+      runMono.textContent='Run Mono';
+      runMono.onclick=async()=>{
+        const cam=camSel.value;
+        const paths=imgPaths.value.split(',').map(s=>s.trim()).filter(s=>s);
+        await fetch('/api/calibrate/mono',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({camera:cam,images:paths})
+        });
+      };
+      const runStereo=document.createElement('button');
+      runStereo.textContent='Run Stereo';
+      runStereo.onclick=async()=>{
+        const cams=Array.from(camSel.selectedOptions).map(o=>o.value);
+        const paths=imgPaths.value.split(',').map(s=>s.trim()).filter(s=>s);
+        await fetch('/api/calibrate/stereo',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({cameras:cams,images:paths})
+        });
+      };
+
 
       const save=document.createElement('button');
       save.textContent='Save';
-      panel.appendChild(save);
-
-      const mono=document.createElement('button'); mono.textContent='Mono calibr'; mono.id='mono-calib'; mono.disabled=true; panel.appendChild(mono);
-      const stereo=document.createElement('button'); stereo.textContent='Stereo calibr'; stereo.id='stereo-calib'; stereo.disabled=true; panel.appendChild(stereo);
-      const close=document.createElement('button'); close.textContent='Close'; close.onclick=()=>{panel.style.display='none';}; panel.appendChild(close);
-
-      async function refreshButtons(){
-        let st={};
-        try{ st=await (await fetch('/api/calib/status',{cache:'no-store'})).json(); }catch(e){}
-        mono.disabled=!(st.folder_exists && !st.mono_done);
-        stereo.disabled=!(st.stereo_ready);
-      }
-
       save.onclick=async()=>{
-        await fetch('/api/calib/setup',{
-          method:'POST',
+        cfg.cam0=cfg.cam0||{};
+        cfg.cam0.baseline=parseFloat(baseline.value);
+        cfg.cam0.fov=parseFloat(fov.value);
+        await fetch('/api/stereo-config',{          method:'POST',
           headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({camera:sel.value})
+          body:JSON.stringify(cfg)
         });
-        await refreshButtons();
+        panel.style.display='none';
       };
-      mono.onclick=async()=>{
-        mono.disabled=true;
-        await fetch('/api/calib/mono',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({camera:sel.value})
-        });
-        await refreshButtons();
-      };
+      const close=document.createElement('button');
+      close.textContent='Close';
+      close.onclick=()=>{panel.style.display='none';};
 
-
-      stereo.onclick=async()=>{
-        stereo.disabled=true;
-        await fetch('/api/calibrate/stereo-auto',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({camera:sel.value})
-        });
-        await refreshButtons();
-      };
-      await refreshButtons();
+      panel.appendChild(document.createTextNode('baseline:'));
+      panel.appendChild(baseline);
+      panel.appendChild(document.createElement('br'));
+      panel.appendChild(document.createTextNode('fov:'));
+      panel.appendChild(fov);
+      panel.appendChild(document.createElement('br'));
+      panel.appendChild(document.createTextNode('cameras:'));
+      panel.appendChild(camSel);
+      panel.appendChild(document.createElement('br'));
+      panel.appendChild(document.createTextNode('images:'));
+      panel.appendChild(imgPaths);
+      panel.appendChild(document.createElement('br'));
+      panel.appendChild(runMono);
+      panel.appendChild(runStereo);
+      panel.appendChild(document.createElement('br'));
+      panel.appendChild(save);
+      panel.appendChild(close);
     }
 
 // ----- Main tab detection stream -----
