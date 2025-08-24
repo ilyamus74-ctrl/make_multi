@@ -92,18 +92,7 @@
 
       async function refreshButtons(){
         let st={};
-        try{
-          const resp=await fetch('/api/calib/status',{cache:'no-store'});
-          if(!resp.ok){
-            const txt=await resp.text();
-            alert(`Error ${resp.status}: ${txt}`);
-            return;
-          }
-          st=await resp.json();
-        }catch(e){
-          console.error('refreshButtons network error:', e);
-          alert('Network error: '+e);
-        }
+        try{ st=await (await fetch('/api/calib/status',{cache:'no-store'})).json(); }catch(e){}
         mono.disabled=!(st.folder_exists && !st.mono_done);
         stereo.disabled=!(st.stereo_ready);
       }
@@ -122,7 +111,6 @@
               alert('Calibration folder created');
             }
           }catch(e){
-            console.error('save setup network error:', e);
             alert('Network error: '+e);
           }
           await refreshButtons();
@@ -130,40 +118,22 @@
 
       mono.onclick=async()=>{
         mono.disabled=true;
-        try{
-          const resp=await fetch('/api/calib/mono',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({camera:sel.value})
-          });
-          if(!resp.ok){
-            const txt=await resp.text();
-            alert(`Error ${resp.status}: ${txt}`);
-          }
-        }catch(e){
-          console.error('mono calibration network error:', e);
-          alert('Network error: '+e);
-        }
+        await fetch('/api/calib/mono',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({camera:sel.value})
+        });
         await refreshButtons();
       };
 
 
       stereo.onclick=async()=>{
         stereo.disabled=true;
-        try{
-          const resp=await fetch('/api/calibrate/stereo-auto',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({camera:sel.value})
-          });
-          if(!resp.ok){
-            const txt=await resp.text();
-            alert(`Error ${resp.status}: ${txt}`);
-          }
-        }catch(e){
-          console.error('stereo calibration network error:', e);
-          alert('Network error: '+e);
-        }
+        await fetch('/api/calibrate/stereo-auto',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({camera:sel.value})
+        });
         await refreshButtons();
       };
       await refreshButtons();
