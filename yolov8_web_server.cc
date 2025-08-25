@@ -659,10 +659,18 @@ private:
             }
         });
 
-        server.Post("/api/calib/prepare", [this](const Request&, Response& res){
+        server.Post("/api/calib/start", [this](const Request&, Response& res){
             pauseCamera();
             res.set_content("{\"status\":\"ok\"}","application/json");
         });
+
+        server.Post("/api/calib/stop", [this](const Request&, Response& res){
+            if(initCamera()) {
+                cam_thread = std::thread(&YOLOWebServer::cameraLoop, this);
+            }
+            res.set_content("{\"status\":\"ok\"}","application/json");
+        });
+
 
 
         server.Post("/api/calib/setup", [](const Request& req, Response& res){
