@@ -523,13 +523,6 @@ private:
         }
     }
 
-    void pauseCamera() {
-        cam_running = false;
-        frame_cv.notify_all();
-        if (cam_thread.joinable()) cam_thread.join();
-        deinitCamera();
-    }
-
     // ---------- HTTP ----------
     void setupRoutes() {
         server.set_pre_routing_handler([](const Request&, Response& res) {
@@ -649,12 +642,6 @@ private:
             }
         });
 
-        server.Post("/api/calib/prepare", [this](const Request&, Response& res){
-            pauseCamera();
-            res.set_content("{\"status\":\"ok\"}","application/json");
-        });
-
-
         server.Post("/api/calib/setup", [](const Request& req, Response& res){
             try{
                 auto j=json::parse(req.body);
@@ -702,13 +689,11 @@ private:
                 mkdir(dir.c_str(),0755);
                 auto absDir = std::filesystem::absolute(dir);
                 printf("calibration dir %s\n", absDir.c_str());
+                std::this_thread::sleep_for(std::chrono::seconds(5));
                 cv::VideoCapture cap(dev);
                 if(!cap.isOpened()){res.status=500;res.set_content("{\"error\":\"open camera\"}","application/json");return;}
-                for(int t=10;t>0;--t){
-                    printf("start in %d\n",t);
-                    std::this_thread::sleep_for(std::chrono::seconds(1));
-                }
-                for(int i=0;i<50;i++){                    cv::Mat frame; cap>>frame; if(frame.empty()) break;
+                for(int i=0;i<30;i++){
+                    cv::Mat frame; cap>>frame; if(frame.empty()) break;
                     char buf[64]; snprintf(buf,sizeof(buf),"%s/img_%02d.jpg",dir.c_str(),i);
                     cv::imwrite(buf,frame);
                     std::this_thread::sleep_for(std::chrono::seconds(2));

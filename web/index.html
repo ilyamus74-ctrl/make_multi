@@ -70,6 +70,7 @@
       const panel=document.getElementById('stereo-settings');
       panel.style.display='block';
       panel.innerHTML='Loading...';
+      try{ await fetch('/api/calib/prepare',{method:'POST'}); }catch(e){}
       let cams=[];
       try{
         cams=await (await fetch('/api/configured',{cache:'no-store'})).json();
