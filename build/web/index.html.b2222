@@ -26,13 +26,12 @@
   </div>
 
   <div id="tab-settings" class="tab">
-    <h3>Configured cameras <button onclick="showStereoSettings()">Stereo Settings</button> <button onclick="showStereoRuntime()">Stereo Detection & Tracking</button></h3>
+    <h3>Configured cameras <button onclick="showStereoSettings()">Stereo Settings</button></h3>
     <div id="configured"></div>
 
     <!-- Persistent advanced-settings panel -->
     <div id="adv-settings" data-loaded="0"></div>
     <div id="stereo-settings" style="display:none;position:fixed;top:10%;left:10%;background:#fff;border:1px solid #888;padding:10px;"></div>
-    <div id="stereo-runtime" style="display:none;position:fixed;top:10%;left:10%;background:#fff;border:1px solid #888;padding:10px;"></div>
 
     <h3>New cameras</h3>
     <div id="newcams"></div>
@@ -168,60 +167,6 @@
         await refreshButtons();
       };
       await refreshButtons();
-    }
-
- async function showStereoRuntime(){
-      const panel=document.getElementById('stereo-runtime');
-      panel.style.display='block';
-      panel.innerHTML='Loading...';
-      let cfg={range:0,tracking:false};
-      try{
-        const resp=await fetch('/api/runtime/config',{cache:'no-store'});
-        if(resp.ok){
-          cfg=await resp.json();
-        }
-      }catch(e){}
-      panel.innerHTML='';
-
-      panel.appendChild(document.createTextNode('detection range:'));
-      const range=document.createElement('input');
-      range.type='number';
-      range.value=cfg.range||0;
-      range.id='rt-range';
-      panel.appendChild(range);
-      panel.appendChild(document.createElement('br'));
-
-      panel.appendChild(document.createTextNode('enable tracking:'));
-      const tracking=document.createElement('input');
-      tracking.type='checkbox';
-      tracking.checked=!!cfg.tracking;
-      tracking.id='rt-track';
-      panel.appendChild(tracking);
-      panel.appendChild(document.createElement('br'));
-
-      const save=document.createElement('button');
-      save.textContent='Save';
-      save.onclick=async()=>{
-        try{
-          const resp=await fetch('/api/runtime/config',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({range:parseInt(range.value),tracking:tracking.checked})
-          });
-          if(!resp.ok){
-            const txt=await resp.text();
-            alert(`Error ${resp.status}: ${txt}`);
-          }
-        }catch(e){
-          console.error('runtime config network error:', e);
-          alert('Network error: '+e);
-        }
-      };
-      panel.appendChild(save);
-      const close=document.createElement('button');
-      close.textContent='Close';
-      close.onclick=()=>{panel.style.display='none';};
-      panel.appendChild(close);
     }
 
 // ----- Main tab detection stream -----

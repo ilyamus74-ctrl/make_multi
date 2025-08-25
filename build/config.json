@@ -29,7 +29,7 @@
         "pixfmt": "MJPG",
         "w": 1280
       },
-      "preview": true,
+      "preview": false,
       "profile": "auto",
       "show_fps": true
     },
@@ -62,7 +62,7 @@
         "pixfmt": "MJPG",
         "w": 1280
       },
-      "preview": true,
+      "preview": false,
       "profile": "auto",
       "show_fps": true
     },
@@ -95,7 +95,7 @@
         "pixfmt": "MJPG",
         "w": 1280
       },
-      "preview": true,
+      "preview": false,
       "profile": "auto",
       "show_fps": true
     }
