@@ -47,7 +47,7 @@
 
   <script>
     async function showTab(id){
-      await reloadConfig();
+      await updateStatus();
       document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
       document.getElementById(id).classList.add('active');
 
@@ -67,9 +67,18 @@
         }
       }
     }
-    document.getElementById('tabbtn-main').onclick=()=>showTab('tab-main');
+    /*document.getElementById('tabbtn-main').onclick=()=>showTab('tab-main');
     document.getElementById('tabbtn-settings').onclick=()=>showTab('tab-settings');
     document.getElementById('tabbtn-stereo').onclick=()=>showTab('tab-stereo-settings');
+    */
+
+    function gotoTab(tab){
+      const params=new URLSearchParams(location.search);
+      params.set('tab',tab);
+      location.search=params.toString();
+    }
+    document.getElementById('tabbtn-main').onclick=()=>gotoTab('main');
+    document.getElementById('tabbtn-settings').onclick=()=>gotoTab('settings');
 
     let currentAdvId=null;
     let advDirty=false;
@@ -539,20 +548,22 @@
           div.appendChild(btn);
           newDiv.appendChild(div);
         });
-
       }catch(e){}
     }
-    async function reloadConfig(){
+    async function updateStatus(){
       try{
-        const c=await (await fetch('/api/config',{cache:'no-store'})).json();
-        previewEnabled=c.preview_enabled;
+        const s=await (await fetch('/api/status',{cache:'no-store'})).json();
+        previewEnabled=s.preview;
       }catch(e){
         console.error('reloadConfig network error:', e);
       }
     }
 
-    setInterval(refresh,1000);
-    reloadConfig().then(()=>refresh());
+    setInterval(()=>{updateStatus().then(()=>refresh());},1000);
+    /*updateStatus().then(()=>refresh());*/
+    fetch('/api/config',{cache:'no-store'}).then(r=>r.json()).then(c=>{previewEnabled=c.preview_enabled; refresh();});
+    const initTab=new URLSearchParams(location.search).get('tab')||'main';
+    showTab('tab-'+initTab);
   </script>
 </body>
 </html>

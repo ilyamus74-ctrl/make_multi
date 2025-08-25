@@ -553,6 +553,16 @@ private:
             res.set_content(j.dump(), "application/json");
         });
 
+
+        server.Get("/api/status", [this](const Request&, Response& res) {
+            json j;
+            bool running = cam_running.load();
+            j["preview"] = running;
+            j["detect"] = running && model_initialized;
+            res.set_content(j.dump(), "application/json");
+        });
+
+
         server.Get("/api/model-info", [this](const Request&, Response& res) {
             if (!model_initialized) { res.status = 503; res.set_content("{\"error\":\"Model not initialized\"}", "application/json"); return; }
             json j;

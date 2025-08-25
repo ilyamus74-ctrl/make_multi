@@ -2,6 +2,7 @@
 #pragma once
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <map>
 #include <mutex>
 #include <set>
@@ -71,6 +72,10 @@ public:
   // Stop monitoring thread.
   void stop();
 
+  // Notify monitoring thread to re-check state immediately.
+  void notify();
+
+
   struct ConfiguredInfo {
     std::string id;
     bool present;
@@ -131,6 +136,7 @@ public:
 
 private:
   void monitorLoop();
+  void configWatchLoop();
   bool applyProfile(CamConfig &cfg);
   std::string config_path_;
   std::map<std::string, CamConfig> configs_;
@@ -139,6 +145,8 @@ private:
   std::set<std::string> unconfigured_;
   std::map<std::string, pid_t> det_pids_;
   std::mutex mutex_;
+  std::condition_variable cv_;
   std::thread monitor_thread_;
+  std::thread config_thread_;
   std::atomic<bool> running_{false};
 };

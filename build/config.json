@@ -29,7 +29,7 @@
         "pixfmt": "MJPG",
         "w": 1280
       },
-      "preview": true,
+      "preview": false,
       "profile": "auto",
       "show_fps": true
     },
@@ -62,7 +62,7 @@
         "pixfmt": "MJPG",
         "w": 1280
       },
-      "preview": true,
+      "preview": false,
       "profile": "auto",
       "show_fps": true
     },
@@ -74,14 +74,14 @@
       "det_port": 8002,
       "device": "/dev/video4",
       "http_fps_limit": 20,
-      "id": "3",
+      "id": "4",
       "jpeg_quality": 60,
       "labels_path": "model/coco_80_labels_list.txt",
       "log_file": "",
       "match": {
         "by_id_contains": "usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN0001-video-index0"
       },
-      "model_path": "model_rknn/yolov8.rknn",
+      "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
       "npu_core": "auto",
       "npu_worker": 0,
       "position": {
@@ -95,7 +95,7 @@
         "pixfmt": "MJPG",
         "w": 1280
       },
-      "preview": true,
+      "preview": false,
       "profile": "auto",
       "show_fps": true
     }

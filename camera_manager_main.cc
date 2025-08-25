@@ -422,6 +422,8 @@ int main(int argc, char **argv) {
                     bool enable = j.at("enable").get<bool>();
                     if (!g_mgr.setPreview(id, enable))
                       res.status = 400;
+                    else
+                      g_mgr.notify();
                   } catch (...) {
                     res.status = 400;
                   }
