@@ -18,6 +18,7 @@
   <div>
     <button id="tabbtn-main">main</button>
     <button id="tabbtn-settings">settings</button>
+    <button id="tabbtn-stereo">stereo settings</button>
   </div>
 
   <div id="tab-main" class="tab active">
@@ -26,20 +27,27 @@
   </div>
 
   <div id="tab-settings" class="tab">
-    <h3>Configured cameras <button onclick="showStereoSettings()">Stereo Settings</button> <button onclick="showStereoRuntime()">Stereo Detection & Tracking</button></h3>
+    <h3>Configured cameras <button onclick="showStereoRuntime()">Stereo Detection & Tracking</button></h3>
     <div id="configured"></div>
 
     <!-- Persistent advanced-settings panel -->
     <div id="adv-settings" data-loaded="0"></div>
-    <div id="stereo-settings" style="display:none;position:fixed;top:10%;left:10%;background:#fff;border:1px solid #888;padding:10px;"></div>
     <div id="stereo-runtime" style="display:none;position:fixed;top:10%;left:10%;background:#fff;border:1px solid #888;padding:10px;"></div>
 
     <h3>New cameras</h3>
     <div id="newcams"></div>
   </div>
 
+
+  <div id="tab-stereo-settings" class="tab">
+    <h3>Stereo Settings</h3>
+    <div id="stereo-settings"></div>
+  </div>
+
+
   <script>
-    function showTab(id){
+    async function showTab(id){
+      await reloadConfig();
       document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
       document.getElementById(id).classList.add('active');
 
@@ -54,11 +62,14 @@
           advDiv.innerHTML='';
           currentAdvId=null;
           advDirty=false;
+        }else if(id==='tab-stereo-settings'){
+          await showStereoSettings();
         }
       }
     }
     document.getElementById('tabbtn-main').onclick=()=>showTab('tab-main');
     document.getElementById('tabbtn-settings').onclick=()=>showTab('tab-settings');
+    document.getElementById('tabbtn-stereo').onclick=()=>showTab('tab-stereo-settings');
 
     let currentAdvId=null;
     let advDirty=false;
@@ -68,7 +79,6 @@
 
     async function showStereoSettings(){
       const panel=document.getElementById('stereo-settings');
-      panel.style.display='block';
       panel.innerHTML='Loading...';
       try{ await fetch('/api/calib/prepare',{method:'POST'}); }catch(e){}
       let cams=[];
@@ -90,7 +100,6 @@
 
       const mono=document.createElement('button'); mono.textContent='Mono calibr'; mono.id='mono-calib'; mono.disabled=true; panel.appendChild(mono);
       const stereo=document.createElement('button'); stereo.textContent='Stereo calibr'; stereo.id='stereo-calib'; stereo.disabled=true; panel.appendChild(stereo);
-      const close=document.createElement('button'); close.textContent='Close'; close.onclick=()=>{panel.style.display='none';}; panel.appendChild(close);
 
       async function refreshButtons(){
         let st={};
@@ -533,8 +542,17 @@
 
       }catch(e){}
     }
+    async function reloadConfig(){
+      try{
+        const c=await (await fetch('/api/config',{cache:'no-store'})).json();
+        previewEnabled=c.preview_enabled;
+      }catch(e){
+        console.error('reloadConfig network error:', e);
+      }
+    }
+
     setInterval(refresh,1000);
-    fetch('/api/config',{cache:'no-store'}).then(r=>r.json()).then(c=>{previewEnabled=c.preview_enabled; refresh();});
+    reloadConfig().then(()=>refresh());
   </script>
 </body>
 </html>
