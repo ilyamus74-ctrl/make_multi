@@ -37,3 +37,6 @@ Calibration frames and intermediate results are written to `/tmp/calibration`,
 allowing fast I/O on systems where `/tmp` resides in RAM and reducing wear on
 flash storage. Use the `/api/calibration/copy-results` endpoint if you need to
 persist the calibration YAML files.
+
+For examples of selecting camera pairs and running compatibility analysis, see
+[CALIBRATION.md](CALIBRATION.md)
