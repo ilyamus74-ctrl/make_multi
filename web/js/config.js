@@ -74,7 +74,8 @@ window.CameraApp.Config = {
         DEFAULT_DURATION: 30,
         MIN_FRAMES: 10,
         MAX_FRAMES: 100,
-        QUALITY_THRESHOLD: 30.0
+        QUALITY_THRESHOLD: 30.0,
+        WIDE_ANGLE_THRESHOLD: 80.0
     },
 
     // Global Tracking Settings

@@ -392,10 +392,32 @@ window.CameraApp.CalibrationTab = {
 
         try {
 
-            const camA = document.getElementById('camera-a-id').value.trim();
-            const camB = document.getElementById('camera-b-id').value.trim();
+            let camA = document.getElementById('camera-a-id').value.trim();
+            let camB = document.getElementById('camera-b-id').value.trim();
+
+//            const camA = document.getElementById('camera-a-id').value.trim();
+//            const camB = document.getElementById('camera-b-id').value.trim();
             if (!camA || !camB) {
-                throw new Error('Camera IDs required');
+                const configured = await window.CameraApp.API.getConfiguredCameras();
+                const ids = configured.map(c => c.id);
+                const form = document.getElementById('calibration-params-form');
+                const boardW = parseInt(form.board_cols.value) || window.CameraApp.Config.CALIBRATION.DEFAULT_BOARD_COLS;
+                const boardH = parseInt(form.board_rows.value) || window.CameraApp.Config.CALIBRATION.DEFAULT_BOARD_ROWS;
+                const analysis = await window.CameraApp.API.analyzeCompatibility(
+                    ids,
+                    boardW,
+                    boardH,
+                    window.CameraApp.Config.CALIBRATION.QUALITY_THRESHOLD,
+                    window.CameraApp.Config.CALIBRATION.WIDE_ANGLE_THRESHOLD
+                );
+                if (analysis.suggested_pair && analysis.suggested_pair.length === 2) {
+                    [camA, camB] = analysis.suggested_pair;
+                    document.getElementById('camera-a-id').value = camA;
+                    document.getElementById('camera-b-id').value = camB;
+                } else {
+                    throw new Error('Camera IDs required');
+                }
+
             }
 
             // Save parameters first

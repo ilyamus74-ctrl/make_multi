@@ -191,6 +191,21 @@ window.CameraApp.API = {
         });
     },
 
+
+    async analyzeCompatibility(cameraIds, boardW, boardH, qualityThreshold, wideAngleThreshold) {
+        return await this.request('/api/calibration/analyze-compatibility', {
+            method: 'POST',
+            body: JSON.stringify({
+                cameras: cameraIds,
+                board_w: boardW,
+                board_h: boardH,
+                quality_threshold: qualityThreshold,
+                wide_angle_threshold: wideAngleThreshold
+            })
+        });
+    },
+
+
     async startAutoCalibration(cameraA, cameraB) {
         return await this.request(window.CameraApp.Config.API.CALIBRATION.START_AUTO, {
             method: 'POST',

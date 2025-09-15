@@ -95,6 +95,7 @@ struct CameraCharacteristics {
 
 class CameraCompatibilityAnalyzer {
     std::map<std::string, CameraCharacteristics> camera_chars_;
+    float wide_angle_threshold_ = 80.0f;
 
     int evaluateImageQuality(const cv::Mat& frame, const std::vector<cv::Point2f>& corners) {
         cv::Mat gray;
@@ -114,6 +115,9 @@ class CameraCompatibilityAnalyzer {
     }
 
 public:
+
+    void setWideAngleThreshold(float t) { wide_angle_threshold_ = t; }
+
     void analyzeCameraFromFrame(const std::string& cam_id, const cv::Mat& frame,
                                 const std::vector<cv::Point2f>& corners, cv::Size board_size) {
         CameraCharacteristics& chars = camera_chars_[cam_id];
@@ -140,7 +144,8 @@ public:
                 }
             }
             chars.avg_corner_distance = count > 0 ? total_distance / count : 0;
-            chars.is_wide_angle = chars.estimated_fov > 80.0f;
+//            chars.is_wide_angle = chars.estimated_fov > 80.0f;
+            chars.is_wide_angle = chars.estimated_fov > wide_angle_threshold_;
             chars.quality_score = evaluateImageQuality(frame, corners);
         }
     }
@@ -182,6 +187,33 @@ public:
     }
 
         return groups;
+    }
+
+
+    std::pair<std::string, std::string> suggestWideAnglePair(int quality_threshold = 30) const {
+        std::vector<CameraCharacteristics> cams;
+        for (const auto &kv : camera_chars_) {
+            if (kv.second.quality_score >= quality_threshold) {
+                cams.push_back(kv.second);
+            }
+        }
+        std::sort(cams.begin(), cams.end(), [](const auto &a, const auto &b) {
+            if (a.estimated_fov == b.estimated_fov)
+                return a.quality_score > b.quality_score;
+            return a.estimated_fov > b.estimated_fov;
+        });
+        std::pair<std::string, std::string> best{"", ""};
+        float best_fov = -1.0f;
+        for (size_t i = 0; i < cams.size(); ++i) {
+            for (size_t j = i + 1; j < cams.size(); ++j) {
+                float sum = cams[i].estimated_fov + cams[j].estimated_fov;
+                if (sum > best_fov) {
+                    best_fov = sum;
+                    best = {cams[i].id, cams[j].id};
+                }
+            }
+        }
+        return best;
     }
 };
 
@@ -1552,13 +1584,23 @@ private:
     
 	    try {
 	    auto j = json::parse(req.body);
-    	    auto camera_ids = j.at("cameras").get<std::vector<std::string>>();
-    	    int board_w = j.value("board_w", 9);
-    	    int board_h = j.value("board_h", 6);
+//    	    auto camera_ids = j.at("cameras").get<std::vector<std::string>>();
+//    	    int board_w = j.value("board_w", 9);
+//    	    int board_h = j.value("board_h", 6);
         
-    	    CameraCompatibilityAnalyzer analyzer;
-    	    json camera_characteristics = json::object();
+//    	    CameraCompatibilityAnalyzer analyzer;
+//    	    json camera_characteristics = json::object();
         
+
+            auto camera_ids = j.at("cameras").get<std::vector<std::string>>();
+            int board_w = j.value("board_w", 9);
+            int board_h = j.value("board_h", 6);
+            float wide_angle_thr = j.value("wide_angle_threshold", 80.0f);
+            int quality_thr = j.value("quality_threshold", 30);
+
+            CameraCompatibilityAnalyzer analyzer;
+            analyzer.setWideAngleThreshold(wide_angle_thr);
+            json camera_characteristics = json::object();
         // Анализируем каждую камеру
         printf("Starting compatibility analysis for %zu cameras\n", camera_ids.size());
  
@@ -1611,12 +1653,20 @@ private:
 
         
     	    // Определяем совместимые группы
-    	    auto compatible_groups = analyzer.getCompatibleGroups();
+//    	    auto compatible_groups = analyzer.getCompatibleGroups();
         
-    	    resp["camera_characteristics"] = camera_characteristics;
-    	    resp["compatible_groups"] = compatible_groups;
-    	    resp["total_groups"] = compatible_groups.size();
-        
+//    	    resp["camera_characteristics"] = camera_characteristics;
+//    	    resp["compatible_groups"] = compatible_groups;
+//    	    resp["total_groups"] = compatible_groups.size();
+            // Определяем совместимые группы
+            auto compatible_groups = analyzer.getCompatibleGroups();
+            auto suggested = analyzer.suggestWideAnglePair(quality_thr);
+
+            resp["camera_characteristics"] = camera_characteristics;
+            resp["compatible_groups"] = compatible_groups;
+            resp["total_groups"] = compatible_groups.size();
+            resp["suggested_pair"] = { suggested.first, suggested.second };
+
 	    } catch(const std::exception& e) {
     	    resp["status"] = "error";
     	    resp["error"] = e.what();
