@@ -34,7 +34,8 @@ window.CameraApp.Config = {
         },
         RECORDING: {
             START: '/api/record/start',
-            STOP: '/api/record/stop'
+            STOP: '/api/record/stop',
+            STATUS: '/api/record/status'
         },
         TRACKING: {
             GLOBAL: '/api/tracking/global',

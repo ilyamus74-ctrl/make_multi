@@ -243,6 +243,10 @@ window.CameraApp.API = {
         });
     },
 
+    async getRecordingStatus() {
+        return await this.request(window.CameraApp.Config.API.RECORDING.STATUS);
+    },
+
     // Global Tracking APIs
     async setTrackingMode(global = false) {
         return await this.request(window.CameraApp.Config.API.TRACKING.MODE, {

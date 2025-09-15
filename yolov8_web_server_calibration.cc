@@ -2344,16 +2344,12 @@ private:
 
             // ===== VIDEO RECORDING =====
             if (recording_active_.load() && video_writer_ && record_enabled_.load()) {
-                cv::Mat bgr_frame(frame.height, frame.width, CV_8UC3);
-                for (int y = 0; y < frame.height; ++y) {
-                    for (int x = 0; x < frame.width; ++x) {
-                        uint8_t* rgb_pixel = frame.virt_addr + (y * frame.width + x) * 3;
-                        uint8_t* bgr_pixel = bgr_frame.ptr<uint8_t>(y) + x * 3;
-                        bgr_pixel[0] = rgb_pixel[2];
-                        bgr_pixel[1] = rgb_pixel[1];
-                        bgr_pixel[2] = rgb_pixel[0];
-                    }
+                static cv::Mat bgr_frame;
+                if (bgr_frame.empty() || bgr_frame.cols != frame.width || bgr_frame.rows != frame.height) {
+                    bgr_frame.create(frame.height, frame.width, CV_8UC3);
                 }
+                cv::Mat frame_rgb(frame.height, frame.width, CV_8UC3, frame.virt_addr);
+                cv::cvtColor(frame_rgb, bgr_frame, cv::COLOR_RGB2BGR);
                 video_writer_->write(bgr_frame);
                 if (shouldStopRecording()) {
                     printf("Recording time limit reached, stopping...\n");

@@ -311,6 +311,45 @@ window.CameraApp.CalibrationTab = {
                 // Start countdown timer
                 this.startRecordingCountdown(duration, response.started_cameras);
 
+
+                // Poll recording status from server
+                let lastRemaining = duration;
+                this.statusTimer = setInterval(async () => {
+                    try {
+                        const status = await window.CameraApp.API.getRecordingStatus();
+                        if (!status.recording_active) {
+                            clearInterval(this.statusTimer);
+                            this.statusTimer = null;
+                            if (this.recordingTimer) {
+                                clearInterval(this.recordingTimer);
+                                this.recordingTimer = null;
+                            }
+                            this.recordingCompleted();
+                            return;
+                        }
+                        if (status.time_remaining < lastRemaining) {
+                            if (this.recordingTimer) {
+                                clearInterval(this.recordingTimer);
+                                this.recordingTimer = null;
+                            }
+                            lastRemaining = status.time_remaining;
+                        }
+                        statusEl.innerHTML = `Recording: ${status.time_remaining}s remaining on ${status.active_cameras || response.started_cameras} cameras`;
+                    } catch (err) {
+                        clearInterval(this.statusTimer);
+                        this.statusTimer = null;
+                        if (this.recordingTimer) {
+                            clearInterval(this.recordingTimer);
+                            this.recordingTimer = null;
+                        }
+                        statusEl.className = 'calibration-status error';
+                        statusEl.innerHTML = `Status check failed: ${err.message}`;
+                        window.CameraApp.UI.showToast(`Status check failed: ${err.message}`, 'danger');
+                    }
+                }, 1000);
+
+
+
                 window.CameraApp.UI.showToast(
                     `Recording started on ${response.started_cameras} cameras`,
                     'success'
@@ -358,7 +397,15 @@ window.CameraApp.CalibrationTab = {
                 clearInterval(this.recordingTimer);
                 this.recordingTimer = null;
             }
-            
+
+
+            if (this.statusTimer) {
+                clearInterval(this.statusTimer);
+                this.statusTimer = null;
+            }
+
+            this.
+
             this.recordingCompleted();
             window.CameraApp.UI.showToast('Recording stopped', 'info');
         } catch (error) {
@@ -373,6 +420,16 @@ window.CameraApp.CalibrationTab = {
         const stopBtn = document.getElementById('stop-recording-btn');
         const statusEl = document.getElementById('recording-status');
         const calibBtn = document.getElementById('start-calibration-btn');
+
+        if (this.recordingTimer) {
+            clearInterval(this.recordingTimer);
+            this.recordingTimer = null;
+        }
+        if (this.statusTimer) {
+            clearInterval(this.statusTimer);
+            this.statusTimer = null;
+        }
+
 
         // Reset recording UI
         startBtn.disabled = false;
