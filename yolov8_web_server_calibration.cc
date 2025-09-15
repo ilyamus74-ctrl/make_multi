@@ -1,0 +1,2513 @@
+// Calibration-only HTTP server based on the YOLOv8 web server.
+// This variant is intended for camera calibration previews and keeps
+// the calibration preview state active while the process runs.
+//
+// Flags:
+//   --dev /dev/videoX
+//   --port N
+//   --size WxH
+//   --cap-fps N
+//   --buffers N
+//   --jpeg-quality 30..95
+//   --http-fps-limit N
+//   --fps
+//   --npu-core auto|0|1|2|01|012
+//   --log-file FILE NAME
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <iostream>
+#include <vector>
+#include <chrono>
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <condition_variable>
+#include <memory>
+#include <algorithm>
+#include <cmath>
+#include <ctime>
+#include <fstream>
+#include <set>
+#include <map>
+#include <dirent.h>
+#include <filesystem>
+#include <errno.h>
+
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/select.h>
+#include <sys/stat.h>
+#include <linux/videodev2.h>
+
+#include "turbojpeg.h"
+#include "image_drawing.h"
+#include "yolov8.h"
+#include "common.h"
+#include "image_utils.h"
+#include "file_utils.h"
+#include "httplib.h"
+#include "nlohmann/json.hpp"
+#include <opencv2/opencv.hpp>
+#include "camera_manager.h"
+#include "calibration/session.h"
+#include "calibration_watcher.h"
+
+//debug start
+
+struct StageAcc {
+  double cap=0, prep=0, infer=0, draw=0, enc=0, loop=0;
+  int n=0;
+  void add_print_and_reset(int every=30) {
+    n++;
+    if (n % every == 0) {
+      printf("TIMES(avg %d): cap=%.1fms prep=%.1fms infer=%.1fms draw=%.1fms enc=%.1fms | loop=%.1fms\n",
+             every, cap/every, prep/every, infer/every, draw/every, enc/every, loop/every);
+      cap=prep=infer=draw=enc=loop=0; n=0;
+    }
+  }
+};
+
+#define TICK(x) auto x##_t0 = std::chrono::steady_clock::now()
+#define TOCK(x,acc_field) acc_field += std::chrono::duration<double,std::milli>(std::chrono::steady_clock::now() - x##_t0).count()
+//debug end
+
+
+using json = nlohmann::json;
+using namespace httplib;
+using Clock = std::chrono::high_resolution_clock;
+
+// -----------------------------------------------------------------------------
+// Camera compatibility analysis helpers
+
+struct CameraCharacteristics {
+    std::string id;
+    float estimated_fov = 0.0f;
+    float avg_corner_distance = 0.0f;
+    cv::Size resolution;
+    int quality_score = 0;
+    bool is_wide_angle = false;
+};
+
+class CameraCompatibilityAnalyzer {
+    std::map<std::string, CameraCharacteristics> camera_chars_;
+
+    int evaluateImageQuality(const cv::Mat& frame, const std::vector<cv::Point2f>& corners) {
+        cv::Mat gray;
+        if(frame.channels() > 1) {
+            cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+        } else {
+            gray = frame;
+        }
+
+        cv::Mat grad_x, grad_y, grad;
+        cv::Sobel(gray, grad_x, CV_32F, 1, 0, 3);
+        cv::Sobel(gray, grad_y, CV_32F, 0, 1, 3);
+        cv::magnitude(grad_x, grad_y, grad);
+
+        double mean_gradient = cv::mean(grad)[0];
+        return static_cast<int>(mean_gradient);
+    }
+
+public:
+    void analyzeCameraFromFrame(const std::string& cam_id, const cv::Mat& frame,
+                                const std::vector<cv::Point2f>& corners, cv::Size board_size) {
+        CameraCharacteristics& chars = camera_chars_[cam_id];
+        chars.id = cam_id;
+        chars.resolution = frame.size();
+
+        if(!corners.empty()) {
+            float board_width_pixels = cv::norm(corners[board_size.width-1] - corners[0]);
+            float board_height_pixels = cv::norm(corners[corners.size()-1] - corners[corners.size()-board_size.width]);
+
+            float frame_diagonal = std::sqrt(frame.rows*frame.rows + frame.cols*frame.cols);
+            float board_diagonal = std::sqrt(board_width_pixels*board_width_pixels + board_height_pixels*board_height_pixels);
+
+            chars.estimated_fov = (board_diagonal / frame_diagonal) * 60.0f;
+
+            float total_distance = 0;
+            int count = 0;
+            for(int i = 0; i < board_size.height; i++) {
+                for(int j = 0; j < board_size.width-1; j++) {
+                    int idx1 = i * board_size.width + j;
+                    int idx2 = i * board_size.width + j + 1;
+                    total_distance += cv::norm(corners[idx1] - corners[idx2]);
+                    count++;
+                }
+            }
+            chars.avg_corner_distance = count > 0 ? total_distance / count : 0;
+            chars.is_wide_angle = chars.estimated_fov > 80.0f;
+            chars.quality_score = evaluateImageQuality(frame, corners);
+        }
+    }
+
+    CameraCharacteristics getCameraCharacteristics(const std::string& cam_id) const {
+        auto it = camera_chars_.find(cam_id);
+        if(it != camera_chars_.end()) return it->second;
+        return CameraCharacteristics{};
+    }
+
+    std::vector<std::vector<std::string>> getCompatibleGroups(float fov_tolerance = 15.0f,
+                                                              float distance_tolerance = 10.0f) {
+        std::vector<std::vector<std::string>> groups;
+        std::set<std::string> processed;
+
+        for(auto& [id1, chars1] : camera_chars_) {
+            if(processed.count(id1)) continue;
+
+            std::vector<std::string> group;
+            group.push_back(id1);
+            processed.insert(id1);
+
+            for(auto& [id2, chars2] : camera_chars_) {
+                if(processed.count(id2) || id1 == id2) continue;
+
+                float fov_diff = std::fabs(chars1.estimated_fov - chars2.estimated_fov);
+                float dist_diff = std::fabs(chars1.avg_corner_distance - chars2.avg_corner_distance);
+                bool same_wide_angle = chars1.is_wide_angle == chars2.is_wide_angle;
+
+                if(fov_diff <= fov_tolerance && dist_diff <= distance_tolerance && same_wide_angle) {
+                    group.push_back(id2);
+                    processed.insert(id2);
+                }
+            }
+
+            if(group.size() >= 2) {
+                groups.push_back(group);
+            }
+    }
+
+        return groups;
+    }
+};
+
+
+// -----------------------------------------------------------------------------
+// Watcher that processes recorded videos and runs calibration extraction.
+// Scans the provided directory for completed .avi files and invokes the
+// standalone calibration utility on each of them.
+/*
+class CalibrationWatcher {
+public:
+    // Returns true on success, false on failure and fills `err` with a message
+    // describing the problem.
+    static bool processAll(const std::string &dir, std::string &err) {
+        namespace fs = std::filesystem;
+        try {
+            if (!fs::exists(dir)) return true; // nothing to do
+
+            for (auto &entry : fs::directory_iterator(dir)) {
+                if (!entry.is_regular_file()) continue;
+                auto path = entry.path();
+                if (path.extension() != ".avi") continue;
+
+                // Consider file complete if it hasn't been modified recently
+                auto now = fs::file_time_type::clock::now();
+                auto age = now - fs::last_write_time(path);
+                if (age < std::chrono::seconds(1)) continue;
+
+                fs::path outdir = fs::path("calibration") / "mono" / path.stem();
+                fs::create_directories(outdir);
+
+                std::string cmd = "calibration_main extract_mono \"" +
+                                   path.string() + "\" \"" +
+                                   outdir.string() + "\"";
+                int rc = std::system(cmd.c_str());
+                if (rc != 0) {
+                    err = "calibration command failed";
+                    return false;
+                }
+            }
+        } catch (const std::exception &e) {
+            err = e.what();
+            return false;
+        }
+        return true;
+    }
+};
+*/
+
+static std::filesystem::path g_exe_dir;
+static std::filesystem::path g_config_path;
+static bool fileExists(const std::string& p){ struct stat st{}; return stat(p.c_str(), &st)==0; }
+static bool dirExists(const std::string& p){ struct stat st{}; return stat(p.c_str(), &st)==0 && S_ISDIR(st.st_mode); }
+static json readMainConfig(){
+    json cfg=json::object();
+    auto p=std::filesystem::absolute(g_config_path);
+    printf("readMainConfig path: %s\n",p.c_str());
+    std::ifstream f(p);
+    if(f){ try{f>>cfg;}catch(...){} }
+    return cfg;
+}
+static bool writeMainConfig(const json& j){
+    auto file=std::filesystem::absolute(g_config_path);
+    auto dir=file.parent_path();
+    printf("writeMainConfig path: %s\n",file.c_str());
+    if(mkdir(dir.c_str(),0755)!=0 && errno!=EEXIST) return false;
+    std::ofstream f(file);
+    if(!f) return false;
+    f<<j.dump(2);
+    return f.good();
+}
+static std::string deviceForCam(const std::string& id){ auto cfg=readMainConfig(); if(cfg.contains("cameras")) for(auto& c:cfg["cameras"]) if(c.value("id","")==id) return c.value("device",""); return ""; }
+
+static std::string camIdForDevice(const std::string& dev){
+    auto cfg = readMainConfig();
+    if(cfg.contains("cameras"))
+        for(auto& c:cfg["cameras"])
+            if(c.value("device","") == dev)
+                return c.value("id","");
+    return "";
+}
+
+// Simple centroid-based tracker to provide stable IDs across frames
+// Simple tracker with basic re-identification using color similarity
+struct Track {
+//    int id;
+//    image_rect_t box;
+//    int misses;
+    int id;              // unique identifier
+    image_rect_t box;    // last known bounding box
+    int misses;          // number of consecutive misses while active
+    float color[3];      // average RGB color inside the box
+    int cls;             // object class id
+};
+
+
+class SimpleTracker {
+    int next_id = 0;
+//    std::vector<Track> tracks;
+//    float max_dist = 50.0f; // pixels
+    std::vector<Track> tracks;      // active tracks
+    std::vector<Track> lost;        // recently lost tracks that may reappear
+    float max_dist = 100.0f;        // max distance for active match (pixels)
+    float reid_dist = 120.0f;       // max distance for re-id
+    float color_thresh = 40.0f;     // max avg color difference for re-id
+    int max_misses = 30;            // frames before track becomes "lost"
+    int max_lost_age = 150;         // how long to keep lost track for re-id
+
+    static void avgColor(const image_buffer_t* img, const image_rect_t& b, float out[3]) {
+        int x1 = std::max(0, b.left);
+        int y1 = std::max(0, b.top);
+        int x2 = std::min(img->width - 1, b.right - 1);
+        int y2 = std::min(img->height - 1, b.bottom - 1);
+        long r = 0, g = 0, bsum = 0; int cnt = 0;
+        for (int y = y1; y <= y2; ++y) {
+            unsigned char* row = img->virt_addr + y * img->width * 3;
+            for (int x = x1; x <= x2; ++x) {
+                unsigned char* px = row + x * 3;
+                r += px[0]; g += px[1]; bsum += px[2];
+                cnt++;
+            }
+        }
+        if (cnt == 0) cnt = 1;
+        out[0] = r / (float)cnt; out[1] = g / (float)cnt; out[2] = bsum / (float)cnt;
+    }
+
+    static float colorDiff(const float a[3], const float b[3]) {
+        return std::fabs(a[0]-b[0]) + std::fabs(a[1]-b[1]) + std::fabs(a[2]-b[2]);
+    }
+
+public:
+//    void update(object_detect_result_list* dets) {
+    // Update tracks using current detections and image for color features
+    void update(object_detect_result_list* dets, const image_buffer_t* img) {
+        std::vector<bool> assigned(dets->count, false);
+        // reset ids
+        for (int i = 0; i < dets->count; ++i) dets->results[i].track_id = -1;
+        // match existing tracks
+
+        // match with active tracks
+        for (auto& t : tracks) {
+            int best = -1; float best_d = max_dist;
+            float tcx = (t.box.left + t.box.right) / 2.0f;
+            float tcy = (t.box.top + t.box.bottom) / 2.0f;
+            for (int i = 0; i < dets->count; ++i) if (!assigned[i]) {
+                auto& b = dets->results[i].box;
+                float dcx = (b.left + b.right) / 2.0f;
+                float dcy = (b.top + b.bottom) / 2.0f;
+                float d = std::hypot(tcx - dcx, tcy - dcy);
+                if (d < best_d) { best_d = d; best = i; }
+            }
+            if (best != -1) {
+//                t.box = dets->results[best].box;
+                auto& det = dets->results[best];
+                t.box = det.box;
+                t.misses = 0;
+//                dets->results[best].track_id = t.id;
+                t.cls = det.cls_id;
+                avgColor(img, det.box, t.color);
+                det.track_id = t.id;
+                assigned[best] = true;
+            } else {
+                t.misses++;
+            }
+        }
+        // remove lost tracks
+//        tracks.erase(std::remove_if(tracks.begin(), tracks.end(),
+//                    [](const Track& t){ return t.misses > 30; }), tracks.end());
+        // add new tracks for unmatched detections
+
+        // move expired active tracks to lost list
+        auto it = tracks.begin();
+        while (it != tracks.end()) {
+            if (it->misses > max_misses) {
+                it->misses = 0; // reuse as age in lost list
+                lost.push_back(*it);
+                it = tracks.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
+        // attempt to re-id lost tracks
+        for (int i = 0; i < dets->count; ++i) if (!assigned[i]) {
+            auto& det = dets->results[i];
+            float col[3];
+            avgColor(img, det.box, col);
+            int best = -1; float best_d = reid_dist; float best_c = color_thresh;
+            float dcx = (det.box.left + det.box.right) / 2.0f;
+            float dcy = (det.box.top + det.box.bottom) / 2.0f;
+            for (size_t j = 0; j < lost.size(); ++j) {
+                auto& lt = lost[j];
+                if (lt.cls != det.cls_id) continue;
+                float tcx = (lt.box.left + lt.box.right) / 2.0f;
+                float tcy = (lt.box.top + lt.box.bottom) / 2.0f;
+                float dist = std::hypot(tcx - dcx, tcy - dcy);
+                float cdist = colorDiff(lt.color, col);
+                if (dist < best_d && cdist < best_c) { best_d = dist; best_c = cdist; best = j; }
+            }
+            if (best != -1) {
+                // reactivate track
+                Track t = lost[best];
+                t.box = det.box;
+                t.cls = det.cls_id;
+                std::copy(col, col+3, t.color);
+                t.misses = 0;
+                det.track_id = t.id;
+                tracks.push_back(t);
+                lost.erase(lost.begin() + best);
+                assigned[i] = true;
+            }
+        }
+
+        // add new tracks for remaining detections
+        for (int i = 0; i < dets->count; ++i) if (!assigned[i]) {
+//            Track t{next_id++, dets->results[i].box, 0};
+//            dets->results[i].track_id = t.id;
+            auto& det = dets->results[i];
+            Track t{};
+            t.id = next_id++;
+            t.box = det.box;
+            t.misses = 0;
+            t.cls = det.cls_id;
+            avgColor(img, det.box, t.color);
+            det.track_id = t.id;
+            tracks.push_back(t);
+        }
+
+        // age lost tracks and drop old ones
+        auto lit = lost.begin();
+        while (lit != lost.end()) {
+            lit->misses++;
+            if (lit->misses > max_lost_age) lit = lost.erase(lit);
+            else ++lit;
+        }
+    }
+    bool getColor(int id, float out[3]) const {
+        for (auto& t : tracks) if (t.id == id) { out[0]=t.color[0]; out[1]=t.color[1]; out[2]=t.color[2]; return true; }
+        for (auto& t : lost)   if (t.id == id) { out[0]=t.color[0]; out[1]=t.color[1]; out[2]=t.color[2]; return true; }
+        return false;
+    }
+};
+
+
+// ---------- CLI ----------
+struct Args {
+    std::string model;
+    std::string labels = "model/coco_80_labels_list.txt";
+    std::string dev = "/dev/video0";
+    int port = 8080;
+    int cap_w = 640, cap_h = 480;
+    int cap_fps = 30;
+    int buffers = 3;
+    int jpeg_q = 70;
+    int http_fps_limit = 0;
+    bool show_fps = false;
+    bool draw = true;
+    std::string npu_core = "auto"; // auto|0|1|2|01|012
+    std::string log_file;
+    std::string config;
+
+    // Video recording options
+    std::string record_dir = "./rec";
+    int record_seconds = 180;  // 3 minutes default
+    bool no_record = false;
+};
+
+static bool parseSize(const std::string& s, int& w, int& h) {
+    auto x = s.find('x');
+    if (x == std::string::npos) return false;
+    try { w = std::stoi(s.substr(0, x)); h = std::stoi(s.substr(x+1)); return w>0 && h>0; }
+    catch (...) { return false; }
+}
+
+static bool isNumber(const char* s) {
+    if (!s || !*s) return false;
+    for (const char* p = s; *p; ++p) if (*p < '0' || *p > '9') return false;
+    return true;
+}
+
+static Args parseArgs(int argc, char** argv) {
+    Args a;
+    if (argc >= 2) a.model = argv[1];
+
+    // совместимость: если 2-й позиционный — число, это порт; если /dev/video*, это dev
+    if (argc >= 3 && argv[2][0] != '-') {
+        std::string s2 = argv[2];
+        if (s2.rfind("/dev/video", 0) == 0) a.dev = s2;
+        else if (isNumber(argv[2])) a.port = atoi(argv[2]);
+    }
+    // остальные — только именованные
+    for (int i = 2; i < argc; ++i) {
+        std::string k = argv[i];
+        auto need = [&](int more){ return i+more < argc; };
+        if (k == "--dev" && need(1)) a.dev = argv[++i];
+        else if (k == "--port" && need(1) && isNumber(argv[i+1])) a.port = atoi(argv[++i]);
+        else if (k == "--size" && need(1)) { int w=0,h=0; if (parseSize(argv[++i], w, h)){ a.cap_w=w; a.cap_h=h; } }
+        else if (k == "--cap-fps" && need(1)) a.cap_fps = atoi(argv[++i]);
+        else if (k == "--buffers" && need(1)) a.buffers = std::max(1, atoi(argv[++i]));
+        else if (k == "--jpeg-quality" && need(1)) a.jpeg_q = std::max(30, std::min(95, atoi(argv[++i])));
+        else if (k == "--http-fps-limit" && need(1)) a.http_fps_limit = std::max(0, atoi(argv[++i]));
+        else if (k == "--fps") a.show_fps = true;
+        else if (k == "--no-draw") a.draw = false;
+        else if (k == "--npu-core" && need(1)) a.npu_core = argv[++i]; // auto|0|1|2|01|012
+        else if (k == "--log-file" && need(1)) a.log_file = argv[++i];
+        else if (k == "--labels" && need(1)) a.labels = argv[++i];
+        else if (k == "--config" && need(1)) a.config = argv[++i];
+        else if (k == "--record-dir" && need(1)) a.record_dir = argv[++i];
+        else if (k == "--record-seconds" && need(1)) a.record_seconds = std::max(1, atoi(argv[++i]));
+        else if (k == "--no-record") a.no_record = true;
+    }
+    return a;
+}
+
+// ---------- utils ----------
+static inline const char* fourcc_to_str(__u32 f, char s[5]) {
+    s[0] = (char)(f & 0xFF);
+    s[1] = (char)((f >> 8) & 0xFF);
+    s[2] = (char)((f >> 16) & 0xFF);
+    s[3] = (char)((f >> 24) & 0xFF);
+    s[4] = 0;
+    return s;
+}
+
+static rknn_core_mask npu_mask_from_string(const std::string& s) {
+    if (s == "auto") return RKNN_NPU_CORE_AUTO;
+    if (s == "0")    return RKNN_NPU_CORE_0;
+    if (s == "1")    return RKNN_NPU_CORE_1;
+    if (s == "2")    return RKNN_NPU_CORE_2;
+    if (s == "01" || s == "0_1")                 return RKNN_NPU_CORE_0_1;
+    if (s == "012" || s == "0_1_2" || s == "all") return RKNN_NPU_CORE_0_1_2;
+    return RKNN_NPU_CORE_AUTO;
+}
+
+// ---------- server ----------
+class YOLOWebServer {
+private:
+    rknn_app_context_t rknn_app_ctx{};
+    Server server;
+    bool model_initialized = false;
+
+    // cfg
+    std::string model_path;
+    std::string labels_path;
+    int server_port = 8080;
+    std::string cam_dev = "/dev/video0";
+    int cam_w_req=640, cam_h_req=480, cam_fps_req=30, cam_buffers=3;
+    int jpeg_q = 70;
+    int http_fps_limit = 0;
+    bool show_fps = false;
+    bool draw = true;
+    rknn_core_mask npu_mask = RKNN_NPU_CORE_AUTO;
+
+    // camera
+    struct CamBuffer { void* start=nullptr; size_t length=0; };
+    int cam_fd = -1;
+    std::vector<CamBuffer> cam_bufs;
+    std::thread cam_thread{};
+    std::atomic<bool> cam_running{false};
+    int cam_w=0, cam_h=0, cam_fps=0;
+    std::string cam_id_;
+
+    // shared
+    std::mutex infer_mtx;
+    std::mutex frame_mtx;
+    std::condition_variable frame_cv;
+    std::vector<uint8_t> last_jpeg;
+    json last_meta;
+    SimpleTracker tracker; // maintains unique object IDs
+
+    // video recording
+    std::unique_ptr<cv::VideoWriter> video_writer_;
+    std::string record_dir_ = "./rec";
+    int record_seconds_ = 180;
+    bool record_enabled_ = false;  // ИЗМЕНЕНО: теперь false по умолчанию
+    std::chrono::steady_clock::time_point record_start_time_;
+    bool recording_active_ = false;
+
+    // video recording control
+    std::atomic<bool> should_start_recording_{false};
+    std::atomic<bool> should_stop_recording_{false};
+    int recording_duration_seconds_ = 30;
+
+    // preview timing
+    std::chrono::steady_clock::time_point last_preview_update_;
+    const std::chrono::milliseconds preview_interval_{300};
+
+
+    // stereo config
+    struct StereoPairCfg { int a=0; int b=0; std::string file; };
+    std::vector<StereoPairCfg> stereo_pairs;
+    json stereo_cfg;
+
+   // calibration manager
+    CameraManager cam_mgr_{};
+    bool preview_flag_{true};
+    std::filesystem::path calib_root_;
+    CalibrationSession calib_session_;
+
+    // Calibration state (legacy - keeping for compatibility)
+    std::atomic<bool> calibration_running_{false};
+    std::thread calibration_thread_;
+    std::atomic<int> calibration_remaining_{0};
+    std::vector<std::string> calibration_cameras_;
+    int calibration_board_w_ = 9;
+    int calibration_board_h_ = 6;
+    std::mutex calibration_mtx_;
+
+    // New calibration system
+    std::unique_ptr<CalibrationWatcher> calibration_watcher_;
+    std::unique_ptr<DistanceMeasurement> distance_measurement_;
+    CalibrationParams current_calib_params_;
+
+  // logging
+    bool log_enabled = false;
+    std::string log_base;
+    std::set<int> logged_ids;
+    std::map<int,int> minute_counts; // class_id -> count
+    std::chrono::system_clock::time_point minute_start{std::chrono::system_clock::now()};
+    int event_counter = 0;
+
+    void rotateLogs() {
+        DIR* dir = opendir("/tmp");
+        if (!dir) return;
+        auto now = std::time(nullptr);
+        struct dirent* ent;
+        while ((ent = readdir(dir)) != nullptr) {
+            std::string name = ent->d_name;
+            if (name.rfind("npudet.", 0) == 0) {
+                std::string path = std::string("/tmp/") + name;
+                struct stat st{};
+                if (stat(path.c_str(), &st) == 0) {
+                    if (now - st.st_mtime > 24*3600*10) unlink(path.c_str());
+                }
+            }
+        }
+        closedir(dir);
+    }
+
+    std::string currentLogPath() const {
+        auto t = std::time(nullptr);
+        char datebuf[16];
+        std::strftime(datebuf, sizeof(datebuf), "%d-%m-%Y", std::localtime(&t));
+        std::string base = log_base;
+        auto pos = base.find_last_of('/');
+        if (pos != std::string::npos) base = base.substr(pos+1);
+        return std::string("/tmp/npudet.") + datebuf + "." + base;
+    }
+
+    void appendLog(const std::string& line) {
+        if (!log_enabled) return;
+        std::ofstream ofs(currentLogPath(), std::ios::app);
+        if (ofs) ofs << line << '\n';
+    }
+
+    void logMinuteSummary(const std::chrono::system_clock::time_point& now) {
+        if (minute_counts.empty()) return;
+        auto start_t = std::chrono::system_clock::to_time_t(minute_start);
+        auto end_t = std::chrono::system_clock::to_time_t(now);
+        char datebuf[16], sbuf[16], ebuf[16];
+        std::strftime(datebuf, sizeof(datebuf), "%d-%m-%Y", std::localtime(&start_t));
+        std::strftime(sbuf, sizeof(sbuf), "%H:%M:%S", std::localtime(&start_t));
+        std::strftime(ebuf, sizeof(ebuf), "%H:%M:%S", std::localtime(&end_t));
+        for (auto& kv : minute_counts) {
+            std::string line = std::to_string(kv.second) + " " + coco_cls_to_name(kv.first) + ", " +
+                               datebuf + ", " + sbuf + " - " + ebuf;
+            appendLog(line);
+        }
+        minute_counts.clear();
+        minute_start = now;
+    }
+
+
+    void parseStereoConfig() {
+        stereo_pairs.clear();
+        if (stereo_cfg.contains("pairs") && stereo_cfg["pairs"].is_array()) {
+            for (auto &p : stereo_cfg["pairs"]) {
+                StereoPairCfg sp;
+                sp.a = p.value("a", 0);
+                sp.b = p.value("b", 0);
+                sp.file = p.value("file", std::string());
+                stereo_pairs.push_back(sp);
+            }
+        }
+    }
+
+    void loadStereoConfig() {
+        auto file = g_config_path.parent_path() / "stereo_config.json";
+        std::ifstream f(file);
+        if (f) {
+            try { f >> stereo_cfg; } catch (...) { stereo_cfg = json::object(); }
+        } else {
+            stereo_cfg = json::object();
+        }
+        parseStereoConfig();
+    }
+
+    void saveStereoConfig() {
+        auto file = g_config_path.parent_path() / "stereo_config.json";
+        std::error_code ec;
+        std::filesystem::create_directories(file.parent_path(), ec);
+        std::ofstream f(file);
+        if (f) f << stereo_cfg.dump(2);
+    }
+
+    bool getFrameFromCamera(const std::string& cam_id, std::vector<uint8_t>& jpeg_out) {
+        printf("Attempting to get frame from camera: %s\n", cam_id.c_str());
+
+        CameraManager::Frame frame;
+        uint64_t timestamp = cam_mgr_.nowMonoNs();
+
+    if (!cam_mgr_.getFrame(cam_id, timestamp, frame)) {
+        printf("Failed to get frame from camera: %s\n", cam_id.c_str());
+        return false;
+        }
+        jpeg_out = frame.jpeg;
+        printf("Successfully got frame from camera %s: %zu bytes\n", cam_id.c_str(), jpeg_out.size());
+    return true;
+    }
+
+    void createStereoPairs(const std::vector<std::string>& camera_ids,
+                           const std::string& stereo_mode,
+                           int capture_index,
+                           const std::string& timestamp,
+                           const std::filesystem::path& calib_root) {
+        std::vector<std::pair<std::string,std::string>> pairs;
+
+        if(stereo_mode == "adjacent") {
+            for(size_t i=0;i+1<camera_ids.size();++i)
+                pairs.emplace_back(camera_ids[i], camera_ids[i+1]);
+        } else {
+            for(size_t i=0;i<camera_ids.size();++i)
+                for(size_t j=i+1;j<camera_ids.size();++j)
+                    pairs.emplace_back(camera_ids[i], camera_ids[j]);
+        }
+
+        for(const auto& pr : pairs) {
+            std::string pair_name = "cam_" + pr.first + "_" + pr.second;
+            std::filesystem::path stereo_dir = calib_root / "stereo" / pair_name;
+            std::filesystem::create_directories(stereo_dir);
+
+            char src_filename[256], dst_filename[256];
+            snprintf(src_filename, sizeof(src_filename), "calib_%03d_%s.jpg",
+                     capture_index, timestamp.c_str());
+
+            snprintf(dst_filename, sizeof(dst_filename), "left_%03d_%s.jpg",
+                     capture_index, timestamp.c_str());
+            std::filesystem::path src_left = calib_root / "mono" / ("cam_" + pr.first) / src_filename;
+            std::filesystem::path dst_left = stereo_dir / dst_filename;
+            std::filesystem::copy_file(src_left, dst_left,
+                    std::filesystem::copy_options::overwrite_existing);
+
+            snprintf(dst_filename, sizeof(dst_filename), "right_%03d_%s.jpg",
+                     capture_index, timestamp.c_str());
+            std::filesystem::path src_right = calib_root / "mono" / ("cam_" + pr.second) / src_filename;
+            std::filesystem::path dst_right = stereo_dir / dst_filename;
+            std::filesystem::copy_file(src_right, dst_right,
+                    std::filesystem::copy_options::overwrite_existing);
+        }
+    }
+
+    // Calibration methods
+    bool startCalibrationCapture(const std::vector<std::string>& camera_ids,
+                                 int duration_seconds,
+                                 int board_w, int board_h) {
+        if (calibration_running_.load()) {
+            printf("Calibration already running\n");
+            return false;
+        }
+
+        printf("Starting integrated calibration: cameras=%zu, duration=%ds, board=%dx%d\n",
+               camera_ids.size(), duration_seconds, board_w, board_h);
+
+        calibration_cameras_ = camera_ids;
+        calibration_board_w_ = board_w;
+        calibration_board_h_ = board_h;
+        calibration_remaining_ = duration_seconds;
+        calibration_running_ = true;
+
+        calibration_thread_ = std::thread(&YOLOWebServer::calibrationLoop, this, duration_seconds);
+        return true;
+    }
+
+    void stopCalibrationCapture() {
+        if (!calibration_running_.load()) return;
+
+        printf("Stopping calibration capture\n");
+        calibration_running_ = false;
+        calibration_remaining_ = 0;
+
+        if (calibration_thread_.joinable()) {
+            calibration_thread_.join();
+        }
+
+        printf("Calibration capture stopped\n");
+    }
+
+    void calibrationLoop(int total_seconds) {
+        printf("Calibration loop started for %d seconds\n", total_seconds);
+
+        std::filesystem::path calib_base = calib_root_ / "integrated_session";
+        std::filesystem::create_directories(calib_base);
+
+        auto session_start = std::time(nullptr);
+        char session_id[32];
+        std::strftime(session_id, sizeof(session_id), "%Y%m%d_%H%M%S", std::localtime(&session_start));
+
+        std::filesystem::path session_dir = calib_base / session_id;
+        std::filesystem::create_directories(session_dir);
+
+        printf("Calibration session directory: %s\n", session_dir.c_str());
+
+        int capture_count = 0;
+        int boards_detected_total = 0;
+
+        while (calibration_running_.load() && calibration_remaining_.load() > 0) {
+            auto loop_start = std::chrono::steady_clock::now();
+
+            int boards_this_capture = 0;
+
+            for (const auto& cam_id : calibration_cameras_) {
+                std::filesystem::path cam_dir = session_dir / ("cam_" + cam_id);
+                std::filesystem::create_directories(cam_dir);
+
+                std::vector<uint8_t> jpeg_frame;
+                if (getFrameFromCamera(cam_id, jpeg_frame)) {
+                    std::vector<uchar> decode_buf(jpeg_frame.begin(), jpeg_frame.end());
+                    cv::Mat frame = cv::imdecode(decode_buf, cv::IMREAD_COLOR);
+
+                    if (!frame.empty()) {
+                        cv::Mat gray;
+                        cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+
+                        std::vector<cv::Point2f> corners;
+                        bool board_found = cv::findChessboardCorners(
+                            gray, cv::Size(calibration_board_w_, calibration_board_h_), corners,
+                            cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE);
+
+                        if (board_found) {
+                            boards_this_capture++;
+                            boards_detected_total++;
+
+                            cv::cornerSubPix(gray, corners, cv::Size(11, 11),
+                                             cv::Size(-1, -1),
+                                             cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.1));
+
+                            printf("Calibration capture %d: camera %s - BOARD FOUND (%zu corners)\n",
+                                   capture_count, cam_id.c_str(), corners.size());
+                        } else {
+                            printf("Calibration capture %d: camera %s - no board\n",
+                                   capture_count, cam_id.c_str());
+                        }
+
+                        char filename[128];
+                        snprintf(filename, sizeof(filename), "frame_%03d.jpg", capture_count);
+                        std::filesystem::path filepath = cam_dir / filename;
+
+                        cv::imwrite(filepath.string(), frame);
+                    } else {
+                        printf("Failed to decode frame from camera %s\n", cam_id.c_str());
+                    }
+                } else {
+                    printf("Failed to get frame from camera %s\n", cam_id.c_str());
+                }
+            }
+
+            capture_count++;
+            printf("Capture %d completed: %d/%zu cameras detected boards (total: %d)\n",
+                   capture_count, boards_this_capture, calibration_cameras_.size(), boards_detected_total);
+
+            calibration_remaining_ = calibration_remaining_.load() - 1;
+
+            auto loop_end = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(loop_end - loop_start);
+
+            if (elapsed.count() < 1000) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000 - elapsed.count()));
+            }
+        }
+
+        calibration_running_ = false;
+
+        printf("Calibration session completed:\n");
+        printf("- Duration: %d seconds\n", total_seconds);
+        printf("- Captures: %d\n", capture_count);
+        printf("- Total boards detected: %d\n", boards_detected_total);
+        printf("- Session saved to: %s\n", session_dir.c_str());
+
+        processCalibrationResults(session_dir, capture_count, boards_detected_total);
+    }
+
+    void processCalibrationResults(const std::filesystem::path& session_dir,
+                                   int total_captures, int total_detections) {
+        printf("Processing calibration results from: %s\n", session_dir.c_str());
+        printf("Total captures: %d, detections: %d\n", total_captures, total_detections);
+
+        std::filesystem::path results_file = session_dir / "session_info.json";
+        json session_info;
+        session_info["cameras"] = calibration_cameras_;
+        session_info["board_size"] = {calibration_board_w_, calibration_board_h_};
+        session_info["total_captures"] = total_captures;
+        session_info["total_detections"] = total_detections;
+        session_info["capture_rate"] = total_captures > 0 ?
+            static_cast<double>(total_detections) / total_captures : 0.0;
+
+        std::ofstream results(results_file);
+        if (results) {
+            results << session_info.dump(2);
+            printf("Session info saved to: %s\n", results_file.c_str());
+        }
+    }
+
+    int getCalibrationTimeRemaining() const {
+        return calibration_remaining_.load();
+    }
+
+    bool isCalibrationRunning() const {
+        return calibration_running_.load();
+    }
+
+
+public:
+    YOLOWebServer(const Args& a)
+        : model_path(a.model), labels_path(a.labels), server_port(a.port),
+          cam_dev(a.dev), cam_w_req(a.cap_w), cam_h_req(a.cap_h),
+          cam_fps_req(a.cap_fps), cam_buffers(a.buffers),
+          jpeg_q(a.jpeg_q), http_fps_limit(a.http_fps_limit),
+          show_fps(a.show_fps), draw(a.draw),
+          npu_mask(npu_mask_from_string(a.npu_core)),
+          log_enabled(!a.log_file.empty()), log_base(a.log_file),
+//          record_dir_(a.record_dir), record_seconds_(a.record_seconds),
+          record_dir_("/tmp/rec"), record_seconds_(a.record_seconds),
+          record_enabled_(false),
+          last_preview_update_(std::chrono::steady_clock::now()),
+          calib_root_(std::filesystem::absolute(
+              readMainConfig().value("calib_root", "."))),
+
+        calib_session_(cam_mgr_, preview_flag_, calib_root_) {
+        if (log_enabled) rotateLogs();
+        cam_mgr_.loadConfig(g_config_path.string());
+        cam_mgr_.start(false);
+        cam_id_ = camIdForDevice(cam_dev);
+        
+        // Initialize calibration system
+//        calibration_watcher_ = std::make_unique<CalibrationWatcher>(record_dir_, "./calibration");
+
+        calibration_watcher_ =
+            std::make_unique<CalibrationWatcher>("/tmp/rec", "/tmp/calibration");
+
+        // Set up callbacks
+        calibration_watcher_->setStatusCallback([this](const std::string& msg, float progress) {
+            printf("Calibration: %s (%.1f%%)\n", msg.c_str(), progress);
+        });
+        
+        calibration_watcher_->setLogCallback([this](const std::string& msg) {
+            printf("%s\n", msg.c_str());
+        });
+        
+        // Load existing calibration results
+        calibration_watcher_->loadResults();
+        distance_measurement_ = std::make_unique<DistanceMeasurement>(*calibration_watcher_);
+        
+        // Set default calibration parameters
+//        current_calib_params_.board_cols = 10;
+//        current_calib_params_.board_rows = 7;
+//        current_calib_params_.square_size = 30.0f;
+//        current_calib_params_.min_frames = 15;
+//        current_calib_params_.max_frames = 50;
+//        current_calib_params_.quality_threshold = 50.0f;
+//        current_calib_params_.delete_videos = true;
+
+        // Load calibration parameters from config
+        auto cfg = readMainConfig();
+        current_calib_params_.board_cols =
+            cfg.value("calib_board_cols", current_calib_params_.board_cols);
+        current_calib_params_.board_rows =
+            cfg.value("calib_board_rows", current_calib_params_.board_rows);
+        current_calib_params_.square_size =
+            cfg.value("calib_square_size", current_calib_params_.square_size);
+        current_calib_params_.min_frames =
+            cfg.value("calib_min_frames", current_calib_params_.min_frames);
+        current_calib_params_.max_frames =
+            cfg.value("calib_max_frames", current_calib_params_.max_frames);
+        current_calib_params_.quality_threshold =
+            cfg.value("calib_quality_threshold", current_calib_params_.quality_threshold);
+        current_calib_params_.delete_videos =
+            cfg.value("calib_delete_videos", current_calib_params_.delete_videos);
+        }
+
+
+    ~YOLOWebServer() {
+        stopCalibrationCapture();
+        cleanup();
+        cam_mgr_.stop();
+    }
+
+    bool initialize() {
+        if (init_post_process(labels_path.c_str()) != 0) {
+            fprintf(stderr, "init_post_process failed\n");
+            return false;
+        }
+        if (init_yolov8_model(model_path.c_str(), &rknn_app_ctx) != 0) {
+            fprintf(stderr, "init_yolov8_model failed: %s\n", model_path.c_str());
+            deinit_post_process();
+            return false;
+        }
+        // Устанавливаем маску NPU по флагу
+        {
+            int ret_mask = rknn_set_core_mask(rknn_app_ctx.rknn_ctx, npu_mask);
+            if (ret_mask != RKNN_SUCC) fprintf(stderr, "warn: rknn_set_core_mask(%d) failed: %d\n", npu_mask, ret_mask);
+            else                        fprintf(stderr, "rknn core mask set: %d\n", npu_mask);
+        }
+        model_initialized = true;
+
+        loadStereoConfig();
+
+        server.set_keep_alive_max_count(100);
+        server.set_read_timeout(5, 0);
+        server.set_write_timeout(5, 0);
+        server.set_payload_max_length(1 * 1024 * 1024);
+
+        setupRoutes();
+
+        if (initCamera()) {
+            cam_thread = std::thread(&YOLOWebServer::cameraLoop, this);
+        } else {
+            fprintf(stderr, "WARN: camera init failed (%s). Stream endpoints -> 503\n", cam_dev.c_str());
+        }
+        return true;
+    }
+
+    void run() {
+        printf("Starting YOLOv8 Web Server on port %d\n", server_port);
+        printf("UI: http://localhost:%d\n", server_port);
+        server.listen("0.0.0.0", server_port);
+    }
+
+    void stop() { server.stop(); }
+
+private:
+    void cleanup() {
+//        server.stop();
+        cam_running = false;
+        frame_cv.notify_all();
+
+        stopVideoRecording();
+
+        if (cam_thread.joinable()) cam_thread.join();
+        deinitCamera();
+        if (model_initialized) {
+            deinit_post_process();
+            release_yolov8_model(&rknn_app_ctx);
+            model_initialized = false;
+        }
+    }
+
+    void pauseCamera() {
+        cam_running = false;
+        frame_cv.notify_all();
+        if (cam_thread.joinable()) cam_thread.join();
+        deinitCamera();
+    }
+
+    // ---------- HTTP ----------
+    void setupRoutes() {
+        server.set_pre_routing_handler([](const Request&, Response& res) {
+            res.set_header("Access-Control-Allow-Origin", "*");
+            res.set_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            res.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            return Server::HandlerResponse::Unhandled;
+        });
+        server.Options(".*", [](const Request&, Response&){});
+        server.set_mount_point("/", "./web");
+
+        server.Get("/api/health", [this](const Request&, Response& res) {
+            json j;
+            j["status"] = model_initialized ? "ready" : "not_ready";
+            j["model_path"] = model_path;
+            j["streaming"] = cam_running.load();
+            j["cap_req_w"] = cam_w_req; j["cap_req_h"] = cam_h_req; j["cap_req_fps"] = cam_fps_req;
+            j["cap_real_w"] = cam_w; j["cap_real_h"] = cam_h; j["cap_real_fps"] = cam_fps;
+            j["jpeg_q"] = jpeg_q;
+            j["npu_mask"] = npu_mask;
+            res.set_content(j.dump(), "application/json");
+        });
+
+
+        server.Get("/api/status", [this](const Request&, Response& res) {
+            json j;
+            bool running = cam_running.load();
+            j["mode"] = running ? "calibration" : "preview";
+            j["detect"] = running && model_initialized;
+            res.set_content(j.dump(), "application/json");
+        });
+
+
+        server.Get("/api/model-info", [this](const Request&, Response& res) {
+            if (!model_initialized) { res.status = 503; res.set_content("{\"error\":\"Model not initialized\"}", "application/json"); return; }
+            json j;
+            j["model_width"] = rknn_app_ctx.model_width;
+            j["model_height"] = rknn_app_ctx.model_height;
+            j["model_channel"] = rknn_app_ctx.model_channel;
+            j["is_quantized"] = rknn_app_ctx.is_quant;
+            j["input_count"] = rknn_app_ctx.io_num.n_input;
+            j["output_count"] = rknn_app_ctx.io_num.n_output;
+            res.set_content(j.dump(), "application/json");
+        });
+
+        server.Post("/api/detect", [](const Request&, Response& res) {
+            res.status = 501;
+            res.set_content("{\"error\":\"/api/detect disabled; use /api/stream.mjpg\"}", "application/json");
+        });
+
+        server.Get("/api/stream.mjpg", [this](const Request&, Response& res) {
+            if (!cam_running.load()) { res.status = 503; res.set_content("camera not running", "text/plain"); return; }
+            res.set_header("Cache-Control", "no-store, no-cache, must-revalidate");
+            res.set_header("Pragma", "no-cache");
+            res.set_header("Connection", "keep-alive");
+            auto last_push = Clock::now();
+            res.set_chunked_content_provider(
+                "multipart/x-mixed-replace; boundary=frame",
+                [this, last_push](size_t, DataSink& sink) mutable {
+                    while (cam_running.load()) {
+                        std::vector<uint8_t> jpg;
+                        {
+                            std::unique_lock<std::mutex> lk(frame_mtx);
+                            frame_cv.wait_for(lk, std::chrono::milliseconds(1000),
+                                              [this]{ return !last_jpeg.empty() || !cam_running.load(); });
+                            if (!cam_running.load()) break;
+                            jpg = last_jpeg;
+                        }
+                        // HTTP FPS limit
+                        if (http_fps_limit > 0) {
+                            auto now = Clock::now();
+                            double elapsed = std::chrono::duration<double>(now - last_push).count();
+                            double min_dt = 1.0 / http_fps_limit;
+                            if (elapsed < min_dt) {
+                                auto sleep_d = std::chrono::duration<double>(min_dt - elapsed);
+                                std::this_thread::sleep_for(std::chrono::duration_cast<std::chrono::milliseconds>(sleep_d));
+                            }
+                            last_push = Clock::now();
+                        }
+
+                        std::string header = "--frame\r\n"
+                                             "Content-Type: image/jpeg\r\n"
+                                             "Content-Length: " + std::to_string(jpg.size()) + "\r\n\r\n";
+                        if (!sink.write(header.data(), header.size())) break;
+                        if (!sink.write(reinterpret_cast<const char*>(jpg.data()), jpg.size())) break;
+                        if (!sink.write("\r\n", 2)) break;
+                        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                    }
+                    return true;
+                },
+                [](bool){}
+            );
+        });
+
+        server.Get("/api/last.json", [this](const Request&, Response& res) {
+            json j;
+            {
+                std::lock_guard<std::mutex> lk(frame_mtx);
+                j = last_meta.is_null() ? json::object() : last_meta;
+            }
+            res.set_content(j.dump(), "application/json");
+        });
+
+        server.Get("/api/frame.jpg", [this](const Request&, Response& res) {
+            std::vector<uint8_t> jpg;
+            {
+                std::lock_guard<std::mutex> lk(frame_mtx);
+                jpg = last_jpeg;
+            }
+            if (jpg.empty()) { res.status = 503; res.set_content("no frame", "text/plain"); return; }
+            res.set_content(std::string(reinterpret_cast<const char*>(jpg.data()), jpg.size()), "image/jpeg");
+        });
+
+        server.Get("/api/stereo-config", [this](const Request&, Response& res) {
+            res.set_content(stereo_cfg.dump(), "application/json");
+        });
+
+        server.Post("/api/stereo-config", [this](const Request& req, Response& res) {
+            try {
+                stereo_cfg = json::parse(req.body);
+                parseStereoConfig();
+                saveStereoConfig();
+                res.set_content("{\"status\":\"ok\"}", "application/json");
+            } catch (...) {
+                res.status = 400;
+                res.set_content("{\"error\":\"invalid json\"}", "application/json");
+            }
+        });
+
+        // calibration capture control for all cameras
+        server.Post("/api/calibration/start", [this](const Request&, Response& res){
+            calib_session_.start();
+            json resp;
+            resp["status"] = "ok";
+            res.set_content(resp.dump(), "application/json");
+        });
+
+        server.Post("/api/calibration/stop", [this](const Request&, Response& res){
+            printf("Received calibration/stop request\n");
+            json resp;
+            if (isCalibrationRunning()) {
+                stopCalibrationCapture();
+                resp["status"] = "ok";
+                resp["message"] = "Calibration stopped successfully";
+            } else {
+                resp["status"] = "ok";
+                resp["message"] = "No calibration was running";
+            }
+            res.set_content(resp.dump(), "application/json");
+        });
+
+
+        server.Post("/api/calibration/run", [this](const Request& req, Response& res){
+            json resp;
+            printf("Received calibration/run request\n");
+
+            try {
+                auto j = json::parse(req.body);
+                auto ids = j.at("ids").get<std::vector<std::string>>();
+                int duration = j.value("duration", 30);
+                int board_w = j.value("board_w", 9);
+                int board_h = j.value("board_h", 6);
+
+                printf("Calibration parameters: cameras=%zu, duration=%ds, board=%dx%d\n",
+                       ids.size(), duration, board_w, board_h);
+
+                int available_cameras = 0;
+                for (const auto& cam_id : ids) {
+                    std::vector<uint8_t> test_frame;
+                    if (getFrameFromCamera(cam_id, test_frame)) {
+                        available_cameras++;
+                        printf("Camera %s: available (%zu bytes)\n", cam_id.c_str(), test_frame.size());
+                    } else {
+                        printf("Camera %s: not available\n", cam_id.c_str());
+                    }
+                }
+                if (available_cameras == 0) {
+                    resp["status"] = "error";
+                    resp["error"] = "No cameras available";
+                    res.status = 400;
+                    res.set_content(resp.dump(), "application/json");
+                    return;
+                }
+
+                if (startCalibrationCapture(ids, duration, board_w, board_h)) {
+                    resp["status"] = "ok";
+                    resp["message"] = "Calibration started successfully";
+                    resp["cameras_available"] = available_cameras;
+                    resp["cameras_total"] = ids.size();
+                    resp["duration"] = duration;
+                    resp["board_size"] = {board_w, board_h};
+
+                    printf("Calibration started successfully: %d/%zu cameras available\n",
+                           available_cameras, ids.size());
+
+                } else {
+                    resp["status"] = "error";
+                    resp["error"] = "Failed to start calibration (already running?)";
+                    res.status = 500;
+                }
+            } catch (const std::exception& e) {
+                printf("Calibration/run error: %s\n", e.what());
+                resp["status"] = "error";
+                resp["error"] = e.what();
+                res.status = 400;
+            }
+
+            res.set_content(resp.dump(), "application/json");
+        });
+
+        server.Get("/api/calibration/status", [this](const Request&, Response& res){
+            json resp;
+            resp["running"] = isCalibrationRunning();
+            resp["time_remaining"] = getCalibrationTimeRemaining();
+            resp["cameras"] = calibration_cameras_;
+
+            if (isCalibrationRunning()) {
+                resp["board_size"] = {calibration_board_w_, calibration_board_h_};
+            }
+
+            res.set_content(resp.dump(), "application/json");
+        });
+
+
+        server.Post("/api/calib/start", [this](const Request&, Response& res){
+            pauseCamera();
+            res.set_content("{\"status\":\"ok\"}","application/json");
+        });
+
+        server.Post("/api/calib/stop", [this](const Request&, Response& res){
+            if(initCamera()) {
+                cam_thread = std::thread(&YOLOWebServer::cameraLoop, this);
+            }
+            res.set_content("{\"status\":\"ok\"}","application/json");
+        });
+
+
+
+        server.Post("/api/calib/setup", [](const Request& req, Response& res){
+            try{
+                auto j=json::parse(req.body);
+                std::string cam=j.value("camera","");
+                if(cam.empty()){res.status=400;res.set_content("{\"error\":\"missing camera\"}","application/json");return;}
+                auto cfg=readMainConfig();
+                cfg["calib_camera"]=cam;
+                if(!writeMainConfig(cfg)){res.status=500;res.set_content("{\"error\":\"write failure\"}","application/json");return;}
+                std::filesystem::path dir = std::filesystem::current_path() /
+                                           "calibration" / ("cam_" + cam) /
+                                           "images";
+                std::error_code ec;
+                std::filesystem::create_directories(dir, ec);
+                auto absDir = std::filesystem::absolute(dir);
+                printf("calibration dir: %s\n",absDir.c_str());
+                if(ec){res.status=500;res.set_content("{\"error\":\"mkdir failure\"}","application/json");return;}
+                res.set_content("{\"status\":\"ok\"}","application/json");
+            }catch(...){res.status=400;res.set_content("{\"error\":\"invalid json\"}","application/json");}
+        });
+
+       server.Get("/api/calib/status", [](const Request& req, Response& res){
+            std::string cam;
+            if(req.has_param("camera")) {
+                cam = req.get_param_value("camera");
+            } else {
+                auto cfg = readMainConfig();
+                cam = cfg.value("calib_camera", "");
+            }
+            json resp; resp["camera"] = cam;
+            std::string dir = cam.empty()?std::string():"calibration/cam_"+cam+"/images";
+            bool folder = !cam.empty() && dirExists(dir);
+            bool mono_done = !cam.empty() && fileExists("calibration/results/cam_"+cam+".yml");
+            bool stereo_ready = mono_done && fileExists("calibration/results/cam_0.yml") && !fileExists("calibration/results/stereo_0_"+cam+".yml");
+            resp["folder_exists"] = folder;
+            resp["mono_done"] = mono_done;
+            resp["stereo_ready"] = stereo_ready;
+            res.set_content(resp.dump(), "application/json");
+        });
+
+        server.Post("/api/calib/mono", [](const Request& req, Response& res){
+            json resp;
+            try{
+                auto j=json::parse(req.body);
+                std::string cam=j.value("camera","");
+                int bw=j.value("board_w",0);
+                int bh=j.value("board_h",0);
+                if(cam.empty()){res.status=400;res.set_content("{\"error\":\"missing camera\"}","application/json");return;}
+                std::string dev=deviceForCam(cam);
+                if(dev.empty()){res.status=400;res.set_content("{\"error\":\"camera not found\"}","application/json");return;}
+                std::filesystem::path dir = std::filesystem::current_path() /
+                                           "calibration" / ("cam_" + cam) /
+                                           "images";
+                std::error_code ec;
+                std::filesystem::create_directories(dir, ec);
+                auto absDir = std::filesystem::absolute(dir);
+                printf("calibration dir %s\n", absDir.c_str());
+                cv::VideoCapture cap(dev);
+                if(!cap.isOpened()){res.status=500;res.set_content("{\"error\":\"open camera\"}","application/json");return;}
+                for(int t=10;t>0;--t){
+                    printf("start in %d\n",t);
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                }
+                for(int i=0;i<50;i++){                    cv::Mat frame; cap>>frame; if(frame.empty()) break;
+                    char buf[64]; snprintf(buf,sizeof(buf),"%s/img_%02d.jpg",dir.c_str(),i);
+                    cv::imwrite(buf,frame);
+                    std::this_thread::sleep_for(std::chrono::seconds(2));
+                }
+                cap.release();
+                auto resultsDir = std::filesystem::current_path() /
+                                  "calibration" / "results";
+                std::filesystem::create_directories(resultsDir, ec);
+                std::string outfile =
+                    (resultsDir / ("cam_" + cam + ".yml")).string();
+                std::string cmd = "opencv_calib_mono -o " + outfile +
+                                  " --board " + std::to_string(bw) + "x" +
+                                  std::to_string(bh) + " " + dir.string() +
+                                  "/img_*.jpg";
+                int rc=system(cmd.c_str());
+                resp["status"]=rc==0?"ok":"error";
+                resp["out"]=outfile;
+                resp["cmd"]=cmd;
+            }catch(...){res.status=400;res.set_content("{\"error\":\"invalid json\"}","application/json");return;}
+            res.set_content(resp.dump(),"application/json");
+        });
+
+        server.Post("/api/calib/stereo-capture", [](const Request& req, Response& res){
+            try{
+                auto j=json::parse(req.body);
+                  std::vector<std::string> cams=j.value("cameras", std::vector<std::string>{});
+                  int frames=j.value("frames",0);
+                  int interval=j.value("interval",0);
+                  int bw=j.value("board_w",0);
+                  int bh=j.value("board_h",0);
+                  (void)bw; (void)bh;
+                if(cams.size()<2 || frames<=0){
+                    res.status=400;
+                    res.set_content("{\"error\":\"need cameras and frames\"}","application/json");
+                    return;
+                }
+                std::sort(cams.begin(), cams.end());
+                std::string dir="stereo";
+                for(auto& id: cams) dir += "_"+id;
+                auto absDir = std::filesystem::current_path() / "calibration" /
+                               dir / "images";
+                std::error_code ec;
+                std::filesystem::create_directories(absDir, ec);
+                if(ec){
+                    res.status=500;
+                    json err; err["error"]="mkdir"; err["detail"]=ec.message();
+                    res.set_content(err.dump(),"application/json");
+                    return;
+                }
+                std::vector<cv::VideoCapture> caps;
+                caps.reserve(cams.size());
+                for(auto& id: cams){
+                    std::string dev=deviceForCam(id);
+                    if(dev.empty()){
+                        res.status=400;
+                        res.set_content("{\"error\":\"camera not found\"}","application/json");
+                        return;
+                    }
+                    caps.emplace_back(dev);
+                    if(!caps.back().isOpened()){
+                        res.status=500;
+                        res.set_content("{\"error\":\"open camera\"}","application/json");
+                        return;
+                    }
+                }
+                  for(int i=0;i<frames;i++){
+                      for(size_t ci=0; ci<caps.size(); ++ci){
+                          cv::Mat frame; caps[ci]>>frame;
+                          if(frame.empty()) continue;
+                          char path[256];
+                          snprintf(path,sizeof(path),"%s/pair_%02d_cam%s.jpg",absDir.c_str(),i,cams[ci].c_str());
+                          cv::imwrite(path,frame);
+                      }
+                      if(interval>0) std::this_thread::sleep_for(std::chrono::milliseconds(interval));
+                  }
+                for(auto& c : caps) c.release();
+                json resp; resp["status"]="ok"; resp["dir"]=absDir.string();
+                res.set_content(resp.dump(),"application/json");
+            }catch(...){
+                res.status=400;
+                res.set_content("{\"error\":\"invalid json\"}","application/json");
+            }
+        });
+
+        // Video recording control
+        server.Post("/api/record/start", [this](const Request& req, Response& res){
+            json resp;
+            try {
+                auto j = json::parse(req.body);
+                recording_duration_seconds_ = j.value("duration", 30);
+                
+                if (!recording_active_) {
+                    should_start_recording_ = true;
+                    record_enabled_ = true;
+                    resp["status"] = "ok";
+                    resp["message"] = "Recording will start";
+                    resp["duration"] = recording_duration_seconds_;
+                    printf("Video recording start requested, duration: %d seconds\n", recording_duration_seconds_);
+                } else {
+                    resp["status"] = "error";
+                    resp["message"] = "Recording already active";
+                }
+            } catch(...) {
+                resp["status"] = "error";
+                resp["message"] = "Invalid JSON";
+            }
+            res.set_content(resp.dump(), "application/json");
+        });
+
+        server.Post("/api/record/stop", [this](const Request&, Response& res){
+            json resp;
+            should_stop_recording_ = true;
+            record_enabled_ = false;
+            resp["status"] = "ok";
+            resp["message"] = "Recording will stop";
+            printf("Video recording stop requested\n");
+            res.set_content(resp.dump(), "application/json");
+        });
+
+        server.Get("/api/record/status", [this](const Request&, Response& res){
+            json resp;
+            resp["recording_active"] = recording_active_;
+            resp["recording_enabled"] = record_enabled_;
+            resp["duration_seconds"] = recording_duration_seconds_;
+            if (recording_active_) {
+                auto elapsed = std::chrono::steady_clock::now() - record_start_time_;
+                int remaining = recording_duration_seconds_ - 
+                    std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+                resp["time_remaining"] = std::max(0, remaining);
+            } else {
+                resp["time_remaining"] = 0;
+            }
+            res.set_content(resp.dump(), "application/json");
+        });
+
+        server.Post("/api/calibrate/stereo-auto", [](const Request& req, Response& res){
+            json resp;
+            try{
+                auto j=json::parse(req.body);
+//                std::string cam=j.value("camera","");
+                std::string cam_a=j.value("camera_a","");
+                std::string cam_b=j.value("camera_b","");
+
+                int bw=j.value("board_w",0);
+                int bh=j.value("board_h",0);
+                float square_size = j.value("square_size", 30.0f);
+//                if(cam.empty()){res.status=400;res.set_content("{\"error\":\"missing camera\"}","application/json");return;}
+//                std::string dev0=deviceForCam("0");
+//                std::string dev1=deviceForCam(cam);
+                if(cam_a.empty()||cam_b.empty()){res.status=400;res.set_content("{\"error\":\"missing camera\"}","application/json");return;}
+                std::string dev0=deviceForCam(cam_a);
+                std::string dev1=deviceForCam(cam_b);
+                if(dev0.empty()||dev1.empty()){res.status=400;res.set_content("{\"error\":\"camera not found\"}","application/json");return;}
+                std::filesystem::path dir = std::filesystem::current_path() /
+//                                           "calibration" / ("stereo_0_" + cam) /
+                                           "calibration" / ("stereo_" + cam_a + "_" + cam_b) /
+                                           "images";
+                std::error_code ec;
+                std::filesystem::create_directories(dir, ec);
+                auto absDir = std::filesystem::absolute(dir);
+                printf("calibration dir: %s\n",absDir.c_str());
+                printf("Board %dx%d, square_size=%.1fmm\n", bw, bh, square_size);
+                if(ec){res.status=500;res.set_content("{\"error\":\"mkdir failure\"}","application/json");return;}
+                std::this_thread::sleep_for(std::chrono::seconds(5));
+                cv::VideoCapture c0(dev0), c1(dev1);
+                if(!c0.isOpened()||!c1.isOpened()){res.status=500;res.set_content("{\"error\":\"open camera\"}","application/json");return;}
+                for(int i=0;i<30;i++){
+                    cv::Mat f0,f1; c0>>f0; c1>>f1; if(f0.empty()||f1.empty()) break;
+                    char b0[80], b1[80];
+//                    snprintf(b0,sizeof(b0),"%s/pair_%02d_cam0.jpg",dir.c_str(),i);
+//                    snprintf(b1,sizeof(b1),"%s/pair_%02d_cam%s.jpg",dir.c_str(),i,cam.c_str());
+                    snprintf(b0,sizeof(b0),"%s/pair_%02d_cam%s.jpg",dir.c_str(),i,cam_a.c_str());
+                    snprintf(b1,sizeof(b1),"%s/pair_%02d_cam%s.jpg",dir.c_str(),i,cam_b.c_str());
+                    cv::imwrite(b0,f0); cv::imwrite(b1,f1);
+                    std::this_thread::sleep_for(std::chrono::seconds(2));
+                }
+                c0.release(); c1.release();
+                auto resultsDir = std::filesystem::current_path() / "calibration" /
+                                  "results";
+                std::filesystem::create_directories(resultsDir, ec);
+                std::string outfile =
+//                    (resultsDir / ("stereo_0_" + cam + ".yml")).string();
+                    (resultsDir / ("stereo_" + cam_a + "_" + cam_b + ".yml")).string();
+                std::string cmd =
+                    "opencv_calib_stereo -o " + outfile + " --board " +
+                    std::to_string(bw) + "x" + std::to_string(bh) +
+                    " --square " + std::to_string(square_size) +
+//                    " --cam 0 --cam " + cam + " " + dir.string() +
+                    " --cam " + cam_a + " --cam " + cam_b + " " + dir.string() +
+                    "/pair_*";
+                int rc=system(cmd.c_str());
+                resp["status"]=rc==0?"ok":"error";
+                resp["out"]=outfile;
+                resp["cmd"]=cmd;
+                resp["square_size"]=square_size;
+            }catch(...){res.status=400;res.set_content("{\"error\":\"invalid json\"}","application/json");return;}
+            res.set_content(resp.dump(),"application/json");
+        });
+
+
+	server.Post("/api/calibration/analyze-compatibility", [this](const Request& req, Response& res){
+	    json resp;
+	    resp["status"] = "ok";
+    
+	    try {
+	    auto j = json::parse(req.body);
+    	    auto camera_ids = j.at("cameras").get<std::vector<std::string>>();
+    	    int board_w = j.value("board_w", 9);
+    	    int board_h = j.value("board_h", 6);
+        
+    	    CameraCompatibilityAnalyzer analyzer;
+    	    json camera_characteristics = json::object();
+        
+        // Анализируем каждую камеру
+        printf("Starting compatibility analysis for %zu cameras\n", camera_ids.size());
+ 
+        for(const auto& cam_id : camera_ids) {
+            printf("Analyzing camera: %s\n", cam_id.c_str());
+            std::vector<uint8_t> jpeg_frame;
+            if(getFrameFromCamera(cam_id, jpeg_frame)) {
+                printf("Frame captured for camera %s: %zu bytes\n", cam_id.c_str(), jpeg_frame.size());
+                // Декодируем в OpenCV Mat
+                std::vector<uchar> decode_buf(jpeg_frame.begin(), jpeg_frame.end());
+                cv::Mat frame = cv::imdecode(decode_buf, cv::IMREAD_COLOR);
+                if(!frame.empty()) {
+                    printf("Frame decoded successfully for camera %s: %dx%d\n", 
+                           cam_id.c_str(), frame.cols, frame.rows);
+                    // Ищем шахматную доску
+                    cv::Mat gray;
+                    cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+                    std::vector<cv::Point2f> corners;
+                    bool board_found = cv::findChessboardCorners(
+                        gray, cv::Size(board_w, board_h), corners,
+                        cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE);
+                    printf("Chessboard detection for camera %s: %s (expected %dx%d)\n", 
+                           cam_id.c_str(), board_found ? "FOUND" : "NOT FOUND", 
+                           board_w, board_h);
+                    if(board_found) {
+                        printf("Found %zu corners for camera %s\n", corners.size(), cam_id.c_str());
+                        // Анализируем камеру
+                        analyzer.analyzeCameraFromFrame(cam_id, frame, corners, cv::Size(board_w, board_h));
+                        // Сохраняем характеристики для ответа
+                        auto chars = analyzer.getCameraCharacteristics(cam_id);
+                        camera_characteristics[cam_id] = {
+                            {"estimated_fov", chars.estimated_fov},
+                            {"quality_score", chars.quality_score},
+                            {"is_wide_angle", chars.is_wide_angle},
+                            {"resolution", {chars.resolution.width, chars.resolution.height}}
+                        };
+                        printf("Camera %s characteristics: FOV=%.1f°, Quality=%d, Wide=%s\n",
+                               cam_id.c_str(), chars.estimated_fov, chars.quality_score, 
+                               chars.is_wide_angle ? "Yes" : "No");
+                    } else {
+                        printf("No chessboard found in frame from camera %s\n", cam_id.c_str());
+                    }
+                } else {
+                    printf("Failed to decode frame from camera %s\n", cam_id.c_str());
+                }
+            } else {
+                printf("Failed to capture frame from camera %s\n", cam_id.c_str());
+            }
+        }
+
+        
+    	    // Определяем совместимые группы
+    	    auto compatible_groups = analyzer.getCompatibleGroups();
+        
+    	    resp["camera_characteristics"] = camera_characteristics;
+    	    resp["compatible_groups"] = compatible_groups;
+    	    resp["total_groups"] = compatible_groups.size();
+        
+	    } catch(const std::exception& e) {
+    	    resp["status"] = "error";
+    	    resp["error"] = e.what();
+    	    res.status = 500;
+	    }
+    
+	    res.set_content(resp.dump(), "application/json");
+	});
+
+        server.Post("/api/calibrate/mono", [](const Request& req, Response& res) {
+            json resp;
+            try {
+                auto j = json::parse(req.body);
+                std::string cam = j.value("camera", "");
+                std::vector<std::string> imgs = j.value("images", std::vector<std::string>{});
+                int bw = j.value("board_w",0);
+                int bh = j.value("board_h",0);
+                if (cam.empty() || imgs.empty()) {
+                    res.status = 400;
+                    res.set_content("{\"error\":\"missing camera or images\"}", "application/json");
+                    return;
+                }
+                auto resultsDir = std::filesystem::current_path() /
+                                  "calibration" / "results";
+                std::error_code ec; std::filesystem::create_directories(resultsDir, ec);
+                std::string outfile =
+                    (resultsDir / ("cam_" + cam + ".yml")).string();
+                std::string cmd = "opencv_calib_mono -o " + outfile + " --board " + std::to_string(bw) + "x" + std::to_string(bh);
+                for (auto& p : imgs) cmd += " " + p;
+                int rc = system(cmd.c_str());
+                resp["status"] = rc == 0 ? "ok" : "error";
+                resp["out"] = outfile;
+                resp["cmd"] = cmd;
+            } catch (...) {
+                res.status = 400;
+                res.set_content("{\"error\":\"invalid json\"}", "application/json");
+                return;
+            }
+            res.set_content(resp.dump(), "application/json");
+        });
+
+
+        server.Post("/api/calibration/capture-sync", [this](const Request& req, Response& res){
+               json resp;
+               resp["status"] = "ok";
+               resp["boards_detected"] = 0;
+               resp["cameras_captured"] = 0;
+
+    try {
+        auto j = json::parse(req.body);
+        auto camera_ids = j.at("cameras").get<std::vector<std::string>>();
+        int board_w = j.value("board_w", 9);
+        int board_h = j.value("board_h", 6);
+        float square_size = j.value("square_size", 30.0f);
+        int capture_index = j.value("capture_index", 0);
+        std::string stereo_mode_val = j.value("stereo_mode", std::string("adjacent"));
+        std::filesystem::path calib_root_path = calib_root_;
+
+
+        printf("Starting synchronized capture #%d for %zu cameras\n", 
+               capture_index, camera_ids.size());
+        printf("Board parameters: %dx%d, square_size=%.1fmm, stereo_mode=%s\n",
+               board_w, board_h, square_size, stereo_mode_val.c_str());
+
+        std::string timestamp = std::to_string(std::time(nullptr));
+        int boards_found = 0;
+        int cameras_processed = 0;
+
+        for(const auto& cam_id : camera_ids) {
+            printf("Processing camera: %s\n", cam_id.c_str());
+            std::filesystem::path mono_dir = calib_root_path / "mono" / ("cam_" + cam_id);
+            std::filesystem::create_directories(mono_dir);
+            printf("Mono directory: %s\n", mono_dir.c_str());
+
+            // Получаем кадр с камеры
+            std::vector<uint8_t> jpeg_frame;
+            bool frame_ok = getFrameFromCamera(cam_id, jpeg_frame);
+            printf("Frame capture for %s: %s\n", cam_id.c_str(), frame_ok ? "SUCCESS" : "FAILED");
+
+            if(frame_ok && !jpeg_frame.empty()) {
+                // Декодируем JPEG в OpenCV Mat
+                std::vector<uchar> decode_buf(jpeg_frame.begin(), jpeg_frame.end());
+                cv::Mat frame = cv::imdecode(decode_buf, cv::IMREAD_COLOR);
+
+                if(!frame.empty()) {
+                    printf("Frame decoded for %s: %dx%d\n", cam_id.c_str(), frame.cols, frame.rows);
+                    // Проверяем наличие шахматной доски
+                    cv::Mat gray;
+                    cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+
+                    std::vector<cv::Point2f> corners;
+                    bool board_found = cv::findChessboardCorners(
+                        gray, cv::Size(board_w, board_h), corners,
+                        cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE |
+                        cv::CALIB_CB_FAST_CHECK);
+
+                    printf("Chessboard detection for %s: %s\n", cam_id.c_str(), 
+                           board_found ? "FOUND" : "NOT FOUND");
+
+                    if(board_found) {
+                        boards_found++;
+                        // Улучшаем точность углов
+                        cv::cornerSubPix(gray, corners, cv::Size(11, 11), 
+                                         cv::Size(-1, -1), 
+                                         cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.1));
+                        printf("Corner refinement completed for %s: %zu corners\n", 
+                               cam_id.c_str(), corners.size());
+                    }
+                    // Сохраняем снимок
+                    char filename[256];
+                    snprintf(filename, sizeof(filename), "calib_%03d_%s.jpg",
+                           capture_index, timestamp.c_str());
+                    std::filesystem::path filepath = mono_dir / filename;
+                    bool saved = cv::imwrite(filepath.string(), frame);
+                    printf("Image save for %s: %s -> %s\n", cam_id.c_str(), 
+                           saved ? "SUCCESS" : "FAILED", filepath.c_str());
+                    if(saved) cameras_processed++;
+                } else {
+                    printf("Failed to decode frame for camera %s\n", cam_id.c_str());
+                }
+            } else {
+                printf("No frame data for camera %s\n", cam_id.c_str());
+            }
+        }
+
+        printf("Creating stereo pairs with mode: %s\n", stereo_mode_val.c_str());
+        createStereoPairs(camera_ids, stereo_mode_val, capture_index, timestamp, calib_root_path);
+
+
+        resp["boards_detected"] = boards_found;
+        resp["cameras_captured"] = cameras_processed;
+        resp["timestamp"] = timestamp;
+
+        printf("Capture #%d completed: %d boards detected, %d cameras processed\n",
+               capture_index, boards_found, cameras_processed);
+
+    } catch(const std::exception& e) {
+        printf("Capture sync error: %s\n", e.what());
+        resp["status"] = "error";
+        resp["error"] = e.what();
+        res.status = 500;
+    }
+
+    res.set_content(resp.dump(), "application/json");
+});
+
+      // Get/Set calibration parameters
+        server.Get("/api/calibration/params", [this](const Request&, Response& res){
+            json resp;
+            resp["board_cols"] = current_calib_params_.board_cols;
+            resp["board_rows"] = current_calib_params_.board_rows;
+            resp["square_size"] = current_calib_params_.square_size;
+            resp["min_frames"] = current_calib_params_.min_frames;
+            resp["max_frames"] = current_calib_params_.max_frames;
+            resp["quality_threshold"] = current_calib_params_.quality_threshold;
+            resp["delete_videos"] = current_calib_params_.delete_videos;
+            res.set_content(resp.dump(), "application/json");
+        });
+
+        server.Post("/api/calibration/params", [this](const Request& req, Response& res){
+            json resp;
+            try {
+                auto j = json::parse(req.body);
+
+//                current_calib_params_.board_cols = j.value("board_cols", 10);
+//                current_calib_params_.board_rows = j.value("board_rows", 7);
+//                current_calib_params_.square_size = j.value("square_size", 30.0f);
+                current_calib_params_.square_size = j.value("square_size", current_calib_params_.square_size);
+//                current_calib_params_.min_frames = j.value("min_frames", 15);
+//                current_calib_params_.max_frames = j.value("max_frames", 50);
+//                current_calib_params_.quality_threshold = j.value("quality_threshold", 50.0f);
+//                current_calib_params_.delete_videos = j.value("delete_videos", true);
+
+
+                // Persist parameters to config
+                auto cfg = readMainConfig();
+                cfg["calib_board_cols"] = current_calib_params_.board_cols;
+                cfg["calib_board_rows"] = current_calib_params_.board_rows;
+                cfg["calib_square_size"] = current_calib_params_.square_size;
+                cfg["calib_min_frames"] = current_calib_params_.min_frames;
+                cfg["calib_max_frames"] = current_calib_params_.max_frames;
+                cfg["calib_quality_threshold"] = current_calib_params_.quality_threshold;
+                cfg["calib_delete_videos"] = current_calib_params_.delete_videos;
+                writeMainConfig(cfg);
+
+                resp["status"] = "ok";
+                resp["message"] = "Calibration parameters updated";
+
+                printf("Calibration params updated: %dx%d board, %.1fmm squares\n",
+                       current_calib_params_.board_cols, current_calib_params_.board_rows,
+                       current_calib_params_.square_size);
+
+            } catch(const std::exception& e) {
+                resp["status"] = "error";
+                resp["error"] = e.what();
+                res.status = 400;
+            }
+            res.set_content(resp.dump(), "application/json");
+        });
+
+        // Start automatic calibration from recorded videos
+        server.Post("/api/calibration/start-auto", [this](const Request&, Response& res){
+            json resp;
+
+            if (calibration_watcher_->isProcessing()) {
+                resp["status"] = "error";
+                resp["error"] = "Calibration already in progress";
+                res.status = 400;
+            } else {
+                printf("Starting automatic calibration with params: %dx%d board, %.1fmm squares\n",
+                       current_calib_params_.board_cols, current_calib_params_.board_rows,
+                       current_calib_params_.square_size);
+
+                // Collect active camera IDs
+                std::vector<std::string> active_ids;
+                for (const auto& cfg : cam_mgr_.configuredCameras()) {
+                    if (cfg.present) {
+                        active_ids.push_back(cfg.id);
+                    }
+                }
+
+                std::string scheme = "default";
+                if (calibration_watcher_->startAutoCalibration(scheme, active_ids, current_calib_params_)) {
+                    resp["status"] = "ok";
+                    resp["message"] = "Automatic calibration started";
+                    resp["parameters"] = {
+                        {"board_cols", current_calib_params_.board_cols},
+                        {"board_rows", current_calib_params_.board_rows},
+                        {"square_size", current_calib_params_.square_size}
+                    };
+                } else {
+                    resp["status"] = "error";
+                    resp["error"] = "Failed to start calibration";
+                    res.status = 500;
+                }
+            }
+            res.set_content(resp.dump(), "application/json");
+        });
+
+        // Stop automatic calibration
+        server.Post("/api/calibration/stop-auto", [this](const Request&, Response& res){
+            json resp;
+            
+            if (calibration_watcher_->isProcessing()) {
+                calibration_watcher_->stopCalibration();
+                resp["status"] = "ok";
+                resp["message"] = "Calibration stopped";
+            } else {
+                resp["status"] = "ok";
+                resp["message"] = "No calibration was running";
+            }
+            res.set_content(resp.dump(), "application/json");
+        });
+
+        // Get calibration status and results
+        server.Get("/api/calibration/status-auto", [this](const Request&, Response& res){
+            json resp;
+            
+            resp["processing"] = calibration_watcher_->isProcessing();
+            resp["progress"] = calibration_watcher_->getProgress();
+            resp["status_message"] = calibration_watcher_->getStatus();
+            
+            // Get results
+            auto mono_results = calibration_watcher_->getMonoResults();
+            auto stereo_results = calibration_watcher_->getStereoResults();
+            
+            resp["mono_calibrations"] = mono_results.size();
+            resp["stereo_calibrations"] = stereo_results.size();
+            
+            json mono_summary = json::array();
+            for (const auto& result : mono_results) {
+                json summary;
+                summary["camera_id"] = result.camera_id;
+                summary["success"] = result.success;
+                summary["reprojection_error"] = result.reprojection_error;
+                summary["frames_used"] = result.frames_used;
+                summary["calibration_time"] = result.calibration_time;
+                mono_summary.push_back(summary);
+            }
+            resp["mono_results"] = mono_summary;
+            
+            json stereo_summary = json::array();
+            for (const auto& result : stereo_results) {
+                json summary;
+                summary["camera_pair"] = result.camera_pair;
+                summary["success"] = result.success;
+                summary["reprojection_error"] = result.reprojection_error;
+                summary["calibration_time"] = result.calibration_time;
+                stereo_summary.push_back(summary);
+            }
+            resp["stereo_results"] = stereo_summary;
+            
+            res.set_content(resp.dump(), "application/json");
+        });
+
+        // Get distance measurement for detection
+        server.Post("/api/distance/measure", [this](const Request& req, Response& res){
+            json resp;
+            
+            try {
+                auto j = json::parse(req.body);
+                std::string camera_id = j.at("camera_id");
+                
+                if (j.contains("bbox")) {
+                    // Mono distance measurement
+                    auto bbox_json = j["bbox"];
+                    cv::Rect bbox(
+                        bbox_json["x"],
+                        bbox_json["y"], 
+                        bbox_json["width"],
+                        bbox_json["height"]
+                    );
+                    
+                    float object_height = j.value("object_height_mm", 1700.0f);
+                    float distance = distance_measurement_->measureDistance(camera_id, bbox, object_height);
+                    
+                    if (distance > 0) {
+                        resp["distance_mm"] = distance;
+                        resp["distance_m"] = distance / 1000.0f;
+                        resp["method"] = "mono";
+                        resp["status"] = "ok";
+                    } else {
+                        resp["status"] = "error";
+                        resp["error"] = "Could not measure distance (no calibration?)";
+                    }
+                    
+                } else if (j.contains("stereo_points")) {
+                    // Stereo distance measurement
+                    auto stereo = j["stereo_points"];
+                    cv::Point2f point1(stereo["point1"]["x"], stereo["point1"]["y"]);
+                    cv::Point2f point2(stereo["point2"]["x"], stereo["point2"]["y"]);
+                    std::string camera_pair = j.at("camera_pair");
+                    
+                    float distance = distance_measurement_->measureStereoDistance(camera_pair, point1, point2);
+                    
+                    if (distance > 0) {
+                        resp["distance_mm"] = distance;
+                        resp["distance_m"] = distance / 1000.0f;
+                        resp["method"] = "stereo";
+                        resp["status"] = "ok";
+                    } else {
+                        resp["status"] = "error";
+                        resp["error"] = "Could not measure stereo distance";
+                    }
+                } else {
+                    resp["status"] = "error";
+                    resp["error"] = "Missing bbox or stereo_points";
+                    res.status = 400;
+                }
+                
+            } catch(const std::exception& e) {
+                resp["status"] = "error";
+                resp["error"] = e.what();
+                res.status = 400;
+            }
+            
+            res.set_content(resp.dump(), "application/json");
+        });
+
+
+ server.Post("/api/calibration/process", [this](const Request& req, Response& res){
+    json resp;
+    resp["status"] = "ok";
+    resp["mono_results"] = 0;
+    resp["stereo_results"] = 0;
+
+    try {
+        auto j = json::parse(req.body);
+        (void)j; // processing logic can be implemented here
+    } catch(const std::exception& e) {
+        resp["status"] = "error";
+        resp["error"] = e.what();
+        res.status = 500;
+    }
+
+    res.set_content(resp.dump(), "application/json");
+ });
+
+
+        server.Post("/api/calibrate/stereo", [](const Request& req, Response& res) {
+            json resp;
+            try {
+                auto j = json::parse(req.body);
+                std::vector<std::string> cams = j.value("cameras", std::vector<std::string>{});
+                std::vector<std::string> imgs = j.value("images", std::vector<std::string>{});
+                int bw = j.value("board_w",0);
+                int bh = j.value("board_h",0);
+                if (cams.size() < 2 || imgs.empty()) {
+                    res.status = 400;
+                    res.set_content("{\"error\":\"need cameras and images\"}", "application/json");
+                    return;
+                }
+                auto resultsDir = std::filesystem::current_path() /
+                                  "calibration" / "results";
+                std::error_code ec; std::filesystem::create_directories(resultsDir, ec);
+                std::string outfile = (resultsDir /
+                    ("stereo_" + cams[0] + "_" + cams[1] + ".yml")).string();
+                std::string cmd = "opencv_calib_stereo -o " + outfile +
+                                  " --board " + std::to_string(bw) + "x" +
+                                  std::to_string(bh);
+                for (auto& c : cams) cmd += " --cam " + c;
+                for (auto& p : imgs) cmd += " " + p;
+                int rc = system(cmd.c_str());
+                resp["status"] = rc == 0 ? "ok" : "error";
+                resp["out"] = outfile;
+                resp["cmd"] = cmd;
+            } catch (...) {
+                res.status = 400;
+                res.set_content("{\"error\":\"invalid json\"}", "application/json");
+                return;
+            }
+            res.set_content(resp.dump(), "application/json");
+        });
+    }
+
+    // ---------- Camera (V4L2 MJPEG) ----------
+    bool initCamera() {
+        cam_fd = open(cam_dev.c_str(), O_RDWR | O_NONBLOCK, 0);
+        if (cam_fd < 0) { perror("open camera"); return false; }
+
+        v4l2_format fmt{};
+        fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        fmt.fmt.pix.width = cam_w_req;
+        fmt.fmt.pix.height = cam_h_req;
+        fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_MJPEG;
+        fmt.fmt.pix.field = V4L2_FIELD_ANY;
+        if (ioctl(cam_fd, VIDIOC_S_FMT, &fmt) < 0) {
+            perror("VIDIOC_S_FMT MJPEG");
+            close(cam_fd); cam_fd = -1;
+            return false;
+        }
+        cam_w = fmt.fmt.pix.width;
+        cam_h = fmt.fmt.pix.height;
+
+        v4l2_streamparm parm{};
+        parm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        parm.parm.capture.timeperframe.numerator = 1;
+        parm.parm.capture.timeperframe.denominator = cam_fps_req <= 0 ? 30 : cam_fps_req;
+        ioctl(cam_fd, VIDIOC_S_PARM, &parm);
+        cam_fps = parm.parm.capture.timeperframe.denominator > 0
+                  ? parm.parm.capture.timeperframe.denominator : cam_fps_req;
+
+        v4l2_format gfmt{}; gfmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        ioctl(cam_fd, VIDIOC_G_FMT, &gfmt);
+        char fcc[5]; fourcc_to_str(gfmt.fmt.pix.pixelformat, fcc);
+        printf("CAP negotiated: %dx%d @ %d FPS, FOURCC=%s\n", cam_w, cam_h, cam_fps, fcc);
+
+        v4l2_requestbuffers req{};
+        req.count = std::max(1, cam_buffers);
+        req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        req.memory = V4L2_MEMORY_MMAP;
+        if (ioctl(cam_fd, VIDIOC_REQBUFS, &req) < 0 || req.count < 1) {
+            perror("VIDIOC_REQBUFS");
+            close(cam_fd); cam_fd = -1;
+            return false;
+        }
+
+        cam_bufs.resize(req.count);
+        for (unsigned int i = 0; i < req.count; ++i) {
+            v4l2_buffer buf{};
+            buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            buf.memory = V4L2_MEMORY_MMAP;
+            buf.index = i;
+            if (ioctl(cam_fd, VIDIOC_QUERYBUF, &buf) < 0) { perror("VIDIOC_QUERYBUF"); return false; }
+            cam_bufs[i].length = buf.length;
+            cam_bufs[i].start = mmap(NULL, buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, cam_fd, buf.m.offset);
+            if (cam_bufs[i].start == MAP_FAILED) { perror("mmap"); return false; }
+        }
+        for (unsigned int i = 0; i < req.count; ++i) {
+            v4l2_buffer buf{};
+            buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            buf.memory = V4L2_MEMORY_MMAP;
+            buf.index = i;
+            if (ioctl(cam_fd, VIDIOC_QBUF, &buf) < 0) { perror("VIDIOC_QBUF"); return false; }
+        }
+        v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        if (ioctl(cam_fd, VIDIOC_STREAMON, &type) < 0) { perror("VIDIOC_STREAMON"); return false; }
+
+        cam_running = true;
+        return true;
+    }
+
+    void deinitCamera() {
+        if (cam_fd >= 0) {
+            v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            ioctl(cam_fd, VIDIOC_STREAMOFF, &type);
+            for (auto& b : cam_bufs) {
+                if (b.start && b.start != MAP_FAILED && b.length) munmap(b.start, b.length);
+            }
+            cam_bufs.clear();
+            close(cam_fd);
+            cam_fd = -1;
+        }
+    }
+
+    bool grabMjpeg(std::vector<uint8_t>& out) {
+        if (cam_fd < 0) return false;
+        fd_set fds; FD_ZERO(&fds); FD_SET(cam_fd, &fds);
+        timeval tv{0}; tv.tv_sec = 2;
+        int r = select(cam_fd + 1, &fds, NULL, NULL, &tv);
+        if (r <= 0) return false;
+
+        v4l2_buffer buf{};
+        buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        buf.memory = V4L2_MEMORY_MMAP;
+        if (ioctl(cam_fd, VIDIOC_DQBUF, &buf) < 0) return false;
+        if (buf.index >= cam_bufs.size()) return false;
+
+        auto& b = cam_bufs[buf.index];
+        out.assign((uint8_t*)b.start, (uint8_t*)b.start + buf.bytesused);
+
+        if (ioctl(cam_fd, VIDIOC_QBUF, &buf) < 0) return false;
+        return true;
+    }
+
+    // ---------- JPEG <-> RGB (TurboJPEG) ----------
+    static std::vector<uint8_t> decode_mjpeg_to_image(const uint8_t* jpeg, size_t jpeg_size, image_buffer_t* img) {
+        std::vector<uint8_t> buf;
+        tjhandle th = tjInitDecompress();
+        if (!th) return buf;
+        int w=0, h=0, subsamp=0, colorspace=0;
+        if (tjDecompressHeader3(th, jpeg, (unsigned long)jpeg_size, &w, &h, &subsamp, &colorspace) != 0) {
+            tjDestroy(th); return buf;
+        }
+        img->width = w; img->height = h;
+        img->format = IMAGE_FORMAT_RGB888;
+        buf.resize(w * h * 3);
+
+        int rc = tjDecompress2(th, jpeg, (unsigned long)jpeg_size,
+                               buf.data(), w, 0/*pitch*/, h,
+                               TJPF_RGB, TJFLAG_FASTDCT | TJFLAG_FASTUPSAMPLE);
+        tjDestroy(th);
+        if (rc != 0) {
+            buf.clear();
+            return buf;
+        }
+        img->size = static_cast<int>(buf.size());
+        img->virt_addr = buf.data();
+        return buf;
+    }
+
+    std::vector<uint8_t> encode_rgb_to_jpeg(const unsigned char* rgb, int w, int h, int q) {
+        tjhandle th = tjInitCompress();
+        if (!th) return {};
+        unsigned char* out = nullptr;
+        unsigned long out_sz = 0;
+        int rc = tjCompress2(th, rgb, w, 0/*pitch*/, h, TJPF_RGB,
+                             &out, &out_sz, TJSAMP_420, q,
+                             TJFLAG_FASTDCT);
+        std::vector<uint8_t> buf;
+        if (rc == 0 && out && out_sz > 0) buf.assign(out, out + out_sz);
+        if (out) tjFree(out);
+        tjDestroy(th);
+        return buf;
+    }
+
+    static void freeImage(image_buffer_t& /*img*/) {
+        // Memory handled by std::vector returned from decode_mjpeg_to_image.
+    }
+
+    // ---------- video recording helpers ----------
+    bool initVideoRecording() {
+        if (!record_enabled_) return true;
+
+        std::filesystem::create_directories(record_dir_);
+
+        auto now = std::time(nullptr);
+        char timestamp[32];
+        std::strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", std::localtime(&now));
+
+        std::string filename = record_dir_ + "/" + cam_id_ + "_" + timestamp + ".avi";
+
+        printf("Starting video recording: %s\n", filename.c_str());
+
+        video_writer_ = std::make_unique<cv::VideoWriter>(
+            filename,
+            cv::VideoWriter::fourcc('M','J','P','G'),
+            cam_fps > 0 ? cam_fps : 30,
+            cv::Size(cam_w, cam_h)
+        );
+
+        if (!video_writer_ || !video_writer_->isOpened()) {
+            printf("ERROR: Failed to open video writer: %s\n", filename.c_str());
+            video_writer_.reset();
+            return false;
+        }
+
+        record_start_time_ = std::chrono::steady_clock::now();
+        recording_active_ = true;
+        return true;
+    }
+
+    void stopVideoRecording() {
+        if (video_writer_ && recording_active_) {
+            printf("Stopping video recording\n");
+            video_writer_.reset();
+            recording_active_ = false;
+        }
+    }
+
+    bool shouldStopRecording() {
+        if (!recording_active_ || recording_duration_seconds_ <= 0) return false;
+        auto elapsed = std::chrono::steady_clock::now() - record_start_time_;
+        return std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() >= recording_duration_seconds_;
+    }
+
+    // ---------- main loop ----------
+// start main loop (DEBUG profiling) — ВНУТРИ КЛАССА!
+    void cameraLoop() {
+        static StageAcc acc; // DEBUG: аккумулируем времена по этапам кадра
+
+        auto t_prev = Clock::now();
+        double fps_smoothed = 0.0;
+
+        bool video_init_success = true;
+        if (record_enabled_ && !video_init_success) {
+            printf("WARNING: Video recording initialization failed\n");
+        }
+
+        while (cam_running.load()) {
+            TICK(loop);  // DEBUG: старт таймера полного цикла
+
+            // ===== CAPTURE =====
+            std::vector<uint8_t> mjpeg;
+            TICK(cap);  // DEBUG
+            bool okCap = grabMjpeg(mjpeg);
+            if (okCap && !cam_id_.empty()) {
+                uint64_t t_ns = cam_mgr_.nowMonoNs();
+                cam_mgr_.pushFrame(cam_id_, cam_w, cam_h, mjpeg, t_ns);
+            }
+            TOCK(cap, acc.cap);  // DEBUG
+            if (!okCap) {
+                TOCK(loop, acc.loop);        // DEBUG
+                acc.add_print_and_reset(30); // DEBUG: печать средних каждые 30 кадров
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                continue;
+            }
+            // ===== VIDEO RECORDING CONTROL =====
+            if (should_start_recording_.load()) {
+                should_start_recording_ = false;
+                if (!recording_active_) {
+                    video_init_success = initVideoRecording();
+                    if (video_init_success) {
+                        printf("Video recording started by user command\n");
+                    } else {
+                        printf("Failed to start video recording\n");
+                        record_enabled_ = false;
+                    }
+                }
+            }
+
+            if (should_stop_recording_.load()) {
+                should_stop_recording_ = false;
+                if (recording_active_) {
+                    stopVideoRecording();
+                    record_enabled_ = false;
+                    printf("Video recording stopped by user command\n");
+                }
+            }
+            // ===== PREP (MJPEG -> RGB) =====
+            TICK(prep);  // DEBUG
+            image_buffer_t frame{}; // RGB888
+            auto frame_buf = decode_mjpeg_to_image(mjpeg.data(), mjpeg.size(), &frame);
+            bool okDec = !frame_buf.empty();
+            TOCK(prep, acc.prep);  // DEBUG
+            if (!okDec) {
+                TOCK(loop, acc.loop);        // DEBUG
+                acc.add_print_and_reset(30); // DEBUG
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                continue;
+            }
+
+            // ===== VIDEO RECORDING =====
+            if (recording_active_ && video_writer_ && record_enabled_) {
+                cv::Mat bgr_frame(frame.height, frame.width, CV_8UC3);
+                for (int y = 0; y < frame.height; ++y) {
+                    for (int x = 0; x < frame.width; ++x) {
+                        uint8_t* rgb_pixel = frame.virt_addr + (y * frame.width + x) * 3;
+                        uint8_t* bgr_pixel = bgr_frame.ptr<uint8_t>(y) + x * 3;
+                        bgr_pixel[0] = rgb_pixel[2];
+                        bgr_pixel[1] = rgb_pixel[1];
+                        bgr_pixel[2] = rgb_pixel[0];
+                    }
+                }
+                video_writer_->write(bgr_frame);
+                if (shouldStopRecording()) {
+                    printf("Recording time limit reached, stopping...\n");
+                    stopVideoRecording();
+                    record_enabled_ = false;
+                }
+            }
+
+            // ===== DETECTION =====
+
+            object_detect_result_list od{};
+            int ret = 0;
+            json meta = json::object();
+            if (draw) {
+                // ===== INFER (RKNN) =====
+                TICK(infer);  // DEBUG
+                {
+                    std::lock_guard<std::mutex> lk(infer_mtx);
+                    ret = inference_yolov8_model(&rknn_app_ctx, &frame, &od);
+                }
+                TOCK(infer, acc.infer);  // DEBUG
+                if (ret == 0) {
+                    // assign stable IDs to detections
+                    tracker.update(&od, &frame);
+
+                    if (log_enabled) {
+                        auto now_sys = std::chrono::system_clock::now();
+                        for (int i = 0; i < od.count; ++i) {
+                            auto* d = &od.results[i];
+                            if (d->track_id >= 0 && logged_ids.insert(d->track_id).second) {
+                                event_counter++;
+                                auto tt = std::time(nullptr);
+                                char tbuf[32];
+                                std::strftime(tbuf, sizeof(tbuf), "%d-%m-%Y %H:%M:%S", std::localtime(&tt));
+                                std::string line = std::to_string(event_counter) + ", " +
+                                                   coco_cls_to_name(d->cls_id) + ", ID " +
+                                                   std::to_string(d->track_id) + ", " + tbuf;
+                                appendLog(line);
+                                minute_counts[d->cls_id]++;
+                            }
+                        }
+                        if (now_sys - minute_start >= std::chrono::minutes(1)) {
+                            logMinuteSummary(now_sys);
+                        }
+                    }
+
+                    // ===== DRAW =====
+                    TICK(draw);  // DEBUG
+                    for (int i = 0; i < od.count; ++i) {
+                        auto* d = &od.results[i];
+
+                        int x = d->box.left, y = d->box.top;
+                        int w = d->box.right - d->box.left;
+                        int h = d->box.bottom - d->box.top;
+                        draw_rectangle(&frame, x, y, w, h, COLOR_BLUE, 3);
+                        if (show_fps) {
+                            char text[96];
+                            snprintf(text, sizeof(text), "#%d %s %.1f%%", d->track_id,
+                                     coco_cls_to_name(d->cls_id), d->prop * 100.f);
+                            draw_text(&frame, text, x, std::max(0, y - 18), COLOR_RED, 10);
+                        }
+                    }
+                    TOCK(draw, acc.draw);  // DEBUG
+
+                    meta = formatDetectionResults(&od, frame.width, frame.height, tracker);
+                }
+            }
+            // ===== PREVIEW UPDATE =====
+            auto now = std::chrono::steady_clock::now();
+            if (now - last_preview_update_ >= preview_interval_) {
+                TICK(enc);
+                std::vector<uint8_t> jpg = encode_rgb_to_jpeg(
+                    frame.virt_addr, frame.width, frame.height, jpeg_q);
+                TOCK(enc, acc.enc);
+
+                {
+                    std::lock_guard<std::mutex> lk(frame_mtx);
+                    last_jpeg.swap(jpg);
+                    last_meta = std::move(meta);
+                }
+                frame_cv.notify_all();
+                last_preview_update_ = now;
+            }
+
+            // ===== FPS DISPLAY =====
+            if (show_fps) {
+                auto t_now = Clock::now();
+                double dt = std::chrono::duration<double>(t_now - t_prev).count();
+                t_prev = t_now;
+                double fps_inst = dt > 0 ? 1.0 / dt : 0.0;
+                fps_smoothed = (fps_smoothed == 0.0) ? fps_inst
+                                                     : (0.8 * fps_smoothed + 0.2 * fps_inst);
+                static double acc_t = 0; acc_t += dt;
+                if (acc_t >= 1.0) {
+                    printf("Loop FPS: %.1f  (cap:%dx%d@%d, model:%dx%d) %s\n",
+                           fps_smoothed, cam_w, cam_h, cam_fps,
+                           rknn_app_ctx.model_width, rknn_app_ctx.model_height,
+                           recording_active_ ? "[RECORDING]" : "");
+                    acc_t = 0;
+
+                }
+            }
+
+
+            TOCK(loop, acc.loop);         // DEBUG: конец таймера цикла
+            acc.add_print_and_reset(30);  // DEBUG: печать каждые 30 кадров
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        }
+        stopVideoRecording();
+        if (log_enabled) logMinuteSummary(std::chrono::system_clock::now());
+    }
+// end main loop
+    json formatDetectionResults(object_detect_result_list* results, int img_w, int img_h, const SimpleTracker& tracker) {
+        json detections = json::array();
+        for (int i = 0; i < results->count; i++) {
+            auto* d = &(results->results[i]);
+            json det;
+            det["class_name"] = coco_cls_to_name(d->cls_id);
+            det["class_id"] = d->cls_id;
+            det["confidence"] = d->prop;
+            det["track_id"] = d->track_id;
+            float col[3];
+            if (tracker.getColor(d->track_id, col)) {
+                det["color"] = {col[0], col[1], col[2]};
+            }
+            json box;
+            box["left"] = d->box.left;
+            box["top"] = d->box.top;
+            box["right"] = d->box.right;
+            box["bottom"] = d->box.bottom;
+            box["width"] = d->box.right - d->box.left;
+            box["height"] = d->box.bottom - d->box.top;
+            det["box"] = box;
+            json nbox;
+            nbox["left"] = (float)d->box.left / img_w;
+            nbox["top"] = (float)d->box.top / img_h;
+            nbox["right"] = (float)d->box.right / img_w;
+            nbox["bottom"] = (float)d->box.bottom / img_h;
+            nbox["width"] = (float)(d->box.right - d->box.left) / img_w;
+            nbox["height"] = (float)(d->box.bottom - d->box.top) / img_h;
+            det["normalized_box"] = nbox;
+            
+            // Add distance measurement if calibration is available
+            if (distance_measurement_ && distance_measurement_->hasMonoCalibration(cam_id_)) {
+                float distance = distance_measurement_->measureDistance(cam_id_, 
+                    cv::Rect(d->box.left, d->box.top, d->box.right - d->box.left, d->box.bottom - d->box.top));
+                if (distance > 0) {
+                    det["distance_mm"] = distance;
+                    det["distance_m"] = distance / 1000.0f;
+                }
+            }
+            
+            detections.push_back(det);
+        }
+        json resp;
+        resp["detections"] = detections;
+        resp["count"] = results->count;
+        resp["image_width"] = img_w;
+        resp["image_height"] = img_h;
+        return resp;
+    }
+};
+
+// ---- signals & main ----
+static YOLOWebServer* g_server = nullptr;
+static void signalHandler(int sig) {
+    printf("\nSignal %d received, stopping...\n", sig);
+    if (g_server) g_server->stop();
+}
+
+static void printUsage(const char* argv0){
+    printf("Usage: %s <model.rknn> [--dev /dev/videoX] [--port N]\n", argv0);
+    printf("  --size WxH           capture size\n");
+    printf("  --cap-fps N          capture FPS request\n");
+    printf("  --buffers N          V4L2 buffers (1..4)\n");
+    printf("  --jpeg-quality N     30..95 (default 70)\n");
+    printf("  --http-fps-limit N   limit MJPEG stream FPS (0=unlimited)\n");
+    printf("  --no-draw            disable detection and overlay\n");
+    printf("  --fps                print loop FPS to console and draw labels\n");
+    printf("  --npu-core auto|0|1|2|01|012  choose NPU core mask\n");
+    printf("  --log-file FILE NAME     write detection log to /tmp/npudet.DATE.FILE\n");
+    printf("  --labels PATH         labels file path\n");
+    printf("  --config PATH        configuration file path\n");
+    printf("  --record-dir PATH    directory for video recording (default: ./rec)\n");
+    printf("  --record-seconds N   recording duration in seconds (default: 180)\n");
+    printf("  --no-record          disable video recording\n");
+}
+
+int main(int argc, char** argv) {
+    if (argc < 2) { printUsage(argv[0]); return -1; }
+    Args a = parseArgs(argc, argv);
+    if (a.model.empty()) { fprintf(stderr, "Model path is required\n"); return -1; }
+
+    g_exe_dir = std::filesystem::canonical(argv[0]).parent_path();
+    g_config_path = a.config.empty() ? g_exe_dir / "config.json" : std::filesystem::path(a.config);
+
+    mkdir("./web", 0755);
+    std::signal(SIGINT,  signalHandler);
+    std::signal(SIGTERM, signalHandler);
+
+    YOLOWebServer app(a);
+    g_server = &app;
+    if (!app.initialize()) return -1;
+
+    printf("Model: %s\n", a.model.c_str());
+    printf("Open stream: http://localhost:%d/api/stream.mjpg\n", a.port);
+    app.run();
+    return 0;
+}

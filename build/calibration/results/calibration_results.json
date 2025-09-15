@@ -1,0 +1,32 @@
+{
+  "mono_calibrations": [
+    {
+      "calibration_file": "cam_2_calibration.yml",
+      "calibration_time": "2025-09-15 10:09:44",
+      "camera_id": "2",
+      "frames_used": 100,
+      "image_height": 600,
+      "image_width": 800,
+      "reprojection_error": 0.47611114482104105,
+      "success": true
+    },
+    {
+      "calibration_file": "cam_4_calibration.yml",
+      "calibration_time": "2025-09-15 10:12:30",
+      "camera_id": "4",
+      "frames_used": 100,
+      "image_height": 600,
+      "image_width": 800,
+      "reprojection_error": 0.31553644622002397,
+      "success": true
+    }
+  ],
+  "stereo_calibrations": [
+    {
+      "calibration_time": "2025-09-15 10:15:29",
+      "camera_pair": "2_4",
+      "reprojection_error": 79.84633532705834,
+      "success": false
+    }
+  ]
+}
