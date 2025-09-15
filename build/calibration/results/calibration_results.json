@@ -1,31 +1,31 @@
 {
   "mono_calibrations": [
     {
-      "calibration_file": "cam_2_calibration.yml",
-      "calibration_time": "2025-09-15 10:09:44",
-      "camera_id": "2",
-      "frames_used": 100,
+      "calibration_file": "cam_4_calibration.yml",
+      "calibration_time": "2025-09-15 17:35:19",
+      "camera_id": "4",
+      "frames_used": 91,
       "image_height": 600,
       "image_width": 800,
-      "reprojection_error": 0.47611114482104105,
+      "reprojection_error": 0.5594442849475404,
       "success": true
     },
     {
-      "calibration_file": "cam_4_calibration.yml",
-      "calibration_time": "2025-09-15 10:12:30",
-      "camera_id": "4",
-      "frames_used": 100,
+      "calibration_file": "cam_2_calibration.yml",
+      "calibration_time": "2025-09-15 17:36:53",
+      "camera_id": "2",
+      "frames_used": 172,
       "image_height": 600,
       "image_width": 800,
-      "reprojection_error": 0.31553644622002397,
+      "reprojection_error": 0.4816512523345606,
       "success": true
     }
   ],
   "stereo_calibrations": [
     {
-      "calibration_time": "2025-09-15 10:15:29",
-      "camera_pair": "2_4",
-      "reprojection_error": 79.84633532705834,
+      "calibration_time": "2025-09-15 17:53:20",
+      "camera_pair": "4_2",
+      "reprojection_error": 56.67533123957046,
       "success": false
     }
   ]
