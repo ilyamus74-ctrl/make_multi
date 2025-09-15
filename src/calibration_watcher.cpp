@@ -15,26 +15,19 @@ CalibrationWatcher::CalibrationWatcher(
 ) : record_dir_(std::filesystem::absolute(record_dir)),
     calib_dir_(std::filesystem::absolute(calib_dir)),
     results_dir_(calib_dir_ / "results") {
-
+    
     std::error_code ec;
     std::filesystem::create_directories(results_dir_, ec);
     if (ec) {
         logMessage("WARNING: Failed to create results directory: " + ec.message());
     }
-
-    last_results_time_ = std::filesystem::file_time_type::min();
 }
 
 CalibrationWatcher::~CalibrationWatcher() {
     stopCalibration();
-    stopResultsWatcher();
 }
 
 bool CalibrationWatcher::startCalibration(const CalibrationParams& params) {
-   if (worker_thread_.joinable()) {
-        worker_thread_.join();
-    }
-
     if (processing_.load()) {
         logMessage("Calibration already in progress");
         return false;
@@ -71,10 +64,6 @@ bool CalibrationWatcher::startAutoCalibration(const std::string& scheme,
                                               const std::vector<std::string>& active_cameras,
                                               const CalibrationParams& params) {
     logMessage("Auto calibration requested for scheme: " + scheme);
-    logMessage("Using params: board=" + std::to_string(params.board_cols) + "x" + std::to_string(params.board_rows) + 
-               ", square=" + std::to_string(params.square_size) + "mm" +
-               ", quality_threshold=" + std::to_string(params.quality_threshold));
-    logMessage("Record directory: " + record_dir_.string());
     if (!active_cameras.empty()) {
         std::string cam_list;
         for (const auto& cam : active_cameras) {
@@ -88,20 +77,15 @@ bool CalibrationWatcher::startAutoCalibration(const std::string& scheme,
 
 
 void CalibrationWatcher::stopCalibration() {
-    if (!processing_.load() && !worker_thread_.joinable()) {
-        return;
-    }
-
+    if (!processing_.load()) return;
+    
     should_stop_ = true;
-
-    if (processing_.load()) {
-        updateStatus("Stopping calibration...", -1.0f);
-    }
-
+    updateStatus("Stopping calibration...", -1.0f);
+    
     if (worker_thread_.joinable()) {
         worker_thread_.join();
     }
-
+    
     processing_ = false;
     updateStatus("Calibration stopped", 100.0f);
 }
@@ -182,44 +166,8 @@ void CalibrationWatcher::calibrationWorker(const CalibrationParams& params) {
     processing_ = false;
 }
 
-//std::vector<CalibrationWatcher::VideoFile> CalibrationWatcher::scanRecordingFolder() {
-//    std::vector<VideoFile> files;    
-//    if (!std::filesystem::exists(record_dir_)) {
-//        logMessage("Recording directory does not exist: " + record_dir_.string());
-//        return files;
-//    }
-    // Паттерн для файлов записи: ID_камеры_TIMESTAMP_разрешение.avi или просто ID_timestamp.avi
-//    std::regex video_pattern(R"(([^_]+)_.*\.avi)");
-//    for (const auto& entry : std::filesystem::directory_iterator(record_dir_)) {
-//        if (!entry.is_regular_file()) continue;
-//        auto path = entry.path();
-//        if (path.extension() != ".avi") continue;
-//        std::string filename = path.filename().string();
-//        std::smatch match;
-//        if (std::regex_match(filename, match, video_pattern)) {
-//            VideoFile video;
-//            video.camera_id = match[1].str();
-//            video.path = path;
-//            std::error_code ec;
-//            video.file_size = std::filesystem::file_size(path, ec);
-//            if (ec) continue;
-//            auto file_time = std::filesystem::last_write_time(path, ec);
-//            if (ec) continue;
-//            // Конвертируем в system_clock
-//            auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-//                file_time - std::filesystem::file_time_type::clock::now() + 
-//                std::chrono::system_clock::now());
-//            video.last_modified = std::chrono::system_clock::to_time_t(sctp);
-//            files.push_back(video);
-//        }
-//    }
-//    return files;
-//}
-
 std::vector<CalibrationWatcher::VideoFile> CalibrationWatcher::scanRecordingFolder() {
     std::vector<VideoFile> files;
-    
-    std::cout << "Scanning directory: " << record_dir_.string() << std::endl;
     
     if (!std::filesystem::exists(record_dir_)) {
         logMessage("Recording directory does not exist: " + record_dir_.string());
@@ -229,40 +177,26 @@ std::vector<CalibrationWatcher::VideoFile> CalibrationWatcher::scanRecordingFold
     // Паттерн для файлов записи: ID_камеры_TIMESTAMP_разрешение.avi или просто ID_timestamp.avi
     std::regex video_pattern(R"(([^_]+)_.*\.avi)");
     
-    std::cout << "Looking for .avi files..." << std::endl;
-    
     for (const auto& entry : std::filesystem::directory_iterator(record_dir_)) {
         if (!entry.is_regular_file()) continue;
         
         auto path = entry.path();
-        std::cout << "Found file: " << path.filename().string() << std::endl;
-        
-        if (path.extension() != ".avi") {
-            std::cout << "  -> Skipping (not .avi)" << std::endl;
-            continue;
-        }
+        if (path.extension() != ".avi") continue;
         
         std::string filename = path.filename().string();
         std::smatch match;
         
         if (std::regex_match(filename, match, video_pattern)) {
-            std::cout << "  -> Matches pattern, camera_id: " << match[1].str() << std::endl;
             VideoFile video;
             video.camera_id = match[1].str();
             video.path = path;
             
             std::error_code ec;
             video.file_size = std::filesystem::file_size(path, ec);
-            if (ec) {
-                std::cout << "  -> Error getting file size: " << ec.message() << std::endl;
-                continue;
-            }
+            if (ec) continue;
             
             auto file_time = std::filesystem::last_write_time(path, ec);
-            if (ec) {
-                std::cout << "  -> Error getting file time: " << ec.message() << std::endl;
-                continue;
-            }
+            if (ec) continue;
             
             // Конвертируем в system_clock
             auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
@@ -270,14 +204,10 @@ std::vector<CalibrationWatcher::VideoFile> CalibrationWatcher::scanRecordingFold
                 std::chrono::system_clock::now());
             video.last_modified = std::chrono::system_clock::to_time_t(sctp);
             
-            std::cout << "  -> Added to list (size: " << video.file_size << " bytes)" << std::endl;
             files.push_back(video);
-        } else {
-            std::cout << "  -> Doesn't match pattern" << std::endl;
         }
     }
     
-    std::cout << "Total found: " << files.size() << " video files" << std::endl;
     return files;
 }
 
@@ -938,38 +868,6 @@ bool CalibrationWatcher::loadResults() {
     }
     
     return false;
-}
-
-
-void CalibrationWatcher::startResultsWatcher() {
-    if (watch_results_.load()) return;
-    watch_results_ = true;
-    std::error_code ec;
-    if (std::filesystem::exists(results_dir_, ec)) {
-        last_results_time_ = std::filesystem::last_write_time(results_dir_, ec);
-    }
-    results_thread_ = std::thread([this]() {
-        while (watch_results_.load()) {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            std::error_code ec2;
-            if (!std::filesystem::exists(results_dir_, ec2)) continue;
-            auto t = std::filesystem::last_write_time(results_dir_, ec2);
-            if (!ec2 && t != last_results_time_) {
-                last_results_time_ = t;
-                if (loadResults() && results_callback_) {
-                    results_callback_();
-                }
-            }
-        }
-    });
-}
-
-void CalibrationWatcher::stopResultsWatcher() {
-    if (!watch_results_.load()) return;
-    watch_results_ = false;
-    if (results_thread_.joinable()) {
-        results_thread_.join();
-    }
 }
 
 bool CalibrationWatcher::getCameraMatrix(const std::string& camera_id, 

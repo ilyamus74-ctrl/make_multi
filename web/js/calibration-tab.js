@@ -103,17 +103,7 @@ window.CameraApp.CalibrationTab = {
                     Automatically process the recorded videos and perform calibration.
                     This will detect checkerboard patterns and calculate camera parameters.
                 </p>
-
-
-                <div class="row g-2 mb-3">
-                    <div class="col-6">
-                        <input type="text" id="camera-a-id" class="form-control form-control-sm" placeholder="Camera A ID">
-                    </div>
-                    <div class="col-6">
-                        <input type="text" id="camera-b-id" class="form-control form-control-sm" placeholder="Camera B ID">
-                    </div>
-                </div>
-
+                
                 <div class="d-flex gap-2 mb-3">
                     <button class="btn btn-primary" id="start-calibration-btn" disabled>
                         <i class="bi bi-gear me-1"></i>Start Calibration
@@ -311,45 +301,6 @@ window.CameraApp.CalibrationTab = {
                 // Start countdown timer
                 this.startRecordingCountdown(duration, response.started_cameras);
 
-
-                // Poll recording status from server
-                let lastRemaining = duration;
-                this.statusTimer = setInterval(async () => {
-                    try {
-                        const status = await window.CameraApp.API.getRecordingStatus();
-                        if (!status.recording_active) {
-                            clearInterval(this.statusTimer);
-                            this.statusTimer = null;
-                            if (this.recordingTimer) {
-                                clearInterval(this.recordingTimer);
-                                this.recordingTimer = null;
-                            }
-                            this.recordingCompleted();
-                            return;
-                        }
-                        if (status.time_remaining < lastRemaining) {
-                            if (this.recordingTimer) {
-                                clearInterval(this.recordingTimer);
-                                this.recordingTimer = null;
-                            }
-                            lastRemaining = status.time_remaining;
-                        }
-                        statusEl.innerHTML = `Recording: ${status.time_remaining}s remaining on ${status.active_cameras || response.started_cameras} cameras`;
-                    } catch (err) {
-                        clearInterval(this.statusTimer);
-                        this.statusTimer = null;
-                        if (this.recordingTimer) {
-                            clearInterval(this.recordingTimer);
-                            this.recordingTimer = null;
-                        }
-                        statusEl.className = 'calibration-status error';
-                        statusEl.innerHTML = `Status check failed: ${err.message}`;
-                        window.CameraApp.UI.showToast(`Status check failed: ${err.message}`, 'danger');
-                    }
-                }, 1000);
-
-
-
                 window.CameraApp.UI.showToast(
                     `Recording started on ${response.started_cameras} cameras`,
                     'success'
@@ -397,15 +348,7 @@ window.CameraApp.CalibrationTab = {
                 clearInterval(this.recordingTimer);
                 this.recordingTimer = null;
             }
-
-
-            if (this.statusTimer) {
-                clearInterval(this.statusTimer);
-                this.statusTimer = null;
-            }
-
-            this.
-
+            
             this.recordingCompleted();
             window.CameraApp.UI.showToast('Recording stopped', 'info');
         } catch (error) {
@@ -420,16 +363,6 @@ window.CameraApp.CalibrationTab = {
         const stopBtn = document.getElementById('stop-recording-btn');
         const statusEl = document.getElementById('recording-status');
         const calibBtn = document.getElementById('start-calibration-btn');
-
-        if (this.recordingTimer) {
-            clearInterval(this.recordingTimer);
-            this.recordingTimer = null;
-        }
-        if (this.statusTimer) {
-            clearInterval(this.statusTimer);
-            this.statusTimer = null;
-        }
-
 
         // Reset recording UI
         startBtn.disabled = false;
@@ -448,35 +381,6 @@ window.CameraApp.CalibrationTab = {
         const progressEl = document.getElementById('calibration-progress');
 
         try {
-
-            let camA = document.getElementById('camera-a-id').value.trim();
-            let camB = document.getElementById('camera-b-id').value.trim();
-
-//            const camA = document.getElementById('camera-a-id').value.trim();
-//            const camB = document.getElementById('camera-b-id').value.trim();
-            if (!camA || !camB) {
-                const configured = await window.CameraApp.API.getConfiguredCameras();
-                const ids = configured.map(c => c.id);
-                const form = document.getElementById('calibration-params-form');
-                const boardW = parseInt(form.board_cols.value) || window.CameraApp.Config.CALIBRATION.DEFAULT_BOARD_COLS;
-                const boardH = parseInt(form.board_rows.value) || window.CameraApp.Config.CALIBRATION.DEFAULT_BOARD_ROWS;
-                const analysis = await window.CameraApp.API.analyzeCompatibility(
-                    ids,
-                    boardW,
-                    boardH,
-                    window.CameraApp.Config.CALIBRATION.QUALITY_THRESHOLD,
-                    window.CameraApp.Config.CALIBRATION.WIDE_ANGLE_THRESHOLD
-                );
-                if (analysis.suggested_pair && analysis.suggested_pair.length === 2) {
-                    [camA, camB] = analysis.suggested_pair;
-                    document.getElementById('camera-a-id').value = camA;
-                    document.getElementById('camera-b-id').value = camB;
-                } else {
-                    throw new Error('Camera IDs required');
-                }
-
-            }
-
             // Save parameters first
             await this.saveCalibrationParams();
 
@@ -489,7 +393,7 @@ window.CameraApp.CalibrationTab = {
             progressEl.style.display = 'block';
 
             // Start calibration
-            const response = await window.CameraApp.API.startAutoCalibration(camA, camB);
+            const response = await window.CameraApp.API.startAutoCalibration();
 
             if (response.status === 'ok') {
                 statusEl.className = 'calibration-status success';

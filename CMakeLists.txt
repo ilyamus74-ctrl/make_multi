@@ -180,9 +180,6 @@ if(BUILD_WEB_SERVER)
       src/camera_roles.cpp
       src/camera_scheme.cpp
       src/global_tracker.cpp
-      tracking_loop.cc
-      stereo_processing.cc
-      http_routes.cc
       postprocess.cc
       ${rknpu_yolov8_file}
     )

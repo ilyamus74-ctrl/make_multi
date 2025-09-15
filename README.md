@@ -32,11 +32,3 @@ collecting calibration images. Detection and bounding-box drawing are disabled
 when the server is started with the `--no-draw` flag, and the web UI fetches the
 undistorted preview via `/api/preview.mjpg`. While calibration is running the
 video feed shows no detections or overlays.
-
-Calibration frames and intermediate results are written to `/tmp/calibration`,
-allowing fast I/O on systems where `/tmp` resides in RAM and reducing wear on
-flash storage. Use the `/api/calibration/copy-results` endpoint if you need to
-persist the calibration YAML files.
-
-For examples of selecting camera pairs and running compatibility analysis, see
-[CALIBRATION.md](CALIBRATION.md)

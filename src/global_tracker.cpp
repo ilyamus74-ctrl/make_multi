@@ -1,5 +1,4 @@
 #include "global_tracker.h"
-#include "calibration_watcher.h"
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -25,51 +24,29 @@ GlobalTracker::~GlobalTracker() {
 bool GlobalTracker::initialize() {
     std::cout << "Инициализация глобального трекера..." << std::endl;
     
-    // Сначала пытаемся загрузить существующую калибровку
-    bool has_existing_calibration = false;
-    
-    // Инициализируем структуры калибровки для всех активных камер
-    auto cameras = scheme_manager_->getCameras();
-    for (const auto& cam : cameras) {
-        if (cam.status == CameraStatus::ACTIVE) {
-            if (!initializeCameraCalibration(cam.id)) {
-                std::cerr << "Не удалось инициализировать структуру калибровки камеры " << cam.id << std::endl;
-                return false;
-            }
-        }
-    }
-    
-    // Пытаемся загрузить калибровку из CalibrationWatcher
-    if (scheme_manager_->isCalibrated()) {
-        // Если есть CalibrationWatcher, используем его
-        std::cout << "Найдена существующая калибровка системы" << std::endl;
-        has_existing_calibration = true;
-    } else {
-        std::cout << "Калибровка не найдена. Запуск автокалибровки..." << std::endl;
+    // Проверяем калибровку камер
+    if (!scheme_manager_->isCalibrated()) {
+        std::cout << "Система не откалибрована. Запуск автокалибровки..." << std::endl;
         if (!performAutoCalibration()) {
             std::cerr << "Ошибка автокалибровки" << std::endl;
             return false;
         }
     }
     
-    // Проверяем результат
-    int calibrated_cameras = 0;
+    // Инициализируем калибровочные данные для каждой активной камеры
+    auto cameras = scheme_manager_->getCameras();
     for (const auto& cam : cameras) {
         if (cam.status == CameraStatus::ACTIVE) {
-            auto it = camera_calibrations_.find(cam.id);
-            if (it != camera_calibrations_.end() && it->second.is_calibrated) {
-                calibrated_cameras++;
-                std::cout << "Камера " << cam.id << " откалибрована" << std::endl;
+            if (!initializeCameraCalibration(cam.id)) {
+                std::cerr << "Не удалось инициализировать калибровку камеры "
+                          << cam.id << std::endl;
+                return false;
             }
         }
     }
     
-    if (calibrated_cameras < 2) {
-        std::cerr << "Недостаточно откалиброванных камер: " << calibrated_cameras << std::endl;
-        return false;
-    }
-    
-    std::cout << "Глобальный трекер инициализирован для " << calibrated_cameras << " камер" << std::endl;
+    std::cout << "Глобальный трекер инициализирован для " 
+              << camera_calibrations_.size() << " камер" << std::endl;
     return true;
 }
 
@@ -300,13 +277,6 @@ void GlobalTracker::updateDetections(const std::string& camera_id,
 void GlobalTracker::associateDetections(const std::string& camera_id,
                                        const std::vector<cv::Rect>& detections,
                                        uint64_t timestamp) {
-    // Проверяем калибровку камеры
-    auto calib_it = camera_calibrations_.find(camera_id);
-    if (calib_it == camera_calibrations_.end() || !calib_it->second.is_calibrated) {
-        std::cerr << "Камера " << camera_id << " не откалибрована, пропускаем детекции" << std::endl;
-        return;
-    }
-    
     if (detections.empty()) {
         // уменьшение уверенности для всех объектов, если на камере нет детекций
         for (auto& pair : tracked_objects_) {
@@ -329,6 +299,7 @@ void GlobalTracker::associateDetections(const std::string& camera_id,
     std::vector<cv::Point3f> predicted_positions;
 
     for (auto& pair : tracked_objects_) {
+
         object_ids.push_back(pair.first);
         predicted_positions.push_back(predictPosition(pair.second, timestamp));
     }
@@ -347,6 +318,7 @@ void GlobalTracker::associateDetections(const std::string& camera_id,
     for (size_t i = 0; i < predicted_positions.size(); ++i) {
         for (size_t j = 0; j < detection_world.size(); ++j) {
             cost[i][j] = cv::norm(predicted_positions[i] - detection_world[j]);
+
 
             auto prev_it = tracked_objects_[object_ids[i]].camera_detections.find(camera_id);
             if (prev_it != tracked_objects_[object_ids[i]].camera_detections.end()) {
@@ -393,55 +365,6 @@ void GlobalTracker::associateDetections(const std::string& camera_id,
             createNewObject(camera_id, detections[i], timestamp);
         }
     }
-}
-
-bool GlobalTracker::checkAndUpdateCalibration() {
-    if (!calibration_watcher_) {
-        return false;
-    }
-
-    // Проверяем, есть ли новые результаты калибровки
-    auto mono_results = calibration_watcher_->getMonoResults();
-    bool updated = false;
-
-    for (const auto& result : mono_results) {
-        if (result.success) {
-            auto& calib = camera_calibrations_[result.camera_id];
-            calib.camera_matrix = result.camera_matrix.clone();
-            calib.dist_coeffs = result.dist_coeffs.clone();
-            calib.is_calibrated = true;
-            
-            // Настройка внешних параметров согласно схеме
-            CameraConfig* cam = scheme_manager_->getCamera(result.camera_id);
-            if (cam) {
-                SchemeType scheme = scheme_manager_->getCurrentScheme();
-                switch (scheme) {
-                    case SchemeType::SPHERE_ZOOM:
-                        if (cam->role == CameraRole::PRIMARY_WIDE) {
-                            setupSphereExtrinsics(*cam, calib, 0.0, 180.0);
-                        } else if (cam->role == CameraRole::SECONDARY_WIDE) {
-                            setupSphereExtrinsics(*cam, calib, 180.0, 180.0);
-                        } else if (cam->role == CameraRole::ZOOM) {
-                            setupZoomExtrinsics(*cam, calib);
-                        }
-                        break;
-                    case SchemeType::HEMISPHERE_ZOOM:
-                        if (cam->role == CameraRole::PRIMARY_WIDE) {
-                            setupHemisphereExtrinsics(*cam, calib, 0.0, 180.0);
-                        } else if (cam->role == CameraRole::SECONDARY_WIDE) {
-                            setupHemisphereExtrinsics(*cam, calib, 30.0, 120.0);
-                        } else if (cam->role == CameraRole::ZOOM) {
-                            setupZoomExtrinsics(*cam, calib);
-                        }
-                        break;
-                }
-                computeHomography(calib);
-                updated = true;
-            }
-        }
-    }
-    
-    return updated;
 }
 
 cv::Point3f GlobalTracker::predictPosition(const GlobalObject& obj, uint64_t timestamp) {
@@ -514,6 +437,7 @@ std::vector<int> GlobalTracker::hungarianMatch(const std::vector<std::vector<dou
     return assignment;
 }
 
+
 void GlobalTracker::createNewObject(const std::string& camera_id, 
                                    const cv::Rect& detection, 
                                    uint64_t timestamp) {
@@ -585,56 +509,38 @@ cv::Point3f GlobalTracker::imageToWorld(const std::string& camera_id, const cv::
     
     const CameraCalibration& calib = calib_it->second;
     
-    try {
-        // Используем гомографию если доступна (более точно для плоскости z=0)
-        if (!calib.homography_matrix.empty()) {
-            std::vector<cv::Point2f> image_points = {image_point};
-            std::vector<cv::Point2f> world_points_2d;
-            
-            cv::perspectiveTransform(image_points, world_points_2d, calib.homography_matrix);
-            return cv::Point3f(world_points_2d[0].x, world_points_2d[0].y, 0.0);
-        }
-        
-        // Fallback к методу с лучом (исправленная версия)
-        std::vector<cv::Point2f> image_points = {image_point};
-        std::vector<cv::Point2f> undistorted_points;
-        
-        cv::undistortPoints(image_points, undistorted_points, calib.camera_matrix, calib.dist_coeffs);
-        
-        // Создаем луч в системе координат камеры
-        cv::Point3f ray_camera(undistorted_points[0].x, undistorted_points[0].y, 1.0);
-        
-        // Преобразуем в мировые координаты
-        cv::Mat R;
-        cv::Rodrigues(calib.rotation_vector, R);
-        cv::Mat R_inv = R.t();
-        
-        // Позиция камеры в мировых координатах
-        cv::Mat cam_position = -R_inv * calib.translation_vector;
-        
-        // Направление луча в мировых координатах
-        cv::Mat ray_world_mat = R_inv * cv::Mat(ray_camera);
-        cv::Point3f ray_world(ray_world_mat.at<double>(0), ray_world_mat.at<double>(1), ray_world_mat.at<double>(2));
-        
-        // Пересечение с плоскостью z = 0
-        if (std::abs(ray_world.z) < 1e-6) {
-            return cv::Point3f(0, 0, 0); // Луч параллелен плоскости
-        }
-        
-        double t = -cam_position.at<double>(2) / ray_world.z;
-        
-        cv::Point3f world_point(
-            cam_position.at<double>(0) + t * ray_world.x,
-            cam_position.at<double>(1) + t * ray_world.y,
-            0.0
-        );
-        
-        return world_point;
-        
-    } catch (const cv::Exception& e) {
-        std::cerr << "Error in imageToWorld for camera " << camera_id << ": " << e.what() << std::endl;
-        return cv::Point3f(0, 0, 0);
-    }
+    // Предполагаем, что объект находится на уровне земли (z = 0)
+    std::vector<cv::Point2f> image_points = {image_point};
+    std::vector<cv::Point3f> world_points;
+    
+    // Создаем луч от камеры через точку изображения
+    cv::Mat ray_direction;
+    cv::undistortPoints(image_points, image_points, calib.camera_matrix, calib.dist_coeffs);
+    
+    // Преобразуем в однородные координаты
+    cv::Point3f ray(image_points[0].x, image_points[0].y, 1.0);
+    
+    // Применяем обратное преобразование поворота
+    cv::Mat R;
+    cv::Rodrigues(calib.rotation_vector, R);
+    cv::Mat R_inv = R.t();
+    
+    // Позиция камеры в мировых координатах
+    cv::Mat cam_position = -R_inv * calib.translation_vector;
+    
+    // Направление луча в мировых координатах
+    cv::Mat ray_world = R_inv * cv::Mat(ray);
+    
+    // Пересечение луча с плоскостью z = 0
+    double t = -cam_position.at<double>(2) / ray_world.at<double>(2);
+    
+    cv::Point3f world_point(
+        cam_position.at<double>(0) + t * ray_world.at<double>(0),
+        cam_position.at<double>(1) + t * ray_world.at<double>(1),
+        0.0
+    );
+    
+    return world_point;
 }
 
 cv::Point2f GlobalTracker::worldToImage(const std::string& camera_id, const cv::Point3f& world_point) {
@@ -715,6 +621,7 @@ void GlobalTracker::computeHomography(CameraCalibration& calib) {
 }
 
 void GlobalTracker::handleSchemeChange(SchemeType new_scheme) {
+
     std::cout << "Переключение схемы на: "
               << scheme_manager_->schemeTypeToString(new_scheme) << std::endl;
 
@@ -728,6 +635,7 @@ void GlobalTracker::handleSchemeChange(SchemeType new_scheme) {
         camera_manager_->saveConfig(
             scheme_manager_->schemeTypeToString(new_scheme), roles);
     }
+
 
     // Очищаем текущие объекты при смене схемы
     tracked_objects_.clear();
@@ -772,59 +680,6 @@ bool GlobalTracker::initializeCameraCalibration(const std::string& camera_id) {
     return true;
 }
 
-bool GlobalTracker::reloadCalibration(const CalibrationWatcher& watcher) {
-    bool updated = false;
-    auto cameras = scheme_manager_->getCameras();
-    
-    for (const auto& cam : cameras) {
-        if (cam.status != CameraStatus::ACTIVE) continue;
-        
-        cv::Mat K, D;
-        if (watcher.getCameraMatrix(cam.id, K, D)) {
-            auto& calib = camera_calibrations_[cam.id];
-            calib.camera_matrix = K.clone();
-            calib.dist_coeffs = D.clone();
-            calib.is_calibrated = true;
-            
-            // Важно: пересчитываем внешние параметры после загрузки калибровки
-            SchemeType scheme = scheme_manager_->getCurrentScheme();
-            switch (scheme) {
-                case SchemeType::SPHERE_ZOOM:
-                    if (cam.role == CameraRole::PRIMARY_WIDE) {
-                        setupSphereExtrinsics(cam, calib, 0.0, 180.0);
-                    } else if (cam.role == CameraRole::SECONDARY_WIDE) {
-                        setupSphereExtrinsics(cam, calib, 180.0, 180.0);
-                    } else if (cam.role == CameraRole::ZOOM) {
-                        setupZoomExtrinsics(cam, calib);
-                    }
-                    break;
-                case SchemeType::HEMISPHERE_ZOOM:
-                    if (cam.role == CameraRole::PRIMARY_WIDE) {
-                        setupHemisphereExtrinsics(cam, calib, 0.0, 180.0);
-                    } else if (cam.role == CameraRole::SECONDARY_WIDE) {
-                        setupHemisphereExtrinsics(cam, calib, 30.0, 120.0);
-                    } else if (cam.role == CameraRole::ZOOM) {
-                        setupZoomExtrinsics(cam, calib);
-                    }
-                    break;
-            }
-            
-            // Вычисляем гомографию для плоскости z=0
-            computeHomography(calib);
-            updated = true;
-            
-            std::cout << "Loaded calibration for camera " << cam.id 
-                      << " (fx=" << K.at<double>(0,0) << ", fy=" << K.at<double>(1,1) << ")" << std::endl;
-        }
-    }
-    
-    if (updated) {
-        std::cout << "Calibration data reloaded successfully" << std::endl;
-    }
-    
-    return updated;
-}
-
 void GlobalTracker::cleanupOldObjects(uint64_t current_timestamp) {
     auto it = tracked_objects_.begin();
     while (it != tracked_objects_.end()) {
@@ -851,4 +706,5 @@ std::vector<GlobalObject> GlobalTracker::getActiveObjects() {
     }
     
     return active_objects;
+
 }

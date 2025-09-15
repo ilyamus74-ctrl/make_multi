@@ -95,7 +95,6 @@ struct CameraCharacteristics {
 
 class CameraCompatibilityAnalyzer {
     std::map<std::string, CameraCharacteristics> camera_chars_;
-    float wide_angle_threshold_ = 80.0f;
 
     int evaluateImageQuality(const cv::Mat& frame, const std::vector<cv::Point2f>& corners) {
         cv::Mat gray;
@@ -115,9 +114,6 @@ class CameraCompatibilityAnalyzer {
     }
 
 public:
-
-    void setWideAngleThreshold(float t) { wide_angle_threshold_ = t; }
-
     void analyzeCameraFromFrame(const std::string& cam_id, const cv::Mat& frame,
                                 const std::vector<cv::Point2f>& corners, cv::Size board_size) {
         CameraCharacteristics& chars = camera_chars_[cam_id];
@@ -144,8 +140,7 @@ public:
                 }
             }
             chars.avg_corner_distance = count > 0 ? total_distance / count : 0;
-//            chars.is_wide_angle = chars.estimated_fov > 80.0f;
-            chars.is_wide_angle = chars.estimated_fov > wide_angle_threshold_;
+            chars.is_wide_angle = chars.estimated_fov > 80.0f;
             chars.quality_score = evaluateImageQuality(frame, corners);
         }
     }
@@ -187,33 +182,6 @@ public:
     }
 
         return groups;
-    }
-
-
-    std::pair<std::string, std::string> suggestWideAnglePair(int quality_threshold = 30) const {
-        std::vector<CameraCharacteristics> cams;
-        for (const auto &kv : camera_chars_) {
-            if (kv.second.quality_score >= quality_threshold) {
-                cams.push_back(kv.second);
-            }
-        }
-        std::sort(cams.begin(), cams.end(), [](const auto &a, const auto &b) {
-            if (a.estimated_fov == b.estimated_fov)
-                return a.quality_score > b.quality_score;
-            return a.estimated_fov > b.estimated_fov;
-        });
-        std::pair<std::string, std::string> best{"", ""};
-        float best_fov = -1.0f;
-        for (size_t i = 0; i < cams.size(); ++i) {
-            for (size_t j = i + 1; j < cams.size(); ++j) {
-                float sum = cams[i].estimated_fov + cams[j].estimated_fov;
-                if (sum > best_fov) {
-                    best_fov = sum;
-                    best = {cams[i].id, cams[j].id};
-                }
-            }
-        }
-        return best;
     }
 };
 
@@ -588,17 +556,14 @@ private:
     std::unique_ptr<cv::VideoWriter> video_writer_;
     std::string record_dir_ = "./rec";
     int record_seconds_ = 180;
-//    bool record_enabled_ = false;  // ИЗМЕНЕНО: теперь false по умолчанию
-    std::atomic<bool> record_enabled_{false};  // ИЗМЕНЕНО: теперь false по умолчанию
+    bool record_enabled_ = false;  // ИЗМЕНЕНО: теперь false по умолчанию
     std::chrono::steady_clock::time_point record_start_time_;
-//    bool recording_active_ = false;
-    std::atomic<bool> recording_active_{false};
+    bool recording_active_ = false;
 
     // video recording control
     std::atomic<bool> should_start_recording_{false};
     std::atomic<bool> should_stop_recording_{false};
-//    int recording_duration_seconds_ = 30;
-    std::atomic<int> recording_duration_seconds_{30};
+    int recording_duration_seconds_ = 30;
 
     // preview timing
     std::chrono::steady_clock::time_point last_preview_update_;
@@ -961,11 +926,8 @@ public:
         cam_id_ = camIdForDevice(cam_dev);
         
         // Initialize calibration system
-//        calibration_watcher_ = std::make_unique<CalibrationWatcher>(record_dir_, "./calibration");
-
-        calibration_watcher_ =
-            std::make_unique<CalibrationWatcher>("/tmp/rec", "/tmp/calibration");
-
+        calibration_watcher_ = std::make_unique<CalibrationWatcher>(record_dir_, "./calibration");
+        
         // Set up callbacks
         calibration_watcher_->setStatusCallback([this](const std::string& msg, float progress) {
             printf("Calibration: %s (%.1f%%)\n", msg.c_str(), progress);
@@ -980,30 +942,14 @@ public:
         distance_measurement_ = std::make_unique<DistanceMeasurement>(*calibration_watcher_);
         
         // Set default calibration parameters
-//        current_calib_params_.board_cols = 10;
-//        current_calib_params_.board_rows = 7;
-//        current_calib_params_.square_size = 30.0f;
-//        current_calib_params_.min_frames = 15;
-//        current_calib_params_.max_frames = 50;
-//        current_calib_params_.quality_threshold = 50.0f;
-//        current_calib_params_.delete_videos = true;
+        current_calib_params_.board_cols = 10;
+        current_calib_params_.board_rows = 7;
+        current_calib_params_.square_size = 30.0f;
+        current_calib_params_.min_frames = 15;
+        current_calib_params_.max_frames = 50;
+        current_calib_params_.quality_threshold = 50.0f;
+        current_calib_params_.delete_videos = true;
 
-        // Load calibration parameters from config
-        auto cfg = readMainConfig();
-        current_calib_params_.board_cols =
-            cfg.value("calib_board_cols", current_calib_params_.board_cols);
-        current_calib_params_.board_rows =
-            cfg.value("calib_board_rows", current_calib_params_.board_rows);
-        current_calib_params_.square_size =
-            cfg.value("calib_square_size", current_calib_params_.square_size);
-        current_calib_params_.min_frames =
-            cfg.value("calib_min_frames", current_calib_params_.min_frames);
-        current_calib_params_.max_frames =
-            cfg.value("calib_max_frames", current_calib_params_.max_frames);
-        current_calib_params_.quality_threshold =
-            cfg.value("calib_quality_threshold", current_calib_params_.quality_threshold);
-        current_calib_params_.delete_videos =
-            cfg.value("calib_delete_videos", current_calib_params_.delete_videos);
         }
 
 
@@ -1470,15 +1416,15 @@ private:
             json resp;
             try {
                 auto j = json::parse(req.body);
-                recording_duration_seconds_.store(j.value("duration", 30));
-
-                if (!recording_active_.load()) {
-                    should_start_recording_.store(true);
-                    record_enabled_.store(true);
+                recording_duration_seconds_ = j.value("duration", 30);
+                
+                if (!recording_active_) {
+                    should_start_recording_ = true;
+                    record_enabled_ = true;
                     resp["status"] = "ok";
                     resp["message"] = "Recording will start";
-                    resp["duration"] = recording_duration_seconds_.load();
-                    printf("Video recording start requested, duration: %d seconds\n", recording_duration_seconds_.load());
+                    resp["duration"] = recording_duration_seconds_;
+                    printf("Video recording start requested, duration: %d seconds\n", recording_duration_seconds_);
                 } else {
                     resp["status"] = "error";
                     resp["message"] = "Recording already active";
@@ -1492,8 +1438,8 @@ private:
 
         server.Post("/api/record/stop", [this](const Request&, Response& res){
             json resp;
-            should_stop_recording_.store(true);
-            record_enabled_.store(false);
+            should_stop_recording_ = true;
+            record_enabled_ = false;
             resp["status"] = "ok";
             resp["message"] = "Recording will stop";
             printf("Video recording stop requested\n");
@@ -1502,12 +1448,12 @@ private:
 
         server.Get("/api/record/status", [this](const Request&, Response& res){
             json resp;
-            resp["recording_active"] = recording_active_.load();
-            resp["recording_enabled"] = record_enabled_.load();
-            resp["duration_seconds"] = recording_duration_seconds_.load();
-            if (recording_active_.load()) {
+            resp["recording_active"] = recording_active_;
+            resp["recording_enabled"] = record_enabled_;
+            resp["duration_seconds"] = recording_duration_seconds_;
+            if (recording_active_) {
                 auto elapsed = std::chrono::steady_clock::now() - record_start_time_;
-                int remaining = recording_duration_seconds_.load() -
+                int remaining = recording_duration_seconds_ - 
                     std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
                 resp["time_remaining"] = std::max(0, remaining);
             } else {
@@ -1516,33 +1462,24 @@ private:
             res.set_content(resp.dump(), "application/json");
         });
 
-        server.Post("/api/calibrate/stereo-auto", [](const Request& req, Response& res){
+	server.Post("/api/calibrate/stereo-auto", [](const Request& req, Response& res){
             json resp;
             try{
                 auto j=json::parse(req.body);
-//                std::string cam=j.value("camera","");
-                std::string cam_a=j.value("camera_a","");
-                std::string cam_b=j.value("camera_b","");
-
+                std::string cam=j.value("camera","");
                 int bw=j.value("board_w",0);
                 int bh=j.value("board_h",0);
-                float square_size = j.value("square_size", 30.0f);
-//                if(cam.empty()){res.status=400;res.set_content("{\"error\":\"missing camera\"}","application/json");return;}
-//                std::string dev0=deviceForCam("0");
-//                std::string dev1=deviceForCam(cam);
-                if(cam_a.empty()||cam_b.empty()){res.status=400;res.set_content("{\"error\":\"missing camera\"}","application/json");return;}
-                std::string dev0=deviceForCam(cam_a);
-                std::string dev1=deviceForCam(cam_b);
+                if(cam.empty()){res.status=400;res.set_content("{\"error\":\"missing camera\"}","application/json");return;}
+                std::string dev0=deviceForCam("0");
+                std::string dev1=deviceForCam(cam);
                 if(dev0.empty()||dev1.empty()){res.status=400;res.set_content("{\"error\":\"camera not found\"}","application/json");return;}
                 std::filesystem::path dir = std::filesystem::current_path() /
-//                                           "calibration" / ("stereo_0_" + cam) /
-                                           "calibration" / ("stereo_" + cam_a + "_" + cam_b) /
+                                           "calibration" / ("stereo_0_" + cam) /
                                            "images";
                 std::error_code ec;
                 std::filesystem::create_directories(dir, ec);
                 auto absDir = std::filesystem::absolute(dir);
                 printf("calibration dir: %s\n",absDir.c_str());
-                printf("Board %dx%d, square_size=%.1fmm\n", bw, bh, square_size);
                 if(ec){res.status=500;res.set_content("{\"error\":\"mkdir failure\"}","application/json");return;}
                 std::this_thread::sleep_for(std::chrono::seconds(5));
                 cv::VideoCapture c0(dev0), c1(dev1);
@@ -1550,10 +1487,8 @@ private:
                 for(int i=0;i<30;i++){
                     cv::Mat f0,f1; c0>>f0; c1>>f1; if(f0.empty()||f1.empty()) break;
                     char b0[80], b1[80];
-//                    snprintf(b0,sizeof(b0),"%s/pair_%02d_cam0.jpg",dir.c_str(),i);
-//                    snprintf(b1,sizeof(b1),"%s/pair_%02d_cam%s.jpg",dir.c_str(),i,cam.c_str());
-                    snprintf(b0,sizeof(b0),"%s/pair_%02d_cam%s.jpg",dir.c_str(),i,cam_a.c_str());
-                    snprintf(b1,sizeof(b1),"%s/pair_%02d_cam%s.jpg",dir.c_str(),i,cam_b.c_str());
+                    snprintf(b0,sizeof(b0),"%s/pair_%02d_cam0.jpg",dir.c_str(),i);
+                    snprintf(b1,sizeof(b1),"%s/pair_%02d_cam%s.jpg",dir.c_str(),i,cam.c_str());
                     cv::imwrite(b0,f0); cv::imwrite(b1,f1);
                     std::this_thread::sleep_for(std::chrono::seconds(2));
                 }
@@ -1562,20 +1497,16 @@ private:
                                   "results";
                 std::filesystem::create_directories(resultsDir, ec);
                 std::string outfile =
-//                    (resultsDir / ("stereo_0_" + cam + ".yml")).string();
-                    (resultsDir / ("stereo_" + cam_a + "_" + cam_b + ".yml")).string();
+                    (resultsDir / ("stereo_0_" + cam + ".yml")).string();
                 std::string cmd =
                     "opencv_calib_stereo -o " + outfile + " --board " +
                     std::to_string(bw) + "x" + std::to_string(bh) +
-                    " --square " + std::to_string(square_size) +
-//                    " --cam 0 --cam " + cam + " " + dir.string() +
-                    " --cam " + cam_a + " --cam " + cam_b + " " + dir.string() +
+                    " --cam 0 --cam " + cam + " " + dir.string() +
                     "/pair_*";
                 int rc=system(cmd.c_str());
                 resp["status"]=rc==0?"ok":"error";
                 resp["out"]=outfile;
                 resp["cmd"]=cmd;
-                resp["square_size"]=square_size;
             }catch(...){res.status=400;res.set_content("{\"error\":\"invalid json\"}","application/json");return;}
             res.set_content(resp.dump(),"application/json");
         });
@@ -1587,23 +1518,13 @@ private:
     
 	    try {
 	    auto j = json::parse(req.body);
-//    	    auto camera_ids = j.at("cameras").get<std::vector<std::string>>();
-//    	    int board_w = j.value("board_w", 9);
-//    	    int board_h = j.value("board_h", 6);
+    	    auto camera_ids = j.at("cameras").get<std::vector<std::string>>();
+    	    int board_w = j.value("board_w", 9);
+    	    int board_h = j.value("board_h", 6);
         
-//    	    CameraCompatibilityAnalyzer analyzer;
-//    	    json camera_characteristics = json::object();
+    	    CameraCompatibilityAnalyzer analyzer;
+    	    json camera_characteristics = json::object();
         
-
-            auto camera_ids = j.at("cameras").get<std::vector<std::string>>();
-            int board_w = j.value("board_w", 9);
-            int board_h = j.value("board_h", 6);
-            float wide_angle_thr = j.value("wide_angle_threshold", 80.0f);
-            int quality_thr = j.value("quality_threshold", 30);
-
-            CameraCompatibilityAnalyzer analyzer;
-            analyzer.setWideAngleThreshold(wide_angle_thr);
-            json camera_characteristics = json::object();
         // Анализируем каждую камеру
         printf("Starting compatibility analysis for %zu cameras\n", camera_ids.size());
  
@@ -1656,20 +1577,12 @@ private:
 
         
     	    // Определяем совместимые группы
-//    	    auto compatible_groups = analyzer.getCompatibleGroups();
+    	    auto compatible_groups = analyzer.getCompatibleGroups();
         
-//    	    resp["camera_characteristics"] = camera_characteristics;
-//    	    resp["compatible_groups"] = compatible_groups;
-//    	    resp["total_groups"] = compatible_groups.size();
-            // Определяем совместимые группы
-            auto compatible_groups = analyzer.getCompatibleGroups();
-            auto suggested = analyzer.suggestWideAnglePair(quality_thr);
-
-            resp["camera_characteristics"] = camera_characteristics;
-            resp["compatible_groups"] = compatible_groups;
-            resp["total_groups"] = compatible_groups.size();
-            resp["suggested_pair"] = { suggested.first, suggested.second };
-
+    	    resp["camera_characteristics"] = camera_characteristics;
+    	    resp["compatible_groups"] = compatible_groups;
+    	    resp["total_groups"] = compatible_groups.size();
+        
 	    } catch(const std::exception& e) {
     	    resp["status"] = "error";
     	    resp["error"] = e.what();
@@ -1833,35 +1746,22 @@ private:
             json resp;
             try {
                 auto j = json::parse(req.body);
-
-//                current_calib_params_.board_cols = j.value("board_cols", 10);
-//                current_calib_params_.board_rows = j.value("board_rows", 7);
-//                current_calib_params_.square_size = j.value("square_size", 30.0f);
-                current_calib_params_.square_size = j.value("square_size", current_calib_params_.square_size);
-//                current_calib_params_.min_frames = j.value("min_frames", 15);
-//                current_calib_params_.max_frames = j.value("max_frames", 50);
-//                current_calib_params_.quality_threshold = j.value("quality_threshold", 50.0f);
-//                current_calib_params_.delete_videos = j.value("delete_videos", true);
-
-
-                // Persist parameters to config
-                auto cfg = readMainConfig();
-                cfg["calib_board_cols"] = current_calib_params_.board_cols;
-                cfg["calib_board_rows"] = current_calib_params_.board_rows;
-                cfg["calib_square_size"] = current_calib_params_.square_size;
-                cfg["calib_min_frames"] = current_calib_params_.min_frames;
-                cfg["calib_max_frames"] = current_calib_params_.max_frames;
-                cfg["calib_quality_threshold"] = current_calib_params_.quality_threshold;
-                cfg["calib_delete_videos"] = current_calib_params_.delete_videos;
-                writeMainConfig(cfg);
-
+                
+                current_calib_params_.board_cols = j.value("board_cols", 10);
+                current_calib_params_.board_rows = j.value("board_rows", 7);
+                current_calib_params_.square_size = j.value("square_size", 30.0f);
+                current_calib_params_.min_frames = j.value("min_frames", 15);
+                current_calib_params_.max_frames = j.value("max_frames", 50);
+                current_calib_params_.quality_threshold = j.value("quality_threshold", 50.0f);
+                current_calib_params_.delete_videos = j.value("delete_videos", true);
+                
                 resp["status"] = "ok";
                 resp["message"] = "Calibration parameters updated";
-
+                
                 printf("Calibration params updated: %dx%d board, %.1fmm squares\n",
                        current_calib_params_.board_cols, current_calib_params_.board_rows,
                        current_calib_params_.square_size);
-
+                
             } catch(const std::exception& e) {
                 resp["status"] = "error";
                 resp["error"] = e.what();
@@ -2232,7 +2132,7 @@ private:
 
     // ---------- video recording helpers ----------
     bool initVideoRecording() {
-        if (!record_enabled_.load()) return true;
+        if (!record_enabled_) return true;
 
         std::filesystem::create_directories(record_dir_);
 
@@ -2258,22 +2158,22 @@ private:
         }
 
         record_start_time_ = std::chrono::steady_clock::now();
-        recording_active_.store(true);
+        recording_active_ = true;
         return true;
     }
 
     void stopVideoRecording() {
-        if (video_writer_ && recording_active_.load()) {
+        if (video_writer_ && recording_active_) {
             printf("Stopping video recording\n");
             video_writer_.reset();
-            recording_active_.store(false);
+            recording_active_ = false;
         }
     }
 
     bool shouldStopRecording() {
-        if (!recording_active_.load() || recording_duration_seconds_.load() <= 0) return false;
+        if (!recording_active_ || recording_duration_seconds_ <= 0) return false;
         auto elapsed = std::chrono::steady_clock::now() - record_start_time_;
-        return std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() >= recording_duration_seconds_.load();
+        return std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() >= recording_duration_seconds_;
     }
 
     // ---------- main loop ----------
@@ -2285,7 +2185,7 @@ private:
         double fps_smoothed = 0.0;
 
         bool video_init_success = true;
-        if (record_enabled_.load() && !video_init_success) {
+        if (record_enabled_ && !video_init_success) {
             printf("WARNING: Video recording initialization failed\n");
         }
 
@@ -2309,23 +2209,23 @@ private:
             }
             // ===== VIDEO RECORDING CONTROL =====
             if (should_start_recording_.load()) {
-                should_start_recording_.store(false);
-                if (!recording_active_.load()) {
+                should_start_recording_ = false;
+                if (!recording_active_) {
                     video_init_success = initVideoRecording();
                     if (video_init_success) {
                         printf("Video recording started by user command\n");
                     } else {
                         printf("Failed to start video recording\n");
-                        record_enabled_.store(false);
+                        record_enabled_ = false;
                     }
                 }
             }
 
             if (should_stop_recording_.load()) {
-                should_stop_recording_.store(false);
-                if (recording_active_.load()) {
+                should_stop_recording_ = false;
+                if (recording_active_) {
                     stopVideoRecording();
-                    record_enabled_.store(false);
+                    record_enabled_ = false;
                     printf("Video recording stopped by user command\n");
                 }
             }
@@ -2343,18 +2243,22 @@ private:
             }
 
             // ===== VIDEO RECORDING =====
-            if (recording_active_.load() && video_writer_ && record_enabled_.load()) {
-                static cv::Mat bgr_frame;
-                if (bgr_frame.empty() || bgr_frame.cols != frame.width || bgr_frame.rows != frame.height) {
-                    bgr_frame.create(frame.height, frame.width, CV_8UC3);
+            if (recording_active_ && video_writer_ && record_enabled_) {
+                cv::Mat bgr_frame(frame.height, frame.width, CV_8UC3);
+                for (int y = 0; y < frame.height; ++y) {
+                    for (int x = 0; x < frame.width; ++x) {
+                        uint8_t* rgb_pixel = frame.virt_addr + (y * frame.width + x) * 3;
+                        uint8_t* bgr_pixel = bgr_frame.ptr<uint8_t>(y) + x * 3;
+                        bgr_pixel[0] = rgb_pixel[2];
+                        bgr_pixel[1] = rgb_pixel[1];
+                        bgr_pixel[2] = rgb_pixel[0];
+                    }
                 }
-                cv::Mat frame_rgb(frame.height, frame.width, CV_8UC3, frame.virt_addr);
-                cv::cvtColor(frame_rgb, bgr_frame, cv::COLOR_RGB2BGR);
                 video_writer_->write(bgr_frame);
                 if (shouldStopRecording()) {
                     printf("Recording time limit reached, stopping...\n");
                     stopVideoRecording();
-                    record_enabled_.store(false);
+                    record_enabled_ = false;
                 }
             }
 
@@ -2447,7 +2351,7 @@ private:
                     printf("Loop FPS: %.1f  (cap:%dx%d@%d, model:%dx%d) %s\n",
                            fps_smoothed, cam_w, cam_h, cam_fps,
                            rknn_app_ctx.model_width, rknn_app_ctx.model_height,
-                           recording_active_.load() ? "[RECORDING]" : "");
+                           recording_active_ ? "[RECORDING]" : "");
                     acc_t = 0;
 
                 }

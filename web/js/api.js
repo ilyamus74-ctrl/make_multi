@@ -191,25 +191,9 @@ window.CameraApp.API = {
         });
     },
 
-
-    async analyzeCompatibility(cameraIds, boardW, boardH, qualityThreshold, wideAngleThreshold) {
-        return await this.request('/api/calibration/analyze-compatibility', {
-            method: 'POST',
-            body: JSON.stringify({
-                cameras: cameraIds,
-                board_w: boardW,
-                board_h: boardH,
-                quality_threshold: qualityThreshold,
-                wide_angle_threshold: wideAngleThreshold
-            })
-        });
-    },
-
-
-    async startAutoCalibration(cameraA, cameraB) {
+    async startAutoCalibration() {
         return await this.request(window.CameraApp.Config.API.CALIBRATION.START_AUTO, {
-            method: 'POST',
-            body: JSON.stringify({ camera_a: cameraA, camera_b: cameraB })
+            method: 'POST'
         });
     },
 
@@ -241,10 +225,6 @@ window.CameraApp.API = {
         return await this.request(window.CameraApp.Config.API.RECORDING.STOP, {
             method: 'POST'
         });
-    },
-
-    async getRecordingStatus() {
-        return await this.request(window.CameraApp.Config.API.RECORDING.STATUS);
     },
 
     // Global Tracking APIs

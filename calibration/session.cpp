@@ -150,15 +150,6 @@ SessionResult CalibrationSession::captureStereo(const std::vector<std::string> &
     for (auto &id : ids) dirName += "_" + id;
     auto dirPath = root_path_ / "calibration" / dirName / "images";
     std::error_code ec;
-    auto removed = std::filesystem::remove_all(dirPath, ec);
-    if (ec) {
-        printf("failed to clear %s: %s\n", dirPath.c_str(), ec.message().c_str());
-        result.status = 500;
-        result.body["error"] = "remove directory";
-        return result;
-    }
-    printf("removed %llu entries from %s\n",
-           static_cast<unsigned long long>(removed), dirPath.c_str());
     std::filesystem::create_directories(dirPath, ec);
     if (ec) {
         result.status = 500;

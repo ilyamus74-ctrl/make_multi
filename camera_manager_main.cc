@@ -1,40 +1,38 @@
-#include <atomic>
-#include <cerrno>
-#include <chrono>
-#include <cstdio>
+#include "camera_manager.h"
 #include <csignal>
-#include <cstring>
 #include <fcntl.h>
-#include <filesystem>
-#include <future>
-#include <condition_variable>
-#include <functional>
 #include <fstream>
-#include <queue>
-#include <utility>
 #include <iostream>
-#include <ctime>
 #include <linux/videodev2.h>
-#include <map>
-#include <memory>
-#include <mutex>
-#include <opencv2/opencv.hpp>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <unistd.h>
+#include <vector>
+#include <cerrno>
+#include <cstring>
+#include <filesystem>
+#include <atomic>
 #include <sys/stat.h>
 #include <thread>
-#include <unistd.h>
+#include <chrono>
+#include <cstdio>
 #include <unordered_map>
-#include <vector>
-
-#include "calibration/session.h"
+#include <map>
+#include <mutex>
 #include "calibration_watcher.h"
-#include "camera_manager.h"
-#include "camera_roles.h"
-#include "camera_scheme.h"
-#include "global_tracker.h"
+#include <unordered_map>
+#include <future>  // ← ДОБАВЬТЕ ЭТУ СТРОКУ
+
+
 #include "httplib.h"
 #include "nlohmann/json.hpp"
+#include <opencv2/opencv.hpp>
+#include <memory>
+#include "calibration/session.h"
+#include "camera_roles.h"
+#include "global_tracker.h"
+#include "camera_scheme.h"
+
 
 
 static CameraManager g_mgr;
@@ -44,12 +42,6 @@ static bool g_use_global_tracking = false;
 
 
 static std::unique_ptr<CalibrationWatcher> g_calib_watcher;
-struct CalibReloadStatus {
-  bool success = false;
-  std::time_t timestamp = 0;
-};
-static CalibReloadStatus g_calib_reload_status;
-static std::mutex g_calib_reload_mutex;
 static MultiCamera::CameraRoleManager g_role_mgr;
 static httplib::Server g_server;
 static bool g_preview_enabled = true;
@@ -57,96 +49,6 @@ static std::unique_ptr<CalibrationSession> g_calib;
 static std::filesystem::path g_config_path;
 static std::filesystem::path g_exe_dir;
 static nlohmann::json readMainConfig();
-
-static std::atomic<bool> g_rec_cleanup_in_progress{false};
-
-static void cleanupRecDir() {
-  g_rec_cleanup_in_progress = true;
-  std::filesystem::path rec_dir = "/tmp/rec";
-  std::error_code ec;
-  try {
-    if (std::filesystem::exists(rec_dir, ec)) {
-      printf("Cleaning rec directory in background...\n");
-      for (const auto& entry : std::filesystem::directory_iterator(rec_dir, ec)) {
-        if (ec) {
-          std::cerr << "Iterating error in rec dir: " << ec.message() << std::endl;
-          break;
-        }
-        if (entry.is_regular_file() && entry.path().extension() == ".avi") {
-          std::filesystem::remove(entry.path(), ec);
-          if (ec) {
-            std::cerr << "Failed to delete " << entry.path() << ": " << ec.message() << std::endl;
-            ec.clear();
-          } else {
-            printf("Deleted: %s\n", entry.path().c_str());
-          }
-        }
-      }
-    } else {
-      std::filesystem::create_directories(rec_dir, ec);
-      if (ec) {
-        std::cerr << "Failed to create rec directory: " << ec.message() << std::endl;
-      }
-    }
-  } catch (const std::exception& e) {
-    std::cerr << "Cleanup exception: " << e.what() << std::endl;
-  }
-  g_rec_cleanup_in_progress = false;
-  printf("Rec directory cleanup finished\n");
-}
-
-class SimpleThreadPool {
- public:
-  explicit SimpleThreadPool(size_t n) : stop_(false) {
-    for (size_t i = 0; i < n; ++i) {
-      workers_.emplace_back([this] {
-        for (;;) {
-          std::function<void()> task;
-          {
-            std::unique_lock<std::mutex> lk(mutex_);
-            cv_.wait(lk, [this] { return stop_ || !tasks_.empty(); });
-            if (stop_ && tasks_.empty()) return;
-            task = std::move(tasks_.front());
-            tasks_.pop();
-          }
-          task();
-        }
-      });
-    }
-  }
-
-  ~SimpleThreadPool() {
-    {
-      std::lock_guard<std::mutex> lk(mutex_);
-      stop_ = true;
-    }
-    cv_.notify_all();
-    for (auto &t : workers_) {
-      if (t.joinable()) t.join();
-    }
-  }
-
-  template <class F>
-  std::future<void> enqueue(F &&f) {
-    auto task = std::make_shared<std::packaged_task<void()>>(std::forward<F>(f));
-    std::future<void> res = task->get_future();
-    {
-      std::lock_guard<std::mutex> lk(mutex_);
-      tasks_.emplace([task] { (*task)(); });
-    }
-    cv_.notify_one();
-    return res;
-  }
-
- private:
-  std::vector<std::thread> workers_;
-  std::queue<std::function<void()>> tasks_;
-  std::mutex mutex_;
-  std::condition_variable cv_;
-  bool stop_;
-};
-
-static std::unique_ptr<SimpleThreadPool> g_detection_pool;
 static nlohmann::json serializeGlobalObjects(const std::vector<GlobalObject>& objects) {
   nlohmann::json result = nlohmann::json::array();
   for (const auto& obj : objects) {
@@ -562,30 +464,6 @@ int main(int argc, char **argv) {
 
   g_scheme_manager.initialize(g_config_path.string());
   g_global_tracker.initialize();
-
-  g_calib_watcher =
-      std::make_unique<CalibrationWatcher>("/tmp/rec", "/tmp/calibration");
-  g_calib_watcher->setStatusCallback([](const std::string& msg, float progress) {
-    printf("Calibration Status: %s (%.1f%%)\n", msg.c_str(), progress);
-  });
-  g_calib_watcher->setLogCallback([](const std::string& msg) {
-    printf("Calibration Log: %s\n", msg.c_str());
-  });
-  g_calib_watcher->setResultsCallback([]() {
-    bool ok = g_global_tracker.reloadCalibration(*g_calib_watcher);
-    std::lock_guard<std::mutex> lk(g_calib_reload_mutex);
-    g_calib_reload_status.success = ok;
-    g_calib_reload_status.timestamp = std::time(nullptr);
-  });
-  g_calib_watcher->loadResults();
-  g_global_tracker.reloadCalibration(*g_calib_watcher);
-  g_calib_watcher->startResultsWatcher();
-
-
-  size_t thread_count = std::thread::hardware_concurrency();
-  if (thread_count == 0)
-    thread_count = 4;
-  g_detection_pool = std::make_unique<SimpleThreadPool>(thread_count);
 
 
   // Initialize camera roles from current manager configuration
@@ -1606,19 +1484,6 @@ g_server.Post("/api/calibration/copy-results", [](const httplib::Request&, httpl
     res.set_content(resp.dump(), "application/json");
 });
 
-g_server.Get("/api/calibration/reload-status", [](const httplib::Request&, httplib::Response& res){
-    CalibReloadStatus status;
-    {
-        std::lock_guard<std::mutex> lk(g_calib_reload_mutex);
-        status = g_calib_reload_status;
-    }
-    nlohmann::json resp;
-    resp["success"] = status.success;
-    resp["timestamp"] = status.timestamp;
-    res.set_content(resp.dump(), "application/json");
-});
-
-
 g_server.Get("/api/tracking/global", [](const httplib::Request&, httplib::Response& res){
     nlohmann::json resp = serializeGlobalObjects(g_global_tracker.getActiveObjects());
     res.set_content(resp.dump(), "application/json");
@@ -1666,43 +1531,43 @@ g_server.Get("/api/detections/update", [](const httplib::Request& req, httplib::
     // Собираем детекции только с активных камер, но с таймаутом
     auto cams = g_mgr.configuredCameras();
     std::vector<std::future<void>> futures;
-
+    
     for (const auto& cam : cams) {
         if (cam.mode == CameraManager::CamConfig::Mode::Detect && cam.det_running) {
-
-            futures.emplace_back(g_detection_pool->enqueue([cam]() {
-                httplib::Client client("localhost", cam.det_port);
-                client.set_connection_timeout(0, 500000); // 500ms таймаут
-                client.set_read_timeout(0, 500000);
-
-                auto result = client.Get("/api/last.json");
-                if (result && result->status == 200) {
-                    auto detections_json = nlohmann::json::parse(result->body);
-                    if (detections_json.contains("detections")) {
-                        std::vector<cv::Rect> rects;
-                        for (const auto& det : detections_json["detections"]) {
-                            const auto& box = det["box"];
-                            rects.emplace_back(box["left"], box["top"], box["width"], box["height"]);
+            futures.emplace_back(std::async(std::launch::async, [&cam]() {
+                try {
+                    httplib::Client client("localhost", cam.det_port);
+                    client.set_connection_timeout(0, 500000); // 500ms таймаут
+                    client.set_read_timeout(0, 500000);
+                    
+                    auto result = client.Get("/api/last.json");
+                    if (result && result->status == 200) {
+                        auto detections_json = nlohmann::json::parse(result->body);
+                        if (detections_json.contains("detections")) {
+                            std::vector<cv::Rect> rects;
+                            for (const auto& det : detections_json["detections"]) {
+                                const auto& box = det["box"];
+                                rects.emplace_back(box["left"], box["top"], box["width"], box["height"]);
+                            }
+                            auto ts = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                std::chrono::steady_clock::now().time_since_epoch()).count();
+                            g_global_tracker.updateDetections(cam.id, rects, ts);
                         }
-                        auto ts = std::chrono::duration_cast<std::chrono::milliseconds>(
-                            std::chrono::steady_clock::now().time_since_epoch()).count();
-                        g_global_tracker.updateDetections(cam.id, rects, ts);
                     }
+                } catch (...) {
+                    // Игнорируем ошибки
                 }
             }));
         }
     }
-
+    
     // Ждем завершения всех запросов с таймаутом
     for (auto& future : futures) {
-        if (future.wait_for(std::chrono::milliseconds(600)) == std::future_status::ready) {
-            try {
-                future.get();
-            } catch (const std::exception& e) {
-                std::cerr << "Detection task error: " << e.what() << std::endl;
-            }
+        if (future.wait_for(std::chrono::milliseconds(600)) == std::future_status::timeout) {
+            // Таймаут - продолжаем без этой камеры
         }
     }
+    
     cached_response = serializeGlobalObjects(g_global_tracker.getActiveObjects());
     res.set_content(cached_response.dump(), "application/json");
 });

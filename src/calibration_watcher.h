@@ -13,11 +13,11 @@
 #include <nlohmann/json.hpp>
 
 struct CalibrationParams {
-    int board_cols = 8;       // количество столбцов клеток (не углов!)
-    int board_rows = 8;        // количество строк клеток (не углов!)  
-    float square_size = 22.0f; // размер клетки в мм
+    int board_cols = 10;       // количество столбцов клеток (не углов!)
+    int board_rows = 7;        // количество строк клеток (не углов!)  
+    float square_size = 30.0f; // размер клетки в мм
     int min_frames = 15;       // минимум качественных кадров для калибровки
-    int max_frames = 150;       // максимум кадров для обработки
+    int max_frames = 50;       // максимум кадров для обработки
     float quality_threshold = 50.0f; // порог качества изображения
     bool delete_videos = true; // удалять видео после обработки
     
@@ -55,11 +55,10 @@ public:
     // Callback для обновления статуса
     using StatusCallback = std::function<void(const std::string&, float)>;
     using LogCallback = std::function<void(const std::string&)>;
-    using ResultsCallback = std::function<void()>;
 
     explicit CalibrationWatcher(
-        const std::filesystem::path& record_dir = "/tmp/rec",
-        const std::filesystem::path& calib_dir = "/tmp/calibration"
+        const std::filesystem::path& record_dir = "./rec",
+        const std::filesystem::path& calib_dir = "./calibration"
     );
     ~CalibrationWatcher();
 
@@ -74,11 +73,6 @@ public:
     // Установка callbacks
     void setStatusCallback(StatusCallback callback) { status_callback_ = callback; }
     void setLogCallback(LogCallback callback) { log_callback_ = callback; }
-    void setResultsCallback(ResultsCallback callback) { results_callback_ = callback; }
-
-    // Watch calibration results directory for changes
-    void startResultsWatcher();
-    void stopResultsWatcher();
 
     // Получение результатов
     std::vector<CameraCalibrationResult> getMonoResults() const { 
@@ -145,13 +139,9 @@ private:
     // Callbacks
     StatusCallback status_callback_;
     LogCallback log_callback_;
-    ResultsCallback results_callback_;
-
+    
     // Рабочий поток
     std::thread worker_thread_;
-    std::thread results_thread_;
-    std::atomic<bool> watch_results_{false};
-    std::filesystem::file_time_type last_results_time_;
 
     // Внутренние методы
     void calibrationWorker(const CalibrationParams& params);
