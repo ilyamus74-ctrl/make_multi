@@ -588,14 +588,17 @@ private:
     std::unique_ptr<cv::VideoWriter> video_writer_;
     std::string record_dir_ = "./rec";
     int record_seconds_ = 180;
-    bool record_enabled_ = false;  // ИЗМЕНЕНО: теперь false по умолчанию
+//    bool record_enabled_ = false;  // ИЗМЕНЕНО: теперь false по умолчанию
+    std::atomic<bool> record_enabled_{false};  // ИЗМЕНЕНО: теперь false по умолчанию
     std::chrono::steady_clock::time_point record_start_time_;
-    bool recording_active_ = false;
+//    bool recording_active_ = false;
+    std::atomic<bool> recording_active_{false};
 
     // video recording control
     std::atomic<bool> should_start_recording_{false};
     std::atomic<bool> should_stop_recording_{false};
-    int recording_duration_seconds_ = 30;
+//    int recording_duration_seconds_ = 30;
+    std::atomic<int> recording_duration_seconds_{30};
 
     // preview timing
     std::chrono::steady_clock::time_point last_preview_update_;
@@ -1467,15 +1470,15 @@ private:
             json resp;
             try {
                 auto j = json::parse(req.body);
-                recording_duration_seconds_ = j.value("duration", 30);
-                
-                if (!recording_active_) {
-                    should_start_recording_ = true;
-                    record_enabled_ = true;
+                recording_duration_seconds_.store(j.value("duration", 30));
+
+                if (!recording_active_.load()) {
+                    should_start_recording_.store(true);
+                    record_enabled_.store(true);
                     resp["status"] = "ok";
                     resp["message"] = "Recording will start";
-                    resp["duration"] = recording_duration_seconds_;
-                    printf("Video recording start requested, duration: %d seconds\n", recording_duration_seconds_);
+                    resp["duration"] = recording_duration_seconds_.load();
+                    printf("Video recording start requested, duration: %d seconds\n", recording_duration_seconds_.load());
                 } else {
                     resp["status"] = "error";
                     resp["message"] = "Recording already active";
@@ -1489,8 +1492,8 @@ private:
 
         server.Post("/api/record/stop", [this](const Request&, Response& res){
             json resp;
-            should_stop_recording_ = true;
-            record_enabled_ = false;
+            should_stop_recording_.store(true);
+            record_enabled_.store(false);
             resp["status"] = "ok";
             resp["message"] = "Recording will stop";
             printf("Video recording stop requested\n");
@@ -1499,12 +1502,12 @@ private:
 
         server.Get("/api/record/status", [this](const Request&, Response& res){
             json resp;
-            resp["recording_active"] = recording_active_;
-            resp["recording_enabled"] = record_enabled_;
-            resp["duration_seconds"] = recording_duration_seconds_;
-            if (recording_active_) {
+            resp["recording_active"] = recording_active_.load();
+            resp["recording_enabled"] = record_enabled_.load();
+            resp["duration_seconds"] = recording_duration_seconds_.load();
+            if (recording_active_.load()) {
                 auto elapsed = std::chrono::steady_clock::now() - record_start_time_;
-                int remaining = recording_duration_seconds_ - 
+                int remaining = recording_duration_seconds_.load() -
                     std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
                 resp["time_remaining"] = std::max(0, remaining);
             } else {
@@ -2229,7 +2232,7 @@ private:
 
     // ---------- video recording helpers ----------
     bool initVideoRecording() {
-        if (!record_enabled_) return true;
+        if (!record_enabled_.load()) return true;
 
         std::filesystem::create_directories(record_dir_);
 
@@ -2255,22 +2258,22 @@ private:
         }
 
         record_start_time_ = std::chrono::steady_clock::now();
-        recording_active_ = true;
+        recording_active_.store(true);
         return true;
     }
 
     void stopVideoRecording() {
-        if (video_writer_ && recording_active_) {
+        if (video_writer_ && recording_active_.load()) {
             printf("Stopping video recording\n");
             video_writer_.reset();
-            recording_active_ = false;
+            recording_active_.store(false);
         }
     }
 
     bool shouldStopRecording() {
-        if (!recording_active_ || recording_duration_seconds_ <= 0) return false;
+        if (!recording_active_.load() || recording_duration_seconds_.load() <= 0) return false;
         auto elapsed = std::chrono::steady_clock::now() - record_start_time_;
-        return std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() >= recording_duration_seconds_;
+        return std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() >= recording_duration_seconds_.load();
     }
 
     // ---------- main loop ----------
@@ -2282,7 +2285,7 @@ private:
         double fps_smoothed = 0.0;
 
         bool video_init_success = true;
-        if (record_enabled_ && !video_init_success) {
+        if (record_enabled_.load() && !video_init_success) {
             printf("WARNING: Video recording initialization failed\n");
         }
 
@@ -2306,23 +2309,23 @@ private:
             }
             // ===== VIDEO RECORDING CONTROL =====
             if (should_start_recording_.load()) {
-                should_start_recording_ = false;
-                if (!recording_active_) {
+                should_start_recording_.store(false);
+                if (!recording_active_.load()) {
                     video_init_success = initVideoRecording();
                     if (video_init_success) {
                         printf("Video recording started by user command\n");
                     } else {
                         printf("Failed to start video recording\n");
-                        record_enabled_ = false;
+                        record_enabled_.store(false);
                     }
                 }
             }
 
             if (should_stop_recording_.load()) {
-                should_stop_recording_ = false;
-                if (recording_active_) {
+                should_stop_recording_.store(false);
+                if (recording_active_.load()) {
                     stopVideoRecording();
-                    record_enabled_ = false;
+                    record_enabled_.store(false);
                     printf("Video recording stopped by user command\n");
                 }
             }
@@ -2340,7 +2343,7 @@ private:
             }
 
             // ===== VIDEO RECORDING =====
-            if (recording_active_ && video_writer_ && record_enabled_) {
+            if (recording_active_.load() && video_writer_ && record_enabled_.load()) {
                 cv::Mat bgr_frame(frame.height, frame.width, CV_8UC3);
                 for (int y = 0; y < frame.height; ++y) {
                     for (int x = 0; x < frame.width; ++x) {
@@ -2355,7 +2358,7 @@ private:
                 if (shouldStopRecording()) {
                     printf("Recording time limit reached, stopping...\n");
                     stopVideoRecording();
-                    record_enabled_ = false;
+                    record_enabled_.store(false);
                 }
             }
 
@@ -2448,7 +2451,7 @@ private:
                     printf("Loop FPS: %.1f  (cap:%dx%d@%d, model:%dx%d) %s\n",
                            fps_smoothed, cam_w, cam_h, cam_fps,
                            rknn_app_ctx.model_width, rknn_app_ctx.model_height,
-                           recording_active_ ? "[RECORDING]" : "");
+                           recording_active_.load() ? "[RECORDING]" : "");
                     acc_t = 0;
 
                 }

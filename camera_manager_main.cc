@@ -58,6 +58,43 @@ static std::filesystem::path g_config_path;
 static std::filesystem::path g_exe_dir;
 static nlohmann::json readMainConfig();
 
+static std::atomic<bool> g_rec_cleanup_in_progress{false};
+
+static void cleanupRecDir() {
+  g_rec_cleanup_in_progress = true;
+  std::filesystem::path rec_dir = "/tmp/rec";
+  std::error_code ec;
+  try {
+    if (std::filesystem::exists(rec_dir, ec)) {
+      printf("Cleaning rec directory in background...\n");
+      for (const auto& entry : std::filesystem::directory_iterator(rec_dir, ec)) {
+        if (ec) {
+          std::cerr << "Iterating error in rec dir: " << ec.message() << std::endl;
+          break;
+        }
+        if (entry.is_regular_file() && entry.path().extension() == ".avi") {
+          std::filesystem::remove(entry.path(), ec);
+          if (ec) {
+            std::cerr << "Failed to delete " << entry.path() << ": " << ec.message() << std::endl;
+            ec.clear();
+          } else {
+            printf("Deleted: %s\n", entry.path().c_str());
+          }
+        }
+      }
+    } else {
+      std::filesystem::create_directories(rec_dir, ec);
+      if (ec) {
+        std::cerr << "Failed to create rec directory: " << ec.message() << std::endl;
+      }
+    }
+  } catch (const std::exception& e) {
+    std::cerr << "Cleanup exception: " << e.what() << std::endl;
+  }
+  g_rec_cleanup_in_progress = false;
+  printf("Rec directory cleanup finished\n");
+}
+
 class SimpleThreadPool {
  public:
   explicit SimpleThreadPool(size_t n) : stop_(false) {

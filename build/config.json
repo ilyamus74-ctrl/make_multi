@@ -2,9 +2,9 @@
   "calib_board_cols": 8,
   "calib_board_rows": 8,
   "calib_delete_videos": true,
-  "calib_max_frames": 100,
+  "calib_max_frames": 200,
   "calib_min_frames": 15,
-  "calib_quality_threshold": 60.0,
+  "calib_quality_threshold": 80.0,
   "calib_square_size": 22.0,
   "cameras": [
     {
