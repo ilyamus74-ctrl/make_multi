@@ -5,8 +5,8 @@
   "calib_max_frames": 200,
   "calib_min_frames": 15,
   "calib_quality_threshold": 80.0,
-  "calib_time_tolerance_ms": 33,
   "calib_square_size": 22.0,
+  "calib_time_tolerance_ms": 33,
   "cameras": [
     {
       "buffer_type": "auto",
@@ -41,7 +41,7 @@
       "match": {
         "by_id_contains": "usb-icSpring_WebCamera_20240603201703-video-index0"
       },
-      "mode": "calibration",
+      "mode": "detect",
       "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
       "npu_core": "auto",
       "npu_worker": 0,
@@ -76,7 +76,7 @@
       "match": {
         "by_id_contains": "usb-SHENZHEN_AONI_ELECTRONIC_CO.__LTD_Full_HD_webcam_AN202011030002-video-index0"
       },
-      "mode": "calibration",
+      "mode": "detect",
       "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
       "npu_core": "auto",
       "npu_worker": 0,
