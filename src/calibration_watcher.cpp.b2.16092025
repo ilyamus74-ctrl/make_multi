@@ -288,130 +288,42 @@ void CalibrationWatcher::stopCalibration() {
 }
 
 void CalibrationWatcher::calibrationWorker(const CalibrationParams& params) {
-    auto stopRequested = [this]() { return should_stop_.load(); };
     try {
         // 1. Сканируем записанные видео
         updateStatus("Scanning recorded videos...", 5.0f);
         auto video_files = scanRecordingFolder();
-
+        
         if (video_files.empty()) {
             updateStatus("No video files found", 100.0f);
             processing_ = false;
             return;
         }
-
+        
         logMessage("Found " + std::to_string(video_files.size()) + " video files");
-
-
-        // 2. Индексация видео (PTS)
-        const float index_start = 10.0f;
-        const float index_end = 30.0f;
-        updateStatus("Indexing video timestamps (PTS)...", index_start);
-
-        std::map<std::string, std::vector<double>> timestamp_index;
-        const size_t total_videos = video_files.size();
-
-        for (size_t i = 0; i < total_videos; ++i) {
-            if (stopRequested()) {
-                updateStatus("Calibration stopped by user", 100.0f);
-                processing_ = false;
-                return;
-            }
-
-            const auto& video = video_files[i];
-            bool skipped = false;
-            bool indexed = false;
-
-            if (!isVideoComplete(video)) {
-                skipped = true;
-                logMessage("Skipping timestamp indexing for incomplete video: " +
-                           video.path.string());
-            } else {
-                std::vector<double> timestamps;
-                if (indexVideoPTS(video, timestamps) && !timestamps.empty()) {
-                    timestamp_index.emplace(video.camera_id, std::move(timestamps));
-                    indexed = true;
-                }
-            }
-
-            float progress = index_start;
-            if (total_videos > 0) {
-                progress += (index_end - index_start) *
-                            static_cast<float>(i + 1) / static_cast<float>(total_videos);
-            }
-
-            std::ostringstream message;
-            message << "Indexing video timestamps (" << (i + 1) << "/" << total_videos
-                    << ") for camera " << video.camera_id;
-            if (skipped) {
-                message << " (skipped)";
-            } else if (!indexed) {
-                message << " (fallback)";
-            }
-            updateStatus(message.str(), progress);
-        }
-
-        if (stopRequested()) {
-            updateStatus("Calibration stopped by user", 100.0f);
-            processing_ = false;
-            return;
-        }
-
-        // 3. Детекция шахматки и сохранение углов
-        const float detect_start = 35.0f;
-        const float detect_end = 60.0f;
-        updateStatus("Detecting chessboard patterns...", detect_start);
-
-        auto processed_cameras = extractFramesFromAllVideos(
-            video_files, params, timestamp_index, detect_start, detect_end);
-
+        
+        // 2. Извлекаем кадры из всех видео
+        updateStatus("Extracting frames from videos...", 10.0f);
+        auto processed_cameras = extractFramesFromAllVideos(params);
+        
         if (processed_cameras.empty()) {
             updateStatus("No cameras processed successfully", 100.0f);
             processing_ = false;
             return;
         }
-
-        if (stopRequested()) {
+        
+        if (should_stop_.load()) {
             updateStatus("Calibration stopped by user", 100.0f);
             processing_ = false;
             return;
         }
-
-        // 4. Синхронизация потоков
-        updateStatus("Synchronizing camera streams...", 65.0f);
-        auto synchronization = synchronizeStreams(processed_cameras, params);
-
-        if (stopRequested()) {
-            updateStatus("Calibration stopped by user", 100.0f);
-            processing_ = false;
-            return;
-        }
-
-        // 5. Отбор моно-кадров и моно-калибровка
-        const float mono_start = 70.0f;
-        const float mono_end = 90.0f;
+        
+        // 3. Выполняем моно-калибровку для каждой камеры
+        updateStatus("Performing mono calibrations...", 40.0f);
         std::vector<std::string> successful_cameras;
-
-       successful_cameras.reserve(processed_cameras.size());
-
-        for (size_t i = 0; i < processed_cameras.size(); ++i) {
-            if (stopRequested()) {
-                updateStatus("Calibration stopped by user", 100.0f);
-                processing_ = false;
-                return;
-            }
+        
+        for (size_t i = 0; i < processed_cameras.size() && !should_stop_.load(); ++i) {
             const auto& camera_id = processed_cameras[i];
-            std::ostringstream message;
-            message << "Mono calibration (" << (i + 1) << "/"
-                    << processed_cameras.size() << ") for camera " << camera_id;
-
-            float progress = mono_start;
-            if (!processed_cameras.empty()) {
-                progress += (mono_end - mono_start) *
-                            static_cast<float>(i) / static_cast<float>(processed_cameras.size());
-            }
-            updateStatus(message.str(), progress);
-
+            
             logMessage("Calibrating camera: " + camera_id);
             if (performMonoCalibration(camera_id, params)) {
                 successful_cameras.push_back(camera_id);
@@ -419,56 +331,48 @@ void CalibrationWatcher::calibrationWorker(const CalibrationParams& params) {
             } else {
                 logMessage("Mono calibration failed for camera: " + camera_id);
             }
-
-            progress = mono_start;
-            if (!processed_cameras.empty()) {
-                progress += (mono_end - mono_start) *
-                            static_cast<float>(i + 1) /
-                            static_cast<float>(processed_cameras.size());
-            }
-            updateStatus(message.str(), progress);
-
+            
+            float progress = 40.0f + (30.0f * (i + 1)) / processed_cameras.size();
+            updateStatus("Calibrating camera " + std::to_string(i + 1) + "/" + 
+                        std::to_string(processed_cameras.size()), progress);
         }
-
-        if (stopRequested()) {
+        
+        if (should_stop_.load()) {
             updateStatus("Calibration stopped by user", 100.0f);
             processing_ = false;
             return;
         }
 
-        // 6. Стерео/мульти-калибровка
+        // 4. Выполняем синхронизацию и стерео/мульти-камерную калибровку
         if (successful_cameras.size() >= 2) {
-            if (!synchronization.multi_groups.empty()) {
-                updateStatus("Performing stereo/multi calibrations...", 92.0f);
-                performMultiCameraCalibration(successful_cameras, params, synchronization);
+            updateStatus("Synchronizing camera streams...", 72.5f);
+            auto synchronization = synchronizeStreams(successful_cameras, params);
 
-                if (stopRequested()) {
-                    updateStatus("Calibration stopped by user", 100.0f);
-                    processing_ = false;
-                    return;
-                }
+            if (should_stop_.load()) {
+                updateStatus("Calibration stopped by user", 100.0f);
+                processing_ = false;
+                return;
+            }
+
+            if (!synchronization.multi_groups.empty()) {
+                updateStatus("Performing stereo/multi calibrations...", 75.0f);
+                performMultiCameraCalibration(successful_cameras, params, synchronization);
             } else {
                 logMessage("No synchronized frame groups found. Skipping stereo calibration stage.");
             }
-        } else {
-            logMessage("Not enough cameras passed mono calibration for stereo stage");
         }
-
-
-        if (stopRequested()) {
-            updateStatus("Calibration stopped by user", 100.0f);
-            processing_ = false;
-            return;
-        }
-
-        // 7. Сохранение результатов
-        updateStatus("Saving calibration results...", 97.0f);
+        
+        // 5. Сохраняем результаты
+        updateStatus("Saving calibration results...", 95.0f);
         saveResults();
+        
         updateStatus("Calibration completed successfully!", 100.0f);
+        
     } catch (const std::exception& e) {
         updateStatus("Calibration failed: " + std::string(e.what()), 100.0f);
         logMessage("ERROR: " + std::string(e.what()));
     }
+    
     processing_ = false;
 }
 
@@ -531,135 +435,59 @@ bool CalibrationWatcher::isVideoComplete(const VideoFile& video) {
         if (ec || current_size != video.file_size) {
             return false;
         }
-
+        
         // Минимальный размер файла (1MB)
         if (current_size < 1024 * 1024) {
             return false;
         }
-
+        
     } catch (const std::exception&) {
         return false;
     }
-
+    
     return true;
 }
 
-
-bool CalibrationWatcher::indexVideoPTS(const VideoFile& video, std::vector<double>& timestamps) {
-    timestamps.clear();
-
-    FFmpegFramePTSReader reader;
-    if (!reader.open(video.path.string())) {
-        logMessage("Failed to open video for timestamp indexing: " + video.path.string());
-        return false;
-    }
-
-    double timestamp = 0.0;
-    while (!should_stop_.load()) {
-        if (!reader.nextTimestamp(timestamp)) {
-            break;
-        }
-        timestamps.push_back(timestamp);
-    }
-
-    if (!timestamps.empty()) {
-        logMessage("Indexed " + std::to_string(timestamps.size()) +
-                   " timestamps for camera " + video.camera_id);
-        return true;
-    }
-
-    logMessage("No timestamps indexed for camera " + video.camera_id +
-               "; fallback timestamps will be used");
-    return false;
-}
-
-std::vector<std::string> CalibrationWatcher::extractFramesFromAllVideos(
-    const std::vector<VideoFile>& video_files,
-    const CalibrationParams& params,
-    const std::map<std::string, std::vector<double>>& timestamp_index,
-    float progress_start,
-    float progress_end) {
+std::vector<std::string> CalibrationWatcher::extractFramesFromAllVideos(const CalibrationParams& params) {
+    auto video_files = scanRecordingFolder();
     std::vector<std::string> processed_cameras;
-
-    if (video_files.empty()) {
-        return processed_cameras;
-    }
-
-    const size_t total_videos = video_files.size();
-    const float progress_range = std::max(0.0f, progress_end - progress_start);
-
-    for (size_t i = 0; i < total_videos && !should_stop_.load(); ++i) {
+    
+    for (size_t i = 0; i < video_files.size() && !should_stop_.load(); ++i) {
         const auto& video = video_files[i];
-
-
-        float progress_before = progress_start;
-        if (total_videos > 0) {
-            progress_before += progress_range *
-                                static_cast<float>(i) / static_cast<float>(total_videos);
-        }
-
-        std::ostringstream stage_message;
-        stage_message << "Detecting chessboard patterns (" << (i + 1) << "/"
-                      << total_videos << ") for camera " << video.camera_id;
-        const std::string stage_text = stage_message.str();
-        updateStatus(stage_text, progress_before);
-
-        bool skipped = false;
-        bool success = false;
-
+        
         if (!isVideoComplete(video)) {
-            skipped = true;
             logMessage("Skipping incomplete video: " + video.path.string());
-        } else {
-            logMessage("Processing video for camera: " + video.camera_id);
-
-            const std::vector<double>* camera_index = nullptr;
-            auto index_it = timestamp_index.find(video.camera_id);
-            if (index_it != timestamp_index.end()) {
-                camera_index = &index_it->second;
-            }
-
-            if (extractFramesFromVideo(video, params, camera_index)) {
-                processed_cameras.push_back(video.camera_id);
-                success = true;
-
-                if (params.delete_videos) {
-                    std::error_code ec;
-                    std::filesystem::remove(video.path, ec);
-                    if (!ec) {
-                        logMessage("Deleted video file: " + video.path.string());
-                    }
+            continue;
+        }
+        
+        logMessage("Processing video for camera: " + video.camera_id);
+        
+        if (extractFramesFromVideo(video, params)) {
+            processed_cameras.push_back(video.camera_id);
+            
+            // Удаляем видеофайл если требуется
+            if (params.delete_videos) {
+                std::error_code ec;
+                std::filesystem::remove(video.path, ec);
+                if (!ec) {
+                    logMessage("Deleted video file: " + video.path.string());
                 }
             }
         }
-
-        float progress_after = progress_start;
-        if (total_videos > 0) {
-            progress_after += progress_range *
-                              static_cast<float>(i + 1) / static_cast<float>(total_videos);
-        }
-
-        std::ostringstream completed_message;
-        completed_message << stage_text;
-        if (skipped) {
-            completed_message << " (skipped)";
-        } else if (!success) {
-            completed_message << " (no detections)";
-        }
-
-        updateStatus(completed_message.str(), progress_after);
+        
+        float progress = 10.0f + (25.0f * (i + 1)) / video_files.size();
+        updateStatus("Processing video " + std::to_string(i + 1) + "/" + 
+                    std::to_string(video_files.size()), progress);
     }
-
+    
     return processed_cameras;
 }
 
-bool CalibrationWatcher::extractFramesFromVideo(const VideoFile& video,
-                                                const CalibrationParams& params,
-                                                const std::vector<double>* timestamp_index) {
+bool CalibrationWatcher::extractFramesFromVideo(const VideoFile& video, const CalibrationParams& params) {
     std::filesystem::path cam_dir = calib_dir_ / ("cam_" + video.camera_id) / "images";
     std::error_code ec;
     std::filesystem::create_directories(cam_dir, ec);
-
+    
     if (ec) {
         logMessage("Failed to create camera directory: " + ec.message());
         return false;
@@ -671,41 +499,33 @@ bool CalibrationWatcher::extractFramesFromVideo(const VideoFile& video,
         return false;
     }
 
+    FFmpegFramePTSReader pts_reader;
+    bool pts_available = pts_reader.open(video.path.string());
+    if (!pts_available) {
+        logMessage("WARNING: Unable to initialise FFmpeg timestamp reader for " + video.path.string());
+    }
+
+
     cv::Mat frame;
     int frame_count = 0;
     int saved_count = 0;
 
     // Получаем общее количество кадров
-    bool using_indexed_timestamps = timestamp_index && !timestamp_index->empty();
-    int total_frames = 0;
-    if (using_indexed_timestamps) {
-        total_frames = static_cast<int>(timestamp_index->size());
-    }
-
-    if (total_frames <= 0) {
-        total_frames = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT));
-    }
-
-    if (total_frames <= 0) {
-        total_frames = params.max_frames;
-    }
-
+    int total_frames = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT));
     int skip_interval = std::max(1, total_frames / std::max(1, params.max_frames));
 
     logMessage("Processing video: " + std::to_string(total_frames) +
                " frames, skip interval: " + std::to_string(skip_interval));
 
-    if (!using_indexed_timestamps) {
-        logMessage("PTS index unavailable for camera " + video.camera_id +
-                   ", using capture timestamps as fallback");
-    }
-
     while (cap.read(frame) && saved_count < params.max_frames && !should_stop_.load()) {
         double timestamp_seconds = 0.0;
         if (pts_available) {
-        if (using_indexed_timestamps &&
-            frame_count < static_cast<int>(timestamp_index->size())) {
-            timestamp_seconds = (*timestamp_index)[frame_count];
+            if (!pts_reader.nextTimestamp(timestamp_seconds)) {
+                logMessage("WARNING: Failed to fetch PTS for frame " + std::to_string(frame_count) +
+                           " in video " + video.path.string());
+                pts_available = false;
+                timestamp_seconds = cap.get(cv::CAP_PROP_POS_MSEC) / 1000.0;
+            }
         } else {
             timestamp_seconds = cap.get(cv::CAP_PROP_POS_MSEC) / 1000.0;
         }

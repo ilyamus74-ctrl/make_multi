@@ -186,9 +186,19 @@ private:
                                       const cv::Size& pattern_size);
 
 
-    std::vector<std::string> extractFramesFromAllVideos(const CalibrationParams& params);
-    bool extractFramesFromVideo(const VideoFile& video, const CalibrationParams& params);
-    
+    bool indexVideoPTS(const VideoFile& video, std::vector<double>& timestamps);
+
+    std::vector<std::string> extractFramesFromAllVideos(
+        const std::vector<VideoFile>& video_files,
+        const CalibrationParams& params,
+        const std::map<std::string, std::vector<double>>& timestamp_index,
+        float progress_start,
+        float progress_end);
+
+    bool extractFramesFromVideo(const VideoFile& video,
+                                const CalibrationParams& params,
+                                const std::vector<double>* timestamp_index);
+
     FrameQuality evaluateFrameQuality(const cv::Mat& frame, const CalibrationParams& params,
                                       std::vector<cv::Point2f>* refined_corners = nullptr);
 

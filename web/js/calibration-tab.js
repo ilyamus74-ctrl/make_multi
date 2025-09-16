@@ -386,6 +386,7 @@ window.CameraApp.CalibrationTab = {
 
             // Update UI
             window.CameraApp.UI.setButtonLoading(startBtn, true, 'Starting...');
+            startBtn.disabled = true;
             stopBtn.disabled = false;
             statusEl.style.display = 'block';
             statusEl.className = 'calibration-status warning';
@@ -396,6 +397,7 @@ window.CameraApp.CalibrationTab = {
             const response = await window.CameraApp.API.startAutoCalibration();
 
             if (response.status === 'ok') {
+                window.CameraApp.State.isCalibrating = true;
                 statusEl.className = 'calibration-status success';
                 statusEl.innerHTML = 'Calibration started - analyzing videos...';
 
@@ -410,12 +412,15 @@ window.CameraApp.CalibrationTab = {
             }
         } catch (error) {
             statusEl.className = 'calibration-status error';
+            window.CameraApp.State.isCalibrating = false;
             statusEl.innerHTML = `Calibration failed: ${error.message}`;
             progressEl.style.display = 'none';
             stopBtn.disabled = true;
+            startBtn.disabled = false;
             window.CameraApp.UI.showToast(`Calibration failed: ${error.message}`, 'danger');
         } finally {
             window.CameraApp.UI.setButtonLoading(startBtn, false);
+            startBtn.disabled = window.CameraApp.State.isCalibrating;
         }
     },
 
@@ -467,6 +472,7 @@ window.CameraApp.CalibrationTab = {
         const statusEl = document.getElementById('calibration-status');
         const progressEl = document.getElementById('calibration-progress');
 
+        window.CameraApp.State.isCalibrating = false;
         // Reset UI
         startBtn.disabled = false;
         stopBtn.disabled = true;
@@ -543,14 +549,19 @@ window.CameraApp.CalibrationTab = {
             }
 
             const stopBtn = document.getElementById('stop-calibration-btn');
+            const startBtn = document.getElementById('start-calibration-btn');
             const statusEl = document.getElementById('calibration-status');
             const progressEl = document.getElementById('calibration-progress');
 
             stopBtn.disabled = true;
+            if (startBtn) {
+                startBtn.disabled = false;
+            }
             statusEl.className = 'calibration-status warning';
             statusEl.innerHTML = 'Calibration stopped by user';
             progressEl.style.display = 'none';
 
+            window.CameraApp.State.isCalibrating = false;
             window.CameraApp.UI.showToast('Calibration stopped', 'info');
         } catch (error) {
             window.CameraApp.UI.showToast(`Failed to stop calibration: ${error.message}`, 'danger');
