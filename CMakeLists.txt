@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.10)
 project(rknn_yolov8_demo_src_2)
 
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+
 add_compile_options(-Wno-psabi)
 
 set(PROJ ${CMAKE_CURRENT_SOURCE_DIR})
