@@ -9,6 +9,192 @@
 #include <iomanip>
 #include <sstream>
 
+#include <utility>
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavutil/avutil.h>
+}
+
+namespace {
+
+class FFmpegFramePTSReader {
+public:
+    FFmpegFramePTSReader() = default;
+    ~FFmpegFramePTSReader() { close(); }
+
+    bool open(const std::string& path) {
+        close();
+
+        int ret = avformat_open_input(&format_ctx_, path.c_str(), nullptr, nullptr);
+        if (ret < 0) {
+            close();
+            return false;
+        }
+
+        ret = avformat_find_stream_info(format_ctx_, nullptr);
+        if (ret < 0) {
+            close();
+            return false;
+        }
+
+        ret = av_find_best_stream(format_ctx_, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+        if (ret < 0) {
+            close();
+            return false;
+        }
+
+        video_stream_index_ = ret;
+        video_stream_ = format_ctx_->streams[video_stream_index_];
+
+        const AVCodec* decoder = avcodec_find_decoder(video_stream_->codecpar->codec_id);
+        if (!decoder) {
+            close();
+            return false;
+        }
+
+        codec_ctx_ = avcodec_alloc_context3(decoder);
+        if (!codec_ctx_) {
+            close();
+            return false;
+        }
+
+        ret = avcodec_parameters_to_context(codec_ctx_, video_stream_->codecpar);
+        if (ret < 0) {
+            close();
+            return false;
+        }
+
+        ret = avcodec_open2(codec_ctx_, decoder, nullptr);
+        if (ret < 0) {
+            close();
+            return false;
+        }
+
+        packet_ = av_packet_alloc();
+        frame_ = av_frame_alloc();
+
+        if (!packet_ || !frame_) {
+            close();
+            return false;
+        }
+
+        AVRational frame_rate = av_guess_frame_rate(format_ctx_, video_stream_, nullptr);
+        double fps = av_q2d(frame_rate);
+        frame_duration_ = (fps > 0.0) ? 1.0 / fps : 0.0;
+
+        frame_index_ = 0;
+        last_valid_pts_ = AV_NOPTS_VALUE;
+        end_of_stream_ = false;
+
+        return true;
+    }
+
+    bool nextTimestamp(double& timestamp_seconds) {
+        if (!codec_ctx_ || !frame_) {
+            return false;
+        }
+
+        while (true) {
+            int ret = avcodec_receive_frame(codec_ctx_, frame_);
+            if (ret >= 0) {
+                int64_t pts = frame_->best_effort_timestamp;
+                if (pts == AV_NOPTS_VALUE) {
+                    pts = frame_->pts;
+                }
+
+                double seconds = 0.0;
+                if (pts != AV_NOPTS_VALUE) {
+                    last_valid_pts_ = pts;
+                    seconds = pts * av_q2d(video_stream_->time_base);
+                } else if (frame_duration_ > 0.0) {
+                    seconds = frame_index_ * frame_duration_;
+                } else if (last_valid_pts_ != AV_NOPTS_VALUE) {
+                    double time_base = av_q2d(video_stream_->time_base);
+                    seconds = (last_valid_pts_ + 1) * time_base;
+                    last_valid_pts_ += 1;
+                } else {
+                    seconds = static_cast<double>(frame_index_);
+                }
+
+                ++frame_index_;
+                av_frame_unref(frame_);
+                timestamp_seconds = seconds;
+                return true;
+            }
+
+            if (ret == AVERROR_EOF) {
+                return false;
+            }
+
+            if (ret != AVERROR(EAGAIN)) {
+                return false;
+            }
+
+            if (end_of_stream_) {
+                return false;
+            }
+
+            ret = av_read_frame(format_ctx_, packet_);
+            if (ret < 0) {
+                avcodec_send_packet(codec_ctx_, nullptr);
+                end_of_stream_ = true;
+                continue;
+            }
+
+            if (packet_->stream_index == video_stream_index_) {
+                ret = avcodec_send_packet(codec_ctx_, packet_);
+                av_packet_unref(packet_);
+                if (ret < 0) {
+                    return false;
+                }
+            } else {
+                av_packet_unref(packet_);
+            }
+        }
+    }
+
+    void close() {
+        if (packet_) {
+            av_packet_free(&packet_);
+            packet_ = nullptr;
+        }
+        if (frame_) {
+            av_frame_free(&frame_);
+            frame_ = nullptr;
+        }
+        if (codec_ctx_) {
+            avcodec_free_context(&codec_ctx_);
+            codec_ctx_ = nullptr;
+        }
+        if (format_ctx_) {
+            avformat_close_input(&format_ctx_);
+            format_ctx_ = nullptr;
+        }
+
+        video_stream_index_ = -1;
+        video_stream_ = nullptr;
+        frame_duration_ = 0.0;
+        frame_index_ = 0;
+        last_valid_pts_ = AV_NOPTS_VALUE;
+        end_of_stream_ = false;
+    }
+
+private:
+    AVFormatContext* format_ctx_ = nullptr;
+    AVCodecContext* codec_ctx_ = nullptr;
+    AVPacket* packet_ = nullptr;
+    AVFrame* frame_ = nullptr;
+    AVStream* video_stream_ = nullptr;
+    int video_stream_index_ = -1;
+    double frame_duration_ = 0.0;
+    size_t frame_index_ = 0;
+    int64_t last_valid_pts_ = AV_NOPTS_VALUE;
+    bool end_of_stream_ = false;
+};
+
+} // namespace
+
 CalibrationWatcher::CalibrationWatcher(
     const std::filesystem::path& record_dir,
     const std::filesystem::path& calib_dir
@@ -288,87 +474,164 @@ bool CalibrationWatcher::extractFramesFromVideo(const VideoFile& video, const Ca
         logMessage("Failed to open video file: " + video.path.string());
         return false;
     }
-    
+
+    FFmpegFramePTSReader pts_reader;
+    bool pts_available = pts_reader.open(video.path.string());
+    if (!pts_available) {
+        logMessage("WARNING: Unable to initialise FFmpeg timestamp reader for " + video.path.string());
+    }
+
+
     cv::Mat frame;
     int frame_count = 0;
     int saved_count = 0;
-    
+
     // Получаем общее количество кадров
     int total_frames = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT));
-    int skip_interval = std::max(1, total_frames / params.max_frames);
-    
-    logMessage("Processing video: " + std::to_string(total_frames) + 
+    int skip_interval = std::max(1, total_frames / std::max(1, params.max_frames));
+
+    logMessage("Processing video: " + std::to_string(total_frames) +
                " frames, skip interval: " + std::to_string(skip_interval));
-    
+
     while (cap.read(frame) && saved_count < params.max_frames && !should_stop_.load()) {
+        double timestamp_seconds = 0.0;
+        if (pts_available) {
+            if (!pts_reader.nextTimestamp(timestamp_seconds)) {
+                logMessage("WARNING: Failed to fetch PTS for frame " + std::to_string(frame_count) +
+                           " in video " + video.path.string());
+                pts_available = false;
+                timestamp_seconds = cap.get(cv::CAP_PROP_POS_MSEC) / 1000.0;
+            }
+        } else {
+            timestamp_seconds = cap.get(cv::CAP_PROP_POS_MSEC) / 1000.0;
+        }
+
         // Пропускаем кадры для равномерного распределения
         if (frame_count % skip_interval != 0) {
             frame_count++;
             continue;
         }
-        
+
         // Оцениваем качество кадра
-        FrameQuality quality = evaluateFrameQuality(frame, params);
-        
+        std::vector<cv::Point2f> corners;
+        FrameQuality quality = evaluateFrameQuality(frame, params, &corners);
+
         if (quality.board_detected && quality.overall_score >= params.quality_threshold) {
-            std::string filename = "frame_" + std::to_string(saved_count) + 
+            DetectedFrame detected_frame;
+            detected_frame.timestamp = timestamp_seconds;
+            detected_frame.corners = std::move(corners);
+            detected_frame.quality = quality;
+            detected_frame.image = frame.clone();
+
+            std::string filename = "frame_" + std::to_string(saved_count) +
                                  "_score_" + std::to_string(static_cast<int>(quality.overall_score)) + ".png";
-            
+
             std::filesystem::path filepath = cam_dir / filename;
-            
-            if (cv::imwrite(filepath.string(), frame)) {
+
+
+            if (cv::imwrite(filepath.string(), detected_frame.image)) {
                 saved_count++;
-                logMessage("Saved quality frame: " + filename + 
-                          " (corners: " + std::to_string(quality.corners_found) + 
+                logMessage("Saved quality frame: " + filename +
+                          " (corners: " + std::to_string(quality.corners_found) +
                           ", score: " + std::to_string(quality.overall_score) + ")");
+
+                if (!saveFrameMetadata(filepath, detected_frame)) {
+                    logMessage("WARNING: Failed to save metadata for frame " + filename);
+                }
             }
         }
-        
+
         frame_count++;
     }
-    
+
     cap.release();
-    
-    logMessage("Extracted " + std::to_string(saved_count) + " quality frames from " + 
+
+    logMessage("Extracted " + std::to_string(saved_count) + " quality frames from " +
                std::to_string(frame_count) + " total frames for camera " + video.camera_id);
-    
+
     return saved_count >= params.min_frames;
 }
 
+
+bool CalibrationWatcher::saveFrameMetadata(const std::filesystem::path& image_path, const DetectedFrame& frame) const {
+    try {
+        nlohmann::json metadata;
+        metadata["image"] = image_path.filename().string();
+        metadata["timestamp"] = frame.timestamp;
+        metadata["timestamp_units"] = "seconds";
+        metadata["quality"] = {
+            {"sharpness", frame.quality.sharpness},
+            {"contrast", frame.quality.contrast},
+            {"corner_response", frame.quality.corner_response},
+            {"corners_found", frame.quality.corners_found},
+            {"overall_score", frame.quality.overall_score},
+            {"board_detected", frame.quality.board_detected}
+        };
+
+        nlohmann::json corners_json = nlohmann::json::array();
+        for (const auto& pt : frame.corners) {
+            corners_json.push_back({{"x", pt.x}, {"y", pt.y}});
+        }
+        metadata["corners"] = std::move(corners_json);
+
+        std::filesystem::path metadata_path = image_path;
+        metadata_path.replace_extension(".json");
+
+        std::ofstream meta_file(metadata_path);
+        if (!meta_file.is_open()) {
+            logMessage("WARNING: Unable to open metadata file for writing: " + metadata_path.string());
+            return false;
+        }
+
+        meta_file << metadata.dump(2);
+        meta_file.close();
+        return true;
+    } catch (const std::exception& e) {
+        logMessage("ERROR: Exception while saving metadata for " + image_path.string() + ": " + e.what());
+        return false;
+    }
+}
+
+
+
 CalibrationWatcher::FrameQuality CalibrationWatcher::evaluateFrameQuality(
-    const cv::Mat& frame, const CalibrationParams& params) {
-    
+    const cv::Mat& frame, const CalibrationParams& params,
+    std::vector<cv::Point2f>* refined_corners) {
+
     FrameQuality quality;
-    
+
     cv::Mat gray;
     cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
-    
+
     // Оценка резкости
     quality.sharpness = calculateSharpness(gray);
-    
+
     // Оценка контрастности
     quality.contrast = calculateContrast(gray);
-    
+
     // Поиск шахматной доски
     std::vector<cv::Point2f> corners;
     cv::Size pattern_size = params.getPatternSize();
-    
+
     quality.board_detected = cv::findChessboardCorners(
         gray, pattern_size, corners,
-        cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE | 
+        cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE |
         cv::CALIB_CB_FAST_CHECK);
-    
+
     if (quality.board_detected) {
         quality.corners_found = static_cast<int>(corners.size());
-        
+
         // Улучшение точности углов
         cv::cornerSubPix(gray, corners, cv::Size(11, 11), cv::Size(-1, -1),
                         cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::COUNT, 30, 0.1));
-        
+        if (refined_corners) {
+            *refined_corners = corners;
+        }
+
         // Оценка качества углов (среднее значение интенсивности в окрестности углов)
         float corner_response = 0.0f;
         for (const auto& corner : corners) {
-            if (corner.x >= 5 && corner.y >= 5 && 
+            if (corner.x >= 5 && corner.y >= 5 &&
                 corner.x < gray.cols - 5 && corner.y < gray.rows - 5) {
                 cv::Rect roi(corner.x - 5, corner.y - 5, 11, 11);
                 cv::Scalar mean_val = cv::mean(gray(roi));
@@ -376,12 +639,14 @@ CalibrationWatcher::FrameQuality CalibrationWatcher::evaluateFrameQuality(
             }
         }
         quality.corner_response = corner_response / corners.size();
+    } else if (refined_corners) {
+        refined_corners->clear();
     }
-    
+
     // Общая оценка качества
     if (quality.board_detected) {
-        quality.overall_score = quality.sharpness * 0.4f + 
-                               quality.contrast * 0.3f + 
+        quality.overall_score = quality.sharpness * 0.4f +
+                               quality.contrast * 0.3f +
                                (quality.corner_response / 255.0f) * 100.0f * 0.3f;
     }
     

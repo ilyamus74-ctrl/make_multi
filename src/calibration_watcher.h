@@ -117,6 +117,13 @@ private:
         float overall_score = 0.0f;
     };
 
+    struct DetectedFrame {
+        double timestamp = 0.0;                      // Presentation timestamp in seconds
+        std::vector<cv::Point2f> corners;            // Refined chessboard corners
+        FrameQuality quality;                        // Calculated quality metrics
+        cv::Mat image;                               // Captured image for persistence
+    };
+
     // Пути
     std::filesystem::path record_dir_;
     std::filesystem::path calib_dir_;
@@ -152,7 +159,8 @@ private:
     std::vector<std::string> extractFramesFromAllVideos(const CalibrationParams& params);
     bool extractFramesFromVideo(const VideoFile& video, const CalibrationParams& params);
     
-    FrameQuality evaluateFrameQuality(const cv::Mat& frame, const CalibrationParams& params);
+    FrameQuality evaluateFrameQuality(const cv::Mat& frame, const CalibrationParams& params,
+                                      std::vector<cv::Point2f>* refined_corners = nullptr);
     std::vector<cv::Mat> loadAndSelectBestFrames(const std::string& camera_id, 
                                                 const CalibrationParams& params);
 
@@ -168,6 +176,8 @@ private:
 
     void updateStatus(const std::string& message, float progress = -1.0f);
     void logMessage(const std::string& message) const;
+
+    bool saveFrameMetadata(const std::filesystem::path& image_path, const DetectedFrame& frame) const;
 
     // Утилиты для оценки качества
     static float calculateSharpness(const cv::Mat& gray);

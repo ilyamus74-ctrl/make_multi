@@ -102,6 +102,19 @@ if(NOT NLOHMANN_JSON_FOUND)
     endif()
 endif()
 
+# ---------- FFmpeg (timestamps for calibration) ----------
+if(NOT PkgConfig_FOUND)
+  find_package(PkgConfig REQUIRED)
+endif()
+pkg_check_modules(AVFORMAT REQUIRED libavformat)
+pkg_check_modules(AVCODEC REQUIRED libavcodec)
+pkg_check_modules(AVUTIL REQUIRED libavutil)
+
+set(FFMPEG_INCLUDE_DIRS ${AVFORMAT_INCLUDE_DIRS} ${AVCODEC_INCLUDE_DIRS} ${AVUTIL_INCLUDE_DIRS})
+list(REMOVE_DUPLICATES FFMPEG_INCLUDE_DIRS)
+set(FFMPEG_LIBS ${AVFORMAT_LIBRARIES} ${AVCODEC_LIBRARIES} ${AVUTIL_LIBRARIES})
+
+
 # ---------- utils (перенесены в include/utils) ----------
 add_library(imagedrawing STATIC
   ${PROJ}/include/utils/image_drawing.c
@@ -123,11 +136,12 @@ add_library(calibration_watcher STATIC
   ${PROJ}/src/calibration_watcher.cpp
 )
 target_include_directories(calibration_watcher PUBLIC 
-  ${PROJ}/include 
+  ${PROJ}/include
   ${PROJ}/src
   ${OpenCV_INCLUDE_DIRS}
+  ${FFMPEG_INCLUDE_DIRS}
 )
-target_link_libraries(calibration_watcher ${OpenCV_LIBS})
+target_link_libraries(calibration_watcher PUBLIC ${OpenCV_LIBS} ${FFMPEG_LIBS})
 
 # ---------- выбор исходника для rknpu2 ----------
 if(NOT DEFINED rknpu_yolov8_file)
@@ -204,6 +218,7 @@ if(BUILD_WEB_SERVER)
       ${LIBRKNNRT_INCLUDES}
       ${RGA_INC_DIR}
       ${OpenCV_INCLUDE_DIRS}
+      ${FFMPEG_INCLUDE_DIRS}
     )
 
     target_include_directories(yolov8_web_server_calibration PRIVATE
@@ -214,6 +229,7 @@ if(BUILD_WEB_SERVER)
       ${LIBRKNNRT_INCLUDES}
       ${RGA_INC_DIR}
       ${OpenCV_INCLUDE_DIRS}
+      ${FFMPEG_INCLUDE_DIRS}
     )
 
     target_link_libraries(yolov8_web_server
@@ -295,6 +311,7 @@ target_include_directories(calibration_cli PRIVATE
   ${PROJ}
   ${PROJ}/src
   ${OpenCV_INCLUDE_DIRS}
+  ${FFMPEG_INCLUDE_DIRS}
 )
 
 target_link_libraries(calibration_cli
