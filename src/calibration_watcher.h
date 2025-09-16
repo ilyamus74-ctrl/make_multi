@@ -181,9 +181,9 @@ private:
     bool isVideoComplete(const VideoFile& video);
 
 
-    BoardPose analyzeBoardPose(const std::vector<cv::Point2f>& corners,
-                               const cv::Size& image_size,
-                               const cv::Size& pattern_size);
+ static BoardPose analyzeBoardPose(const std::vector<cv::Point2f>& corners,
+                                      const cv::Size& image_size,
+                                      const cv::Size& pattern_size);
 
 
     std::vector<std::string> extractFramesFromAllVideos(const CalibrationParams& params);
