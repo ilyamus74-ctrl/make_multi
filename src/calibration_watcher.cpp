@@ -8,6 +8,8 @@
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <cmath>
+#include <limits>
 
 #include <utility>
 extern "C" {
@@ -193,6 +195,14 @@ private:
     bool end_of_stream_ = false;
 };
 
+std::string makeStereoKey(const std::string& cam1, const std::string& cam2) {
+    if (cam1 <= cam2) {
+        return cam1 + "|" + cam2;
+    }
+    return cam2 + "|" + cam1;
+}
+
+
 } // namespace
 
 CalibrationWatcher::CalibrationWatcher(
@@ -331,11 +341,24 @@ void CalibrationWatcher::calibrationWorker(const CalibrationParams& params) {
             processing_ = false;
             return;
         }
-        
-        // 4. Выполняем стерео и мульти-камерную калибровку
+
+        // 4. Выполняем синхронизацию и стерео/мульти-камерную калибровку
         if (successful_cameras.size() >= 2) {
-            updateStatus("Performing stereo/multi calibrations...", 75.0f);
-            performMultiCameraCalibration(successful_cameras, params);
+            updateStatus("Synchronizing camera streams...", 72.5f);
+            auto synchronization = synchronizeStreams(successful_cameras, params);
+
+            if (should_stop_.load()) {
+                updateStatus("Calibration stopped by user", 100.0f);
+                processing_ = false;
+                return;
+            }
+
+            if (!synchronization.multi_groups.empty()) {
+                updateStatus("Performing stereo/multi calibrations...", 75.0f);
+                performMultiCameraCalibration(successful_cameras, params, synchronization);
+            } else {
+                logMessage("No synchronized frame groups found. Skipping stereo calibration stage.");
+            }
         }
         
         // 5. Сохраняем результаты
@@ -527,7 +550,7 @@ bool CalibrationWatcher::extractFramesFromVideo(const VideoFile& video, const Ca
                                  "_score_" + std::to_string(static_cast<int>(quality.overall_score)) + ".png";
 
             std::filesystem::path filepath = cam_dir / filename;
-
+            detected_frame.image_path = filepath;
 
             if (cv::imwrite(filepath.string(), detected_frame.image)) {
                 saved_count++;
@@ -649,48 +672,271 @@ CalibrationWatcher::FrameQuality CalibrationWatcher::evaluateFrameQuality(
                                quality.contrast * 0.3f +
                                (quality.corner_response / 255.0f) * 100.0f * 0.3f;
     }
-    
+
     return quality;
 }
 
 std::vector<cv::Mat> CalibrationWatcher::loadAndSelectBestFrames(
     const std::string& camera_id, const CalibrationParams& params) {
-    
+
     std::filesystem::path cam_dir = calib_dir_ / ("cam_" + camera_id) / "images";
-    
+
     if (!std::filesystem::exists(cam_dir)) {
         logMessage("Camera directory does not exist: " + cam_dir.string());
         return {};
     }
-    
+
     // Загружаем все изображения с их оценками качества
     std::vector<std::pair<cv::Mat, float>> scored_frames;
-    
+
     for (const auto& entry : std::filesystem::directory_iterator(cam_dir)) {
         if (entry.path().extension() != ".png") continue;
-        
+
         cv::Mat img = cv::imread(entry.path().string());
         if (img.empty()) continue;
-        
+
         FrameQuality quality = evaluateFrameQuality(img, params);
         if (quality.board_detected && quality.overall_score >= params.quality_threshold) {
             scored_frames.emplace_back(img, quality.overall_score);
         }
     }
-    
+
     // Сортируем по качеству (лучшие первыми)
     std::sort(scored_frames.begin(), scored_frames.end(),
               [](const auto& a, const auto& b) { return a.second > b.second; });
-    
+
     // Берем только лучшие кадры
     std::vector<cv::Mat> best_frames;
     int max_frames = std::min(params.max_frames, static_cast<int>(scored_frames.size()));
-    
+
     for (int i = 0; i < max_frames; ++i) {
         best_frames.push_back(scored_frames[i].first);
     }
-    
+
     return best_frames;
+}
+
+CalibrationWatcher::StreamSynchronization CalibrationWatcher::synchronizeStreams(
+    const std::vector<std::string>& camera_ids,
+    const CalibrationParams& params) const {
+
+    StreamSynchronization sync;
+
+    if (camera_ids.empty()) {
+        return sync;
+    }
+
+    constexpr double kTimestampTolerance = 0.033; // ~33ms tolerance for 30 FPS streams
+    std::map<std::string, double> first_timestamps;
+
+    for (const auto& camera_id : camera_ids) {
+        if (should_stop_.load()) {
+            return sync;
+        }
+
+        std::filesystem::path cam_dir = calib_dir_ / ("cam_" + camera_id) / "images";
+        if (!std::filesystem::exists(cam_dir)) {
+            logMessage("Synchronization skipped for camera " + camera_id +
+                       ": images directory not found at " + cam_dir.string());
+            continue;
+        }
+
+        std::vector<std::filesystem::path> metadata_files;
+        for (const auto& entry : std::filesystem::directory_iterator(cam_dir)) {
+            if (entry.path().extension() == ".json") {
+                metadata_files.push_back(entry.path());
+            }
+        }
+
+        std::sort(metadata_files.begin(), metadata_files.end());
+
+        std::vector<StreamSynchronization::FramePtr> frames;
+        frames.reserve(metadata_files.size());
+
+        for (const auto& metadata_path : metadata_files) {
+            if (should_stop_.load()) {
+                return sync;
+            }
+
+            try {
+                std::ifstream meta_stream(metadata_path);
+                if (!meta_stream.is_open()) {
+                    logMessage("Unable to open metadata file " + metadata_path.string());
+                    continue;
+                }
+
+                nlohmann::json metadata;
+                meta_stream >> metadata;
+
+                auto frame = std::make_shared<DetectedFrame>();
+                frame->timestamp = metadata.value("timestamp", 0.0);
+
+                const auto image_name = metadata.value("image", std::string());
+                if (image_name.empty()) {
+                    logMessage("Skipping metadata without image reference: " + metadata_path.string());
+                    continue;
+                }
+
+                std::filesystem::path image_path = cam_dir / image_name;
+                frame->image_path = image_path;
+                frame->image = cv::imread(image_path.string(), cv::IMREAD_COLOR);
+                if (frame->image.empty()) {
+                    logMessage("Failed to load synchronized image: " + image_path.string());
+                    continue;
+                }
+
+                if (metadata.contains("quality")) {
+                    const auto& quality = metadata["quality"];
+                    frame->quality.sharpness = quality.value("sharpness", 0.0f);
+                    frame->quality.contrast = quality.value("contrast", 0.0f);
+                    frame->quality.corner_response = quality.value("corner_response", 0.0f);
+                    frame->quality.corners_found = quality.value("corners_found", 0);
+                    frame->quality.board_detected = quality.value("board_detected", true);
+                    frame->quality.overall_score = quality.value("overall_score", 0.0f);
+                } else {
+                    frame->quality.board_detected = true;
+                }
+
+                if (!frame->quality.board_detected) {
+                    continue;
+                }
+
+                if (metadata.contains("corners") && metadata["corners"].is_array()) {
+                    for (const auto& corner : metadata["corners"]) {
+                        if (!corner.contains("x") || !corner.contains("y")) {
+                            continue;
+                        }
+                        frame->corners.emplace_back(corner["x"].get<float>(),
+                                                    corner["y"].get<float>());
+                    }
+                }
+
+                if (frame->corners.empty()) {
+                    logMessage("Skipping synchronized frame without stored chessboard corners: " +
+                               image_path.string());
+                    continue;
+                }
+
+                frames.push_back(frame);
+            } catch (const std::exception& e) {
+                logMessage("Failed to parse metadata " + metadata_path.string() + ": " + e.what());
+            }
+        }
+
+        std::sort(frames.begin(), frames.end(),
+                  [](const auto& lhs, const auto& rhs) { return lhs->timestamp < rhs->timestamp; });
+
+        size_t max_frames_per_camera = static_cast<size_t>(std::max(params.max_frames * 3, params.min_frames));
+        if (frames.size() > max_frames_per_camera) {
+            frames.resize(max_frames_per_camera);
+        }
+
+        if (!frames.empty()) {
+            first_timestamps[camera_id] = frames.front()->timestamp;
+            logMessage("Loaded " + std::to_string(frames.size()) +
+                       " synchronized frames for camera " + camera_id);
+            sync.mono_frames[camera_id] = std::move(frames);
+        } else {
+            logMessage("No synchronized frames available for camera " + camera_id);
+        }
+    }
+
+    if (sync.mono_frames.size() < 2 || first_timestamps.empty()) {
+        logMessage("Unable to synchronize streams: insufficient cameras with metadata");
+        return sync;
+    }
+
+    double global_min_ts = std::numeric_limits<double>::max();
+    for (const auto& [camera, ts] : first_timestamps) {
+        global_min_ts = std::min(global_min_ts, ts);
+    }
+
+    for (const auto& [camera, ts] : first_timestamps) {
+        sync.camera_offsets[camera] = ts - global_min_ts;
+    }
+
+    if (!sync.camera_offsets.empty()) {
+        std::ostringstream oss;
+        oss << "Estimated camera offsets (s): ";
+        bool first = true;
+        for (const auto& [camera, offset] : sync.camera_offsets) {
+            if (!first) {
+                oss << ", ";
+            }
+            oss << camera << '=' << std::fixed << std::setprecision(3) << offset;
+            first = false;
+        }
+        logMessage(oss.str());
+    }
+
+    std::map<double, StreamSynchronization::TimestampGroup> grouped_frames;
+
+    auto place_frame = [&](const std::string& camera, const StreamSynchronization::FramePtr& frame) {
+        double offset = 0.0;
+        auto offset_it = sync.camera_offsets.find(camera);
+        if (offset_it != sync.camera_offsets.end()) {
+            offset = offset_it->second;
+        }
+
+        double aligned_ts = frame->timestamp - offset;
+
+        auto lower = grouped_frames.lower_bound(aligned_ts);
+
+        auto try_place = [&](std::map<double, StreamSynchronization::TimestampGroup>::iterator it) {
+            if (it != grouped_frames.end() && std::abs(it->first - aligned_ts) <= kTimestampTolerance) {
+                it->second[camera] = frame;
+                return true;
+            }
+            return false;
+        };
+
+        if (try_place(lower)) {
+            return;
+        }
+
+        if (lower != grouped_frames.begin()) {
+            auto prev = std::prev(lower);
+            if (try_place(prev)) {
+                return;
+            }
+        }
+
+        grouped_frames[aligned_ts][camera] = frame;
+    };
+
+    for (const auto& [camera, frames] : sync.mono_frames) {
+        for (const auto& frame : frames) {
+            if (should_stop_.load()) {
+                return sync;
+            }
+            place_frame(camera, frame);
+        }
+    }
+
+    size_t stereo_match_count = 0;
+    for (const auto& [timestamp, group] : grouped_frames) {
+        if (group.size() < 2) {
+            continue;
+        }
+
+        sync.multi_groups[timestamp] = group;
+
+        for (auto it1 = group.begin(); it1 != group.end(); ++it1) {
+            auto it2 = it1;
+            ++it2;
+            for (; it2 != group.end(); ++it2) {
+                std::string key = makeStereoKey(it1->first, it2->first);
+                sync.stereo_groups[key][timestamp] = {it1->second, it2->second};
+                ++stereo_match_count;
+            }
+        }
+    }
+
+    logMessage("Stream synchronization prepared " + std::to_string(sync.multi_groups.size()) +
+               " multi-camera timestamps and " + std::to_string(stereo_match_count) +
+               " stereo matches");
+
+    return sync;
 }
 
 bool CalibrationWatcher::performMonoCalibration(const std::string& camera_id, const CalibrationParams& params) {
@@ -785,66 +1031,149 @@ bool CalibrationWatcher::performMonoCalibration(const std::string& camera_id, co
     return result.success;
 }
 
-bool CalibrationWatcher::performStereoCalibration(const std::string& cam1, const std::string& cam2, 
-                                                  const CalibrationParams& params) {
-    // Проверяем наличие результатов моно-калибровки
+bool CalibrationWatcher::performStereoCalibration(
+    const std::string& cam1,
+    const std::string& cam2,
+    const StreamSynchronization::StereoGroup& synchronized_frames,
+    const CalibrationParams& params) {
+
     cv::Mat K1, K2, D1, D2;
     bool has_cam1 = getCameraMatrix(cam1, K1, D1);
     bool has_cam2 = getCameraMatrix(cam2, K2, D2);
-    
+
     if (!has_cam1 || !has_cam2) {
         logMessage("Mono calibration results not found for stereo pair: " + cam1 + " + " + cam2);
         return false;
     }
-    
-    // Загружаем изображения для обеих камер
-    auto images1 = loadAndSelectBestFrames(cam1, params);
-    auto images2 = loadAndSelectBestFrames(cam2, params);
-    
-    if (images1.size() < params.min_frames || images2.size() < params.min_frames) {
-        logMessage("Not enough images for stereo pair: " + cam1 + " + " + cam2);
+
+
+    if (synchronized_frames.empty()) {
+        logMessage("No synchronized frames available for stereo pair: " + cam1 + " + " + cam2);
         return false;
     }
-    
-    // Берем минимальное количество изображений
-    size_t min_images = std::min(images1.size(), images2.size());
-    images1.resize(min_images);
-    images2.resize(min_images);
-    
-    // Подготовка данных для стерео калибровки
-    std::vector<std::vector<cv::Point3f>> object_points;
-    std::vector<std::vector<cv::Point2f>> image_points1, image_points2;
-    
+
+
+    struct Candidate {
+        double timestamp;
+        StreamSynchronization::FramePtr left;
+        StreamSynchronization::FramePtr right;
+        float score;
+    };
+
+    std::vector<Candidate> candidates;
+    candidates.reserve(synchronized_frames.size());
+
+    for (const auto& [timestamp, frame_pair] : synchronized_frames) {
+        const auto& left = frame_pair.first;
+        const auto& right = frame_pair.second;
+        if (!left || !right) {
+            continue;
+        }
+        if (left->image.empty() || right->image.empty()) {
+            continue;
+        }
+
+        float pair_score = std::min(left->quality.overall_score, right->quality.overall_score);
+        candidates.push_back({timestamp, left, right, pair_score});
+    }
+
+    if (candidates.size() < static_cast<size_t>(params.min_frames)) {
+        logMessage("Not enough synchronized frames for stereo pair: " + cam1 + " + " + cam2 +
+                   " (available " + std::to_string(candidates.size()) + ")");
+        return false;
+    }
+
+    std::sort(candidates.begin(), candidates.end(), [](const Candidate& a, const Candidate& b) {
+        if (std::abs(a.score - b.score) > 1e-3f) {
+            return a.score > b.score;
+        }
+        return a.timestamp < b.timestamp;
+    });
+
     auto world_points = generateChessboardPoints(params);
-    
-    for (size_t i = 0; i < min_images && !should_stop_.load(); ++i) {
-        std::vector<cv::Point2f> corners1, corners2;
-        
-        if (findChessboardInFrame(images1[i], params, corners1) &&
-            findChessboardInFrame(images2[i], params, corners2)) {
-            
-            object_points.push_back(world_points);
-            image_points1.push_back(corners1);
-            image_points2.push_back(corners2);
+    std::vector<std::vector<cv::Point3f>> object_points;
+    std::vector<std::vector<cv::Point2f>> image_points1;
+    std::vector<std::vector<cv::Point2f>> image_points2;
+
+    cv::Size image_size;
+    bool image_size_initialized = false;
+
+    size_t processed_candidates = 0;
+
+    for (const auto& candidate : candidates) {
+        if (should_stop_.load()) {
+            return false;
+        }
+
+        const auto& left = candidate.left;
+        const auto& right = candidate.right;
+
+        if (!image_size_initialized) {
+            image_size = left->image.size();
+            image_size_initialized = true;
+        }
+
+        if (left->image.size() != image_size || right->image.size() != image_size) {
+            logMessage("Skipping synchronized frame (timestamp " + std::to_string(candidate.timestamp) +
+                       ") for pair " + cam1 + " + " + cam2 +
+                       ": image size mismatch");
+            continue;
+        }
+
+        std::vector<cv::Point2f> corners_left = left->corners;
+        std::vector<cv::Point2f> corners_right = right->corners;
+
+        if (corners_left.empty() && !left->image.empty()) {
+            if (!findChessboardInFrame(left->image, params, corners_left)) {
+                logMessage("Skipping timestamp " + std::to_string(candidate.timestamp) +
+                           " for camera " + cam1 + ": chessboard not detected");
+                continue;
+            }
+        }
+
+        if (corners_right.empty() && !right->image.empty()) {
+            if (!findChessboardInFrame(right->image, params, corners_right)) {
+                logMessage("Skipping timestamp " + std::to_string(candidate.timestamp) +
+                           " for camera " + cam2 + ": chessboard not detected");
+                continue;
+            }
+        }
+
+        if (corners_left.size() != corners_right.size() || corners_left.empty()) {
+            logMessage("Skipping synchronized frame (timestamp " + std::to_string(candidate.timestamp) +
+                       ") due to inconsistent corner detection for pair " + cam1 + " + " + cam2);
+            continue;
+        }
+
+        object_points.push_back(world_points);
+        image_points1.push_back(std::move(corners_left));
+        image_points2.push_back(std::move(corners_right));
+        processed_candidates++;
+
+        if (object_points.size() >= static_cast<size_t>(params.max_frames)) {
+            break;
+
         }
     }
-    
-    if (object_points.size() < params.min_frames) {
-        logMessage("Not enough valid stereo pairs for calibration: " + cam1 + " + " + cam2);
+
+
+    if (object_points.size() < static_cast<size_t>(params.min_frames)) {
+        logMessage("Not enough valid synchronized stereo frames for " + cam1 + " + " + cam2 +
+                   ": collected " + std::to_string(object_points.size()) +
+                   " from " + std::to_string(candidates.size()) + " matches");
         return false;
     }
-    
-    // Выполнение стерео калибровки
+
     StereoCalibrationResult result;
     result.camera_pair = cam1 + "_" + cam2;
-    
+
     auto now = std::time(nullptr);
     std::ostringstream time_stream;
     time_stream << std::put_time(std::localtime(&now), "%Y-%m-%d %H:%M:%S");
     result.calibration_time = time_stream.str();
-    
+
     cv::Size image_size = images1[0].size();
-    
+
     try {
         result.reprojection_error = cv::stereoCalibrate(
             object_points, image_points1, image_points2,
@@ -852,54 +1181,91 @@ bool CalibrationWatcher::performStereoCalibration(const std::string& cam1, const
             result.R, result.T, result.E, result.F,
             cv::CALIB_FIX_INTRINSIC,
             cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 100, 1e-5));
-        
-        // Выполнение стерео ректификации
+
         cv::stereoRectify(K1, D1, K2, D2, image_size,
-                         result.R, result.T,
-                         result.R1, result.R2, result.P1, result.P2, result.Q);
-        
-        result.success = (result.reprojection_error < 1.0); // Порог ошибки
-        
+                          result.R, result.T,
+                          result.R1, result.R2, result.P1, result.P2, result.Q);
+
+        result.success = (result.reprojection_error < 1.0);
+
+
     } catch (const cv::Exception& e) {
         logMessage("Stereo calibration error for " + result.camera_pair + ": " + e.what());
         result.success = false;
     }
-    
+
     // Сохраняем результат
     {
         std::lock_guard<std::mutex> lock(results_mutex_);
         stereo_results_.push_back(result);
     }
-    
+
     if (result.success) {
-        logMessage("Stereo calibration successful for " + result.camera_pair + 
-                  ": error = " + std::to_string(result.reprojection_error));
+        logMessage("Stereo calibration successful for " + result.camera_pair +
+                  ": error = " + std::to_string(result.reprojection_error) +
+                  ", frames used = " + std::to_string(object_points.size()) +
+                  ", candidates processed = " + std::to_string(processed_candidates));
     }
-    
+
     return result.success;
 }
 
 void CalibrationWatcher::performMultiCameraCalibration(const std::vector<std::string>& camera_ids,
-                                                       const CalibrationParams& params) {
-    if (camera_ids.size() < 2) return;
-    
-    logMessage("Performing multi-camera calibration for " + std::to_string(camera_ids.size()) + " cameras");
-    
+                                                       const CalibrationParams& params,
+                                                       const StreamSynchronization& sync_data) {
+    if (camera_ids.size() < 2) {
+        return;
+    }
+
+    size_t potential_pairs = camera_ids.size() * (camera_ids.size() - 1) / 2;
+    logMessage("Performing multi-camera calibration for " + std::to_string(camera_ids.size()) +
+               " cameras (" + std::to_string(potential_pairs) + " potential pairs)");
+
     int successful_pairs = 0;
-    int total_pairs = 0;
-    
-    // Выполняем все возможные стерео-пары
-    for (size_t i = 0; i < camera_ids.size() && !should_stop_.load(); ++i) {
+    int attempted_pairs = 0;
+    int skipped_pairs = 0;
+
+    for (size_t i = 0; i < camera_ids.size(); ++i) {
         for (size_t j = i + 1; j < camera_ids.size(); ++j) {
-            total_pairs++;
-            if (performStereoCalibration(camera_ids[i], camera_ids[j], params)) {
+
+            if (should_stop_.load()) {
+                logMessage("Stereo calibration interrupted by stop request");
+                break;
+            }
+
+            const auto& cam1 = camera_ids[i];
+            const auto& cam2 = camera_ids[j];
+            std::string key = makeStereoKey(cam1, cam2);
+
+            auto group_it = sync_data.stereo_groups.find(key);
+            if (group_it == sync_data.stereo_groups.end()) {
+                logMessage("No synchronized frames for stereo pair: " + cam1 + " + " + cam2);
+                skipped_pairs++;
+                continue;
+            }
+
+            if (group_it->second.size() < static_cast<size_t>(params.min_frames)) {
+                logMessage("Not enough synchronized matches (" +
+                           std::to_string(group_it->second.size()) +
+                           ") for stereo pair: " + cam1 + " + " + cam2);
+                skipped_pairs++;
+                continue;
+            }
+
+            attempted_pairs++;
+            if (performStereoCalibration(cam1, cam2, group_it->second, params)) {
                 successful_pairs++;
             }
         }
+        if (should_stop_.load()) {
+            break;
+        }
     }
-    
-    logMessage("Multi-camera calibration completed: " + 
-               std::to_string(successful_pairs) + "/" + std::to_string(total_pairs) + " pairs successful");
+
+
+    logMessage("Multi-camera calibration completed: " +
+               std::to_string(successful_pairs) + "/" + std::to_string(attempted_pairs) +
+               " pairs successful, " + std::to_string(skipped_pairs) + " skipped due to missing data");
 }
 
 std::vector<cv::Point3f> CalibrationWatcher::generateChessboardPoints(const CalibrationParams& params) {

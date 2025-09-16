@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <memory>
 #include <atomic>
 #include <thread>
 #include <mutex>
@@ -122,6 +123,19 @@ private:
         std::vector<cv::Point2f> corners;            // Refined chessboard corners
         FrameQuality quality;                        // Calculated quality metrics
         cv::Mat image;                               // Captured image for persistence
+        std::filesystem::path image_path;            // Path to stored image on disk
+    };
+
+    struct StreamSynchronization {
+        using FramePtr = std::shared_ptr<DetectedFrame>;
+        using FramePair = std::pair<FramePtr, FramePtr>;
+        using TimestampGroup = std::map<std::string, FramePtr>;
+        using StereoGroup = std::map<double, FramePair>;
+
+        std::map<std::string, std::vector<FramePtr>> mono_frames;   // Individual camera timelines
+        std::map<std::string, StereoGroup> stereo_groups;           // Pair-wise synchronized frames
+        std::map<double, TimestampGroup> multi_groups;              // Multi-camera synchronized sets
+        std::map<std::string, double> camera_offsets;               // Estimated timestamp offsets
     };
 
     // Пути
@@ -161,14 +175,21 @@ private:
     
     FrameQuality evaluateFrameQuality(const cv::Mat& frame, const CalibrationParams& params,
                                       std::vector<cv::Point2f>* refined_corners = nullptr);
-    std::vector<cv::Mat> loadAndSelectBestFrames(const std::string& camera_id, 
+    std::vector<cv::Mat> loadAndSelectBestFrames(const std::string& camera_id,
                                                 const CalibrationParams& params);
 
+    StreamSynchronization synchronizeStreams(const std::vector<std::string>& camera_ids,
+                                             const CalibrationParams& params) const;
+
+
     bool performMonoCalibration(const std::string& camera_id, const CalibrationParams& params);
-    bool performStereoCalibration(const std::string& cam1, const std::string& cam2, 
+    bool performStereoCalibration(const std::string& cam1, const std::string& cam2,
+                                 const StreamSynchronization::StereoGroup& synchronized_frames,
                                  const CalibrationParams& params);
+
     void performMultiCameraCalibration(const std::vector<std::string>& camera_ids,
-                                      const CalibrationParams& params);
+                                      const CalibrationParams& params,
+                                      const StreamSynchronization& sync_data);
 
     std::vector<cv::Point3f> generateChessboardPoints(const CalibrationParams& params);
     bool findChessboardInFrame(const cv::Mat& frame, const CalibrationParams& params,
