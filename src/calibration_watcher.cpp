@@ -702,7 +702,6 @@ bool CalibrationWatcher::extractFramesFromVideo(const VideoFile& video,
 
     while (cap.read(frame) && saved_count < params.max_frames && !should_stop_.load()) {
         double timestamp_seconds = 0.0;
-        if (pts_available) {
         if (using_indexed_timestamps &&
             frame_count < static_cast<int>(timestamp_index->size())) {
             timestamp_seconds = (*timestamp_index)[frame_count];
