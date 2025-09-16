@@ -1277,8 +1277,7 @@ g_server.Get("/api/calibration/params", [](const httplib::Request&, httplib::Res
     resp["max_frames"] = cfg.value("calib_max_frames", 50);
     resp["quality_threshold"] = cfg.value("calib_quality_threshold", 50.0f);
     resp["delete_videos"] = cfg.value("calib_delete_videos", true);
-    resp["time_tolerance_ms"] = cfg.value("calib_time_tolerance_ms", 33);
-
+    
     res.set_content(resp.dump(), "application/json");
 });
 
@@ -1296,8 +1295,7 @@ g_server.Post("/api/calibration/params", [](const httplib::Request& req, httplib
         cfg["calib_max_frames"] = j.value("max_frames", 50);
         cfg["calib_quality_threshold"] = j.value("quality_threshold", 50.0f);
         cfg["calib_delete_videos"] = j.value("delete_videos", true);
-        cfg["calib_time_tolerance_ms"] = j.value("time_tolerance_ms", 33);
-
+        
         if (!writeMainConfig(cfg)) {
             resp["status"] = "error";
             resp["error"] = "Failed to save configuration";
@@ -1349,8 +1347,7 @@ g_server.Post("/api/calibration/start-auto", [](const httplib::Request&, httplib
             params.max_frames = cfg.value("calib_max_frames", 50);
             params.quality_threshold = cfg.value("calib_quality_threshold", 50.0f);
             params.delete_videos = cfg.value("calib_delete_videos", true);
-            params.time_tolerance_ms = cfg.value("calib_time_tolerance_ms", 33);
-
+            
             printf("Starting calibration with params: board=%dx%d, square=%.1fmm\n",
                    params.board_cols, params.board_rows, params.square_size);
             

@@ -21,8 +21,7 @@ struct CalibrationParams {
     int max_frames = 50;       // максимум кадров для обработки
     float quality_threshold = 50.0f; // порог качества изображения
     bool delete_videos = true; // удалять видео после обработки
-    int time_tolerance_ms = 33; // допустимое расхождение таймстемпов при синхронизации
-
+    
     // Вычисляемые поля (внутренние углы)
     int getInnerCols() const { return board_cols - 1; }
     int getInnerRows() const { return board_rows - 1; }
@@ -236,22 +235,6 @@ private:
     
     // Очистка временных файлов
     void cleanupTempFiles();
-
-    // Оценка и хранение временных смещений между камерами
-    void computeCameraOffsets(const std::vector<std::string>& camera_ids,
-                              const CalibrationParams& params,
-                              const std::map<std::string, std::vector<double>>& timestamp_index);
-    bool loadExternalCameraOffsets(std::map<std::string, double>& offsets) const;
-    std::vector<double> loadChessboardTimestamps(const std::string& camera_id) const;
-    double estimateOffsetFromTimestamps(const std::vector<double>& reference,
-                                        const std::vector<double>& target,
-                                        double tolerance) const;
-    double estimateOffsetFromIndex(const std::string& reference_camera,
-                                   const std::string& target_camera,
-                                   const std::map<std::string, std::vector<double>>& timestamp_index) const;
-    
-    mutable std::mutex camera_offsets_mutex_;
-    std::map<std::string, double> camera_time_offsets_;
 };
 
 // Класс для измерения расстояний

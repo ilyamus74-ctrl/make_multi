@@ -949,7 +949,6 @@ public:
         current_calib_params_.max_frames = 50;
         current_calib_params_.quality_threshold = 50.0f;
         current_calib_params_.delete_videos = true;
-        current_calib_params_.time_tolerance_ms = 33;
 
         }
 
@@ -1740,7 +1739,6 @@ private:
             resp["max_frames"] = current_calib_params_.max_frames;
             resp["quality_threshold"] = current_calib_params_.quality_threshold;
             resp["delete_videos"] = current_calib_params_.delete_videos;
-            resp["time_tolerance_ms"] = current_calib_params_.time_tolerance_ms;
             res.set_content(resp.dump(), "application/json");
         });
 
@@ -1748,7 +1746,7 @@ private:
             json resp;
             try {
                 auto j = json::parse(req.body);
-
+                
                 current_calib_params_.board_cols = j.value("board_cols", 10);
                 current_calib_params_.board_rows = j.value("board_rows", 7);
                 current_calib_params_.square_size = j.value("square_size", 30.0f);
@@ -1756,15 +1754,14 @@ private:
                 current_calib_params_.max_frames = j.value("max_frames", 50);
                 current_calib_params_.quality_threshold = j.value("quality_threshold", 50.0f);
                 current_calib_params_.delete_videos = j.value("delete_videos", true);
-                current_calib_params_.time_tolerance_ms = j.value("time_tolerance_ms", 33);
-
+                
                 resp["status"] = "ok";
                 resp["message"] = "Calibration parameters updated";
-
+                
                 printf("Calibration params updated: %dx%d board, %.1fmm squares\n",
                        current_calib_params_.board_cols, current_calib_params_.board_rows,
                        current_calib_params_.square_size);
-
+                
             } catch(const std::exception& e) {
                 resp["status"] = "error";
                 resp["error"] = e.what();
@@ -1801,8 +1798,7 @@ private:
                     resp["parameters"] = {
                         {"board_cols", current_calib_params_.board_cols},
                         {"board_rows", current_calib_params_.board_rows},
-                        {"square_size", current_calib_params_.square_size},
-                        {"time_tolerance_ms", current_calib_params_.time_tolerance_ms}
+                        {"square_size", current_calib_params_.square_size}
                     };
                 } else {
                     resp["status"] = "error";

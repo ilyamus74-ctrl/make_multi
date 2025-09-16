@@ -290,10 +290,6 @@ void CalibrationWatcher::stopCalibration() {
 void CalibrationWatcher::calibrationWorker(const CalibrationParams& params) {
     auto stopRequested = [this]() { return should_stop_.load(); };
     try {
-        {
-            std::lock_guard<std::mutex> lock(camera_offsets_mutex_);
-            camera_time_offsets_.clear();
-        }
         // 1. Сканируем записанные видео
         updateStatus("Scanning recorded videos...", 5.0f);
         auto video_files = scanRecordingFolder();
@@ -374,15 +370,6 @@ void CalibrationWatcher::calibrationWorker(const CalibrationParams& params) {
             processing_ = false;
             return;
         }
-
-        if (stopRequested()) {
-            updateStatus("Calibration stopped by user", 100.0f);
-            processing_ = false;
-            return;
-        }
-
-        updateStatus("Estimating camera offsets...", 62.0f);
-        computeCameraOffsets(processed_cameras, params, timestamp_index);
 
         if (stopRequested()) {
             updateStatus("Calibration stopped by user", 100.0f);
@@ -1118,7 +1105,7 @@ CalibrationWatcher::StreamSynchronization CalibrationWatcher::synchronizeStreams
         return sync;
     }
 
-    const double timestamp_tolerance = std::max(params.time_tolerance_ms, 1) / 1000.0;
+    constexpr double kTimestampTolerance = 0.033; // ~33ms tolerance for 30 FPS streams
     std::map<std::string, double> first_timestamps;
 
     for (const auto& camera_id : camera_ids) {
@@ -1254,53 +1241,32 @@ CalibrationWatcher::StreamSynchronization CalibrationWatcher::synchronizeStreams
         }
     }
 
-    if (sync.mono_frames.size() < 2) {
+    if (sync.mono_frames.size() < 2 || first_timestamps.empty()) {
         logMessage("Unable to synchronize streams: insufficient cameras with metadata");
         return sync;
     }
 
-    double fallback_min_ts = std::numeric_limits<double>::max();
+    double global_min_ts = std::numeric_limits<double>::max();
     for (const auto& [camera, ts] : first_timestamps) {
-        fallback_min_ts = std::min(fallback_min_ts, ts);
+        global_min_ts = std::min(global_min_ts, ts);
     }
 
-    {
-        std::lock_guard<std::mutex> lock(camera_offsets_mutex_);
-        for (const auto& camera : camera_ids) {
-            auto it = camera_time_offsets_.find(camera);
-            if (it != camera_time_offsets_.end()) {
-                sync.camera_offsets[camera] = it->second;
-            }
-        }
+    for (const auto& [camera, ts] : first_timestamps) {
+        sync.camera_offsets[camera] = ts - global_min_ts;
     }
 
-    if (sync.camera_offsets.size() >= 2) {
-        double min_offset = std::numeric_limits<double>::max();
+    if (!sync.camera_offsets.empty()) {
+        std::ostringstream oss;
+        oss << "Estimated camera offsets (s): ";
+        bool first = true;
         for (const auto& [camera, offset] : sync.camera_offsets) {
-            min_offset = std::min(min_offset, offset);
-        }
-        if (min_offset != std::numeric_limits<double>::max()) {
-            for (auto& [camera, offset] : sync.camera_offsets) {
-                offset -= min_offset;
+            if (!first) {
+                oss << ", ";
             }
+            oss << camera << '=' << std::fixed << std::setprecision(3) << offset;
+            first = false;
         }
-        if (fallback_min_ts != std::numeric_limits<double>::max()) {
-            for (const auto& [camera, ts] : first_timestamps) {
-                if (sync.camera_offsets.find(camera) == sync.camera_offsets.end()) {
-                    sync.camera_offsets[camera] = ts - fallback_min_ts;
-                }
-            }
-        }
-    } else {
-        sync.camera_offsets.clear();
-        if (first_timestamps.size() < 2 || fallback_min_ts == std::numeric_limits<double>::max()) {
-            logMessage("Unable to derive synchronization offsets from metadata");
-            return sync;
-        }
-        for (const auto& [camera, ts] : first_timestamps) {
-            sync.camera_offsets[camera] = ts - fallback_min_ts;
-        }
-        logMessage("Using fallback synchronization offsets derived from first timestamps");
+        logMessage(oss.str());
     }
 
     std::map<double, StreamSynchronization::TimestampGroup> grouped_frames;
@@ -1317,7 +1283,7 @@ CalibrationWatcher::StreamSynchronization CalibrationWatcher::synchronizeStreams
         auto lower = grouped_frames.lower_bound(aligned_ts);
 
         auto try_place = [&](std::map<double, StreamSynchronization::TimestampGroup>::iterator it) {
-            if (it != grouped_frames.end() && std::abs(it->first - aligned_ts) <= timestamp_tolerance) {
+            if (it != grouped_frames.end() && std::abs(it->first - aligned_ts) <= kTimestampTolerance) {
                 it->second[camera] = frame;
                 return true;
             }
@@ -2045,338 +2011,6 @@ bool CalibrationWatcher::validateCalibrationResult(const CameraCalibrationResult
 void CalibrationWatcher::cleanupTempFiles() {
     // Очистка временных файлов если необходимо
     // Может быть реализована для удаления промежуточных данных
-}
-
-void CalibrationWatcher::computeCameraOffsets(const std::vector<std::string>& camera_ids,
-                                              const CalibrationParams& params,
-                                              const std::map<std::string, std::vector<double>>& timestamp_index) {
-    if (camera_ids.size() < 2) {
-        std::lock_guard<std::mutex> lock(camera_offsets_mutex_);
-        camera_time_offsets_.clear();
-        return;
-    }
-
-    std::map<std::string, double> offsets;
-
-    if (!loadExternalCameraOffsets(offsets)) {
-        const double tolerance = std::max(params.time_tolerance_ms, 1) / 1000.0;
-        std::map<std::string, std::vector<double>> chessboard_timestamps;
-        size_t cameras_with_timestamps = 0;
-
-        for (const auto& camera : camera_ids) {
-            auto timestamps = loadChessboardTimestamps(camera);
-            if (!timestamps.empty()) {
-                cameras_with_timestamps++;
-                chessboard_timestamps.emplace(camera, std::move(timestamps));
-            }
-        }
-
-        if (cameras_with_timestamps >= 2) {
-            std::string reference_camera;
-            for (const auto& camera : camera_ids) {
-                if (chessboard_timestamps.find(camera) != chessboard_timestamps.end()) {
-                    reference_camera = camera;
-                    offsets[reference_camera] = 0.0;
-                    break;
-                }
-            }
-
-            if (!reference_camera.empty()) {
-                const auto& reference = chessboard_timestamps[reference_camera];
-                for (const auto& camera : camera_ids) {
-                    if (camera == reference_camera) {
-                        continue;
-                    }
-
-                    double offset_value = 0.0;
-                    auto target_it = chessboard_timestamps.find(camera);
-                    if (target_it != chessboard_timestamps.end() && !target_it->second.empty()) {
-                        offset_value = estimateOffsetFromTimestamps(reference, target_it->second, tolerance);
-                    } else {
-                        offset_value = estimateOffsetFromIndex(reference_camera, camera, timestamp_index);
-                        logMessage("Falling back to indexed timestamps for camera " + camera +
-                                   " when estimating offsets");
-                    }
-                    offsets[camera] = offset_value;
-                }
-            }
-        }
-
-        if (offsets.size() < camera_ids.size()) {
-            if (offsets.empty() && !camera_ids.empty()) {
-                offsets[camera_ids.front()] = 0.0;
-            }
-
-            for (const auto& camera : camera_ids) {
-                if (offsets.find(camera) == offsets.end()) {
-                    double fallback = estimateOffsetFromIndex(camera_ids.front(), camera, timestamp_index);
-                    offsets[camera] = fallback;
-                    logMessage("Offset for camera " + camera +
-                               " estimated using recording timestamps only");
-                }
-            }
-        }
-
-        if (!offsets.empty()) {
-            double min_offset = std::numeric_limits<double>::max();
-            for (const auto& [camera, value] : offsets) {
-                min_offset = std::min(min_offset, value);
-            }
-
-            if (min_offset != std::numeric_limits<double>::max()) {
-                for (auto& [camera, value] : offsets) {
-                    value -= min_offset;
-                }
-            }
-        }
-    } else {
-        for (const auto& camera : camera_ids) {
-            if (offsets.find(camera) == offsets.end()) {
-                offsets[camera] = 0.0;
-            }
-        }
-    }
-
-    {
-        std::lock_guard<std::mutex> lock(camera_offsets_mutex_);
-        camera_time_offsets_ = offsets;
-    }
-
-    if (!offsets.empty()) {
-        std::ostringstream oss;
-        oss << "Camera time offsets (s): ";
-        bool first = true;
-        for (const auto& camera : camera_ids) {
-            auto it = offsets.find(camera);
-            if (it == offsets.end()) {
-                continue;
-            }
-            if (!first) {
-                oss << ", ";
-            }
-            oss << camera << '=' << std::fixed << std::setprecision(4) << it->second;
-            first = false;
-        }
-        logMessage(oss.str());
-    } else {
-        logMessage("Camera time offsets were not determined; default synchronization will be used");
-    }
-}
-
-bool CalibrationWatcher::loadExternalCameraOffsets(std::map<std::string, double>& offsets) const {
-    const std::array<std::filesystem::path, 2> candidates = {
-        record_dir_ / "sync_offsets.json",
-        calib_dir_ / "sync_offsets.json"
-    };
-
-    auto appendOffset = [&offsets](const std::string& camera, double value_seconds) {
-        offsets[camera] = value_seconds;
-    };
-
-    auto parseOffsetObject = [&appendOffset](const nlohmann::json& node, double scale) {
-        if (!node.is_object()) {
-            return false;
-        }
-        bool added = false;
-        for (auto it = node.begin(); it != node.end(); ++it) {
-            const auto& value = it.value();
-            if (value.is_number_float() || value.is_number_integer()) {
-                appendOffset(it.key(), value.get<double>() * scale);
-                added = true;
-            } else if (value.is_object()) {
-                if (value.contains("seconds") && value["seconds"].is_number()) {
-                    appendOffset(it.key(), value["seconds"].get<double>());
-                    added = true;
-                } else if (value.contains("milliseconds") && value["milliseconds"].is_number()) {
-                    appendOffset(it.key(), value["milliseconds"].get<double>() / 1000.0);
-                    added = true;
-                } else if (value.contains("offset_seconds") && value["offset_seconds"].is_number()) {
-                    appendOffset(it.key(), value["offset_seconds"].get<double>());
-                    added = true;
-                } else if (value.contains("offset_ms") && value["offset_ms"].is_number()) {
-                    appendOffset(it.key(), value["offset_ms"].get<double>() / 1000.0);
-                    added = true;
-                }
-            }
-        }
-        return added;
-    };
-
-    auto parseOffsetArray = [&appendOffset](const nlohmann::json& node) {
-        if (!node.is_array()) {
-            return false;
-        }
-        bool added = false;
-        for (const auto& entry : node) {
-            if (!entry.is_object() || !entry.contains("camera")) {
-                continue;
-            }
-            const auto camera = entry["camera"].get<std::string>();
-            if (entry.contains("seconds") && entry["seconds"].is_number()) {
-                appendOffset(camera, entry["seconds"].get<double>());
-                added = true;
-            } else if (entry.contains("offset_seconds") && entry["offset_seconds"].is_number()) {
-                appendOffset(camera, entry["offset_seconds"].get<double>());
-                added = true;
-            } else if (entry.contains("milliseconds") && entry["milliseconds"].is_number()) {
-                appendOffset(camera, entry["milliseconds"].get<double>() / 1000.0);
-                added = true;
-            } else if (entry.contains("offset_ms") && entry["offset_ms"].is_number()) {
-                appendOffset(camera, entry["offset_ms"].get<double>() / 1000.0);
-                added = true;
-            }
-        }
-        return added;
-    };
-
-    for (const auto& candidate : candidates) {
-        if (!std::filesystem::exists(candidate)) {
-            continue;
-        }
-
-        try {
-            std::ifstream file(candidate);
-            if (!file.is_open()) {
-                continue;
-            }
-
-            nlohmann::json data;
-            file >> data;
-
-            offsets.clear();
-
-            bool parsed = false;
-            if (data.contains("camera_offsets")) {
-                parsed |= parseOffsetObject(data["camera_offsets"], 1.0);
-            }
-            if (data.contains("camera_offsets_seconds")) {
-                parsed |= parseOffsetObject(data["camera_offsets_seconds"], 1.0);
-            }
-            if (data.contains("camera_offsets_ms")) {
-                parsed |= parseOffsetObject(data["camera_offsets_ms"], 1.0 / 1000.0);
-            }
-            if (!parsed && data.is_object()) {
-                parsed |= parseOffsetObject(data, 1.0);
-            }
-            if (!parsed && data.is_array()) {
-                parsed |= parseOffsetArray(data);
-            }
-
-            if (parsed && !offsets.empty()) {
-                logMessage("Loaded camera offsets from external synchronization file: " + candidate.string());
-                return true;
-            }
-
-            offsets.clear();
-        } catch (const std::exception& e) {
-            logMessage("Failed to load synchronization offsets from " + candidate.string() + ": " + e.what());
-        }
-    }
-
-    offsets.clear();
-    return false;
-}
-
-std::vector<double> CalibrationWatcher::loadChessboardTimestamps(const std::string& camera_id) const {
-    std::vector<double> timestamps;
-    std::filesystem::path cam_dir = calib_dir_ / ("cam_" + camera_id) / "images";
-
-    if (!std::filesystem::exists(cam_dir)) {
-        return timestamps;
-    }
-
-    for (const auto& entry : std::filesystem::directory_iterator(cam_dir)) {
-        if (entry.path().extension() != ".json") {
-            continue;
-        }
-
-        try {
-            std::ifstream meta_stream(entry.path());
-            if (!meta_stream.is_open()) {
-                continue;
-            }
-
-            nlohmann::json metadata;
-            meta_stream >> metadata;
-
-            bool board_detected = true;
-            if (metadata.contains("quality") && metadata["quality"].is_object()) {
-                const auto& quality = metadata["quality"];
-                board_detected = quality.value("board_detected", true);
-            }
-
-            if (!board_detected) {
-                continue;
-            }
-
-            timestamps.push_back(metadata.value("timestamp", 0.0));
-        } catch (const std::exception& e) {
-            logMessage("Failed to read chessboard timestamp from " + entry.path().string() + ": " + e.what());
-        }
-    }
-
-    std::sort(timestamps.begin(), timestamps.end());
-    return timestamps;
-}
-
-double CalibrationWatcher::estimateOffsetFromTimestamps(const std::vector<double>& reference,
-                                                        const std::vector<double>& target,
-                                                        double tolerance) const {
-    if (reference.empty() || target.empty()) {
-        return 0.0;
-    }
-
-    const double min_tolerance = std::max(tolerance, 0.001);
-    const double max_window = 5.0; // 5 секунд максимум для оценки
-
-    std::map<long long, std::vector<double>> buckets;
-    for (double ref_ts : reference) {
-        for (double tgt_ts : target) {
-            double diff = tgt_ts - ref_ts;
-            if (std::abs(diff) > max_window) {
-                continue;
-            }
-            long long key = static_cast<long long>(std::llround(diff / min_tolerance));
-            buckets[key].push_back(diff);
-        }
-    }
-
-    if (buckets.empty()) {
-        return target.front() - reference.front();
-    }
-
-    size_t best_count = 0;
-    double best_offset = target.front() - reference.front();
-
-    for (auto& [key, values] : buckets) {
-        if (values.empty()) {
-            continue;
-        }
-        if (values.size() > best_count) {
-            best_count = values.size();
-            auto median_it = values.begin() + values.size() / 2;
-            std::nth_element(values.begin(), median_it, values.end());
-            best_offset = *median_it;
-        }
-    }
-
-    return best_offset;
-}
-
-double CalibrationWatcher::estimateOffsetFromIndex(
-    const std::string& reference_camera,
-    const std::string& target_camera,
-    const std::map<std::string, std::vector<double>>& timestamp_index) const {
-
-    auto ref_it = timestamp_index.find(reference_camera);
-    auto target_it = timestamp_index.find(target_camera);
-
-    if (ref_it != timestamp_index.end() && target_it != timestamp_index.end() &&
-        !ref_it->second.empty() && !target_it->second.empty()) {
-        return target_it->second.front() - ref_it->second.front();
-    }
-
-    return 0.0;
 }
 
 // ===============================================================================

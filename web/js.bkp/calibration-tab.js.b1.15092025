@@ -190,22 +190,14 @@ window.CameraApp.CalibrationTab = {
 
                 <div class="mb-3">
                     <label class="form-label">Quality Threshold</label>
-                    <input type="number" name="quality_threshold" class="form-control form-control-sm"
-                           value="${params.quality_threshold || window.CameraApp.Config.CALIBRATION.QUALITY_THRESHOLD}"
+                    <input type="number" name="quality_threshold" class="form-control form-control-sm" 
+                           value="${params.quality_threshold || window.CameraApp.Config.CALIBRATION.QUALITY_THRESHOLD}" 
                            min="1" max="100" step="0.1">
                     <small class="form-text">Minimum pattern quality score</small>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Time Tolerance (ms)</label>
-                    <input type="number" name="time_tolerance_ms" class="form-control form-control-sm"
-                           value="${(params.time_tolerance_ms !== undefined ? params.time_tolerance_ms : window.CameraApp.Config.CALIBRATION.TIME_TOLERANCE_MS)}"
-                           min="0" max="200">
-                    <small class="form-text">Maximum allowed timestamp difference between cameras</small>
-                </div>
-
                 <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" name="delete_videos"
+                    <input class="form-check-input" type="checkbox" name="delete_videos" 
                            ${(params.delete_videos !== false) ? 'checked' : ''}>
                     <label class="form-check-label">Delete videos after calibration</label>
                 </div>
@@ -394,7 +386,6 @@ window.CameraApp.CalibrationTab = {
 
             // Update UI
             window.CameraApp.UI.setButtonLoading(startBtn, true, 'Starting...');
-            startBtn.disabled = true;
             stopBtn.disabled = false;
             statusEl.style.display = 'block';
             statusEl.className = 'calibration-status warning';
@@ -405,7 +396,6 @@ window.CameraApp.CalibrationTab = {
             const response = await window.CameraApp.API.startAutoCalibration();
 
             if (response.status === 'ok') {
-                window.CameraApp.State.isCalibrating = true;
                 statusEl.className = 'calibration-status success';
                 statusEl.innerHTML = 'Calibration started - analyzing videos...';
 
@@ -420,15 +410,12 @@ window.CameraApp.CalibrationTab = {
             }
         } catch (error) {
             statusEl.className = 'calibration-status error';
-            window.CameraApp.State.isCalibrating = false;
             statusEl.innerHTML = `Calibration failed: ${error.message}`;
             progressEl.style.display = 'none';
             stopBtn.disabled = true;
-            startBtn.disabled = false;
             window.CameraApp.UI.showToast(`Calibration failed: ${error.message}`, 'danger');
         } finally {
             window.CameraApp.UI.setButtonLoading(startBtn, false);
-            startBtn.disabled = window.CameraApp.State.isCalibrating;
         }
     },
 
@@ -480,7 +467,6 @@ window.CameraApp.CalibrationTab = {
         const statusEl = document.getElementById('calibration-status');
         const progressEl = document.getElementById('calibration-progress');
 
-        window.CameraApp.State.isCalibrating = false;
         // Reset UI
         startBtn.disabled = false;
         stopBtn.disabled = true;
@@ -557,19 +543,14 @@ window.CameraApp.CalibrationTab = {
             }
 
             const stopBtn = document.getElementById('stop-calibration-btn');
-            const startBtn = document.getElementById('start-calibration-btn');
             const statusEl = document.getElementById('calibration-status');
             const progressEl = document.getElementById('calibration-progress');
 
             stopBtn.disabled = true;
-            if (startBtn) {
-                startBtn.disabled = false;
-            }
             statusEl.className = 'calibration-status warning';
             statusEl.innerHTML = 'Calibration stopped by user';
             progressEl.style.display = 'none';
 
-            window.CameraApp.State.isCalibrating = false;
             window.CameraApp.UI.showToast('Calibration stopped', 'info');
         } catch (error) {
             window.CameraApp.UI.showToast(`Failed to stop calibration: ${error.message}`, 'danger');

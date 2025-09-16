@@ -190,22 +190,14 @@ window.CameraApp.CalibrationTab = {
 
                 <div class="mb-3">
                     <label class="form-label">Quality Threshold</label>
-                    <input type="number" name="quality_threshold" class="form-control form-control-sm"
-                           value="${params.quality_threshold || window.CameraApp.Config.CALIBRATION.QUALITY_THRESHOLD}"
+                    <input type="number" name="quality_threshold" class="form-control form-control-sm" 
+                           value="${params.quality_threshold || window.CameraApp.Config.CALIBRATION.QUALITY_THRESHOLD}" 
                            min="1" max="100" step="0.1">
                     <small class="form-text">Minimum pattern quality score</small>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Time Tolerance (ms)</label>
-                    <input type="number" name="time_tolerance_ms" class="form-control form-control-sm"
-                           value="${(params.time_tolerance_ms !== undefined ? params.time_tolerance_ms : window.CameraApp.Config.CALIBRATION.TIME_TOLERANCE_MS)}"
-                           min="0" max="200">
-                    <small class="form-text">Maximum allowed timestamp difference between cameras</small>
-                </div>
-
                 <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" name="delete_videos"
+                    <input class="form-check-input" type="checkbox" name="delete_videos" 
                            ${(params.delete_videos !== false) ? 'checked' : ''}>
                     <label class="form-check-label">Delete videos after calibration</label>
                 </div>
