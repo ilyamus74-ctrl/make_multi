@@ -125,7 +125,7 @@ private:
         float overall_score = 0.0f;
     };
 
-
+public:
     struct DetectedFrame {
         double timestamp = 0.0;                      // Presentation timestamp in seconds
         std::vector<cv::Point2f> corners;            // Refined chessboard corners
@@ -135,6 +135,7 @@ private:
         BoardPose pose;                              // Estimated board pose parameters
     };
 
+private:
     struct StreamSynchronization {
         using FramePtr = std::shared_ptr<DetectedFrame>;
         using FramePair = std::pair<FramePtr, FramePtr>;
@@ -185,13 +186,9 @@ private:
     FrameQuality evaluateFrameQuality(const cv::Mat& frame, const CalibrationParams& params,
                                       std::vector<cv::Point2f>* refined_corners = nullptr);
 
-    static BoardPose analyzeBoardPose(const std::vector<cv::Point2f>& corners,
-                                      const cv::Size& image_size,
-                                      const cv::Size& pattern_size);
 
-    static DetectedFrame::BoardPose analyzeBoardPose(const std::vector<cv::Point2f>& corners,
-                                                     const cv::Size& image_size,
-                                                     const cv::Size& pattern_size);
+    std::vector<DetectedFrame> loadAndSelectBestFrames(const std::string& camera_id,
+                                                       const CalibrationParams& params);
 
     StreamSynchronization synchronizeStreams(const std::vector<std::string>& camera_ids,
                                              const CalibrationParams& params) const;
