@@ -10,7 +10,6 @@
 #include <sstream>
 #include <cmath>
 #include <limits>
-#include <array>
 
 #include <utility>
 extern "C" {
@@ -544,8 +543,6 @@ bool CalibrationWatcher::extractFramesFromVideo(const VideoFile& video, const Ca
             DetectedFrame detected_frame;
             detected_frame.timestamp = timestamp_seconds;
             detected_frame.corners = std::move(corners);
-            detected_frame.pose = analyzeBoardPose(
-                detected_frame.corners, frame.size(), params.getPatternSize());
             detected_frame.quality = quality;
             detected_frame.image = frame.clone();
 
@@ -599,15 +596,6 @@ bool CalibrationWatcher::saveFrameMetadata(const std::filesystem::path& image_pa
             corners_json.push_back({{"x", pt.x}, {"y", pt.y}});
         }
         metadata["corners"] = std::move(corners_json);
-
-
-        metadata["pose"] = {
-            {"tilt_degrees", frame.pose.tilt_degrees},
-            {"scale", frame.pose.scale},
-            {"center", {{"x", frame.pose.center.x}, {"y", frame.pose.center.y}}},
-            {"normalized_center", {{"x", frame.pose.normalized_center.x},
-                                     {"y", frame.pose.normalized_center.y}}}
-        };
 
         std::filesystem::path metadata_path = image_path;
         metadata_path.replace_extension(".json");
@@ -688,63 +676,7 @@ CalibrationWatcher::FrameQuality CalibrationWatcher::evaluateFrameQuality(
     return quality;
 }
 
-CalibrationWatcher::DetectedFrame::BoardPose CalibrationWatcher::analyzeBoardPose(
-    const std::vector<cv::Point2f>& corners,
-    const cv::Size& image_size,
-    const cv::Size& pattern_size) {
-
-    DetectedFrame::BoardPose pose;
-
-    if (corners.empty() || image_size.width <= 0 || image_size.height <= 0) {
-        return pose;
-    }
-
-    cv::Point2f center(0.0f, 0.0f);
-    for (const auto& pt : corners) {
-        center += pt;
-    }
-    center *= (1.0f / static_cast<float>(corners.size()));
-    pose.center = center;
-
-    pose.normalized_center = cv::Point2f(
-        center.x / static_cast<float>(image_size.width),
-        center.y / static_cast<float>(image_size.height));
-    pose.normalized_center.x = std::clamp(pose.normalized_center.x, 0.0f, 1.0f);
-    pose.normalized_center.y = std::clamp(pose.normalized_center.y, 0.0f, 1.0f);
-
-    float min_x = corners.front().x;
-    float min_y = corners.front().y;
-    float max_x = corners.front().x;
-    float max_y = corners.front().y;
-    for (const auto& pt : corners) {
-        min_x = std::min(min_x, pt.x);
-        min_y = std::min(min_y, pt.y);
-        max_x = std::max(max_x, pt.x);
-        max_y = std::max(max_y, pt.y);
-    }
-
-    float board_width = std::max(0.0f, max_x - min_x);
-    float board_height = std::max(0.0f, max_y - min_y);
-    float image_area = static_cast<float>(image_size.width) * static_cast<float>(image_size.height);
-    if (image_area > 0.0f) {
-        pose.scale = std::clamp((board_width * board_height) / image_area, 0.0f, 1.0f);
-    }
-
-    if (pattern_size.width > 1 && static_cast<int>(corners.size()) >= pattern_size.width) {
-        int top_right_index = pattern_size.width - 1;
-        if (top_right_index < static_cast<int>(corners.size())) {
-            cv::Point2f horizontal_vec = corners[top_right_index] - corners[0];
-            if (cv::norm(horizontal_vec) > 0.0f) {
-                float angle_rad = std::atan2(horizontal_vec.y, horizontal_vec.x);
-                pose.tilt_degrees = angle_rad * 180.0f / static_cast<float>(CV_PI);
-            }
-        }
-    }
-
-    return pose;
-}
-
-std::vector<CalibrationWatcher::DetectedFrame> CalibrationWatcher::loadAndSelectBestFrames(
+std::vector<cv::Mat> CalibrationWatcher::loadAndSelectBestFrames(
     const std::string& camera_id, const CalibrationParams& params) {
 
     std::filesystem::path cam_dir = calib_dir_ / ("cam_" + camera_id) / "images";
@@ -754,166 +686,34 @@ std::vector<CalibrationWatcher::DetectedFrame> CalibrationWatcher::loadAndSelect
         return {};
     }
 
-    struct CandidateFrame {
-        DetectedFrame frame;
-        float score = 0.0f;
-        std::array<float, 5> feature = {};
-    };
-
-    std::vector<CandidateFrame> candidates;
+    // Загружаем все изображения с их оценками качества
+    std::vector<std::pair<cv::Mat, float>> scored_frames;
 
     for (const auto& entry : std::filesystem::directory_iterator(cam_dir)) {
-        if (entry.path().extension() != ".png") {
-            continue;
-        }
+        if (entry.path().extension() != ".png") continue;
+
         cv::Mat img = cv::imread(entry.path().string());
-        if (img.empty()) {
-            continue;
-        }
+        if (img.empty()) continue;
 
-        std::vector<cv::Point2f> corners;
-        FrameQuality quality = evaluateFrameQuality(img, params, &corners);
-        if (!quality.board_detected || quality.overall_score < params.quality_threshold || corners.empty()) {
-            continue;
-        }
-
-        DetectedFrame detected;
-        detected.image = img;
-        detected.image_path = entry.path();
-        detected.corners = std::move(corners);
-        detected.quality = quality;
-        detected.pose = analyzeBoardPose(detected.corners, detected.image.size(), params.getPatternSize());
-
-        std::filesystem::path metadata_path = entry.path();
-        metadata_path.replace_extension(".json");
-        detected.timestamp = 0.0;
-        if (std::filesystem::exists(metadata_path)) {
-            try {
-                std::ifstream meta_stream(metadata_path);
-                if (meta_stream.is_open()) {
-                    nlohmann::json metadata;
-                    meta_stream >> metadata;
-                    detected.timestamp = metadata.value("timestamp", 0.0);
-                }
-            } catch (const std::exception& e) {
-                logMessage("WARNING: Failed to read metadata for frame " + entry.path().string() +
-                           ": " + e.what());
-            }
-        }
-
-        float angle_rad = detected.pose.tilt_degrees * static_cast<float>(CV_PI) / 180.0f;
-        CandidateFrame candidate;
-        candidate.frame = std::move(detected);
-        candidate.score = quality.overall_score;
-        candidate.feature = {
-            candidate.frame.pose.normalized_center.x,
-            candidate.frame.pose.normalized_center.y,
-            candidate.frame.pose.scale,
-            std::sin(angle_rad),
-            std::cos(angle_rad)};
-
-        candidates.push_back(std::move(candidate));
-    }
-
-    if (candidates.empty()) {
-        return {};
-    }
-
-    std::sort(candidates.begin(), candidates.end(),
-              [](const CandidateFrame& a, const CandidateFrame& b) {
-                  return a.score > b.score;
-              });
-
-    const int max_frames_total = std::min<int>(params.max_frames, static_cast<int>(candidates.size()));
-    const int max_frames_per_cluster = std::max(1, params.max_frames / 5);
-    const float position_tolerance = 0.12f;
-    const float scale_tolerance = 0.15f;
-    const float tilt_tolerance_deg = 12.0f;
-
-    auto angleDifference = [](const std::array<float, 5>& a, const std::array<float, 5>& b) {
-        float angle_a = std::atan2(a[3], a[4]);
-        float angle_b = std::atan2(b[3], b[4]);
-        float diff = std::fabs(angle_a - angle_b);
-        const float two_pi = 2.0f * static_cast<float>(CV_PI);
-        if (diff > static_cast<float>(CV_PI)) {
-            diff = two_pi - diff;
-        }
-        return diff * 180.0f / static_cast<float>(CV_PI);
-    };
-
-    struct Cluster {
-        std::array<float, 5> center = {};
-        int count = 0;
-    };
-
-    std::vector<Cluster> clusters;
-    std::vector<DetectedFrame> selected_frames;
-    selected_frames.reserve(max_frames_total);
-    std::vector<bool> used(candidates.size(), false);
-
-    for (size_t i = 0; i < candidates.size() && static_cast<int>(selected_frames.size()) < max_frames_total; ++i) {
-        const auto& candidate = candidates[i];
-        bool suppressed = false;
-        bool assigned = false;
-
-        for (auto& cluster : clusters) {
-            if (std::fabs(candidate.feature[0] - cluster.center[0]) > position_tolerance ||
-                std::fabs(candidate.feature[1] - cluster.center[1]) > position_tolerance ||
-                std::fabs(candidate.feature[2] - cluster.center[2]) > scale_tolerance) {
-                continue;
-            }
-
-            float diff = angleDifference(candidate.feature, cluster.center);
-            if (diff > tilt_tolerance_deg) {
-                continue;
-            }
-
-            if (cluster.count >= max_frames_per_cluster) {
-                suppressed = true;
-                break;
-            }
-
-            for (size_t j = 0; j < cluster.center.size(); ++j) {
-                cluster.center[j] = (cluster.center[j] * cluster.count + candidate.feature[j]) /
-                                    static_cast<float>(cluster.count + 1);
-            }
-            cluster.count++;
-            selected_frames.push_back(candidate.frame);
-            used[i] = true;
-            assigned = true;
-            break;
-        }
-
-        if (!assigned && !suppressed) {
-            Cluster new_cluster;
-            new_cluster.center = candidate.feature;
-            new_cluster.count = 1;
-            clusters.push_back(new_cluster);
-            selected_frames.push_back(candidate.frame);
-            used[i] = true;
+        FrameQuality quality = evaluateFrameQuality(img, params);
+        if (quality.board_detected && quality.overall_score >= params.quality_threshold) {
+            scored_frames.emplace_back(img, quality.overall_score);
         }
     }
 
-    size_t initial_selection = selected_frames.size();
+    // Сортируем по качеству (лучшие первыми)
+    std::sort(scored_frames.begin(), scored_frames.end(),
+              [](const auto& a, const auto& b) { return a.second > b.second; });
 
-    if (static_cast<int>(selected_frames.size()) < std::min(params.min_frames, max_frames_total)) {
-        for (size_t i = 0; i < candidates.size() && static_cast<int>(selected_frames.size()) < max_frames_total; ++i) {
-            if (!used[i]) {
-                selected_frames.push_back(candidates[i].frame);
-                used[i] = true;
-            }
-        }
+    // Берем только лучшие кадры
+    std::vector<cv::Mat> best_frames;
+    int max_frames = std::min(params.max_frames, static_cast<int>(scored_frames.size()));
+
+    for (int i = 0; i < max_frames; ++i) {
+        best_frames.push_back(scored_frames[i].first);
     }
 
-    size_t fallback_added = selected_frames.size() - initial_selection;
-    std::ostringstream cluster_message;
-    cluster_message << "Selected " << selected_frames.size() << " frames across "
-                    << clusters.size() << " pose clusters for camera " << camera_id;
-    if (fallback_added > 0) {
-        cluster_message << " (" << fallback_added << " added to satisfy minimum)";
-    }
-    logMessage(cluster_message.str());
-    return selected_frames;
+    return best_frames;
 }
 
 CalibrationWatcher::StreamSynchronization CalibrationWatcher::synchronizeStreams(
@@ -1016,27 +816,6 @@ CalibrationWatcher::StreamSynchronization CalibrationWatcher::synchronizeStreams
                                image_path.string());
                     continue;
                 }
-
-                if (metadata.contains("pose") && metadata["pose"].is_object()) {
-                    const auto& pose_json = metadata["pose"];
-                    frame->pose.tilt_degrees = pose_json.value("tilt_degrees", 0.0f);
-                    frame->pose.scale = pose_json.value("scale", 0.0f);
-
-                    if (pose_json.contains("center") && pose_json["center"].is_object()) {
-                        const auto& center_json = pose_json["center"];
-                        frame->pose.center.x = center_json.value("x", 0.0f);
-                        frame->pose.center.y = center_json.value("y", 0.0f);
-                    }
-
-                    if (pose_json.contains("normalized_center") && pose_json["normalized_center"].is_object()) {
-                        const auto& normalized_json = pose_json["normalized_center"];
-                        frame->pose.normalized_center.x = normalized_json.value("x", 0.0f);
-                        frame->pose.normalized_center.y = normalized_json.value("y", 0.0f);
-                    }
-                } else {
-                    frame->pose = analyzeBoardPose(frame->corners, frame->image.size(), params.getPatternSize());
-                }
-
 
                 frames.push_back(frame);
             } catch (const std::exception& e) {
@@ -1161,41 +940,37 @@ CalibrationWatcher::StreamSynchronization CalibrationWatcher::synchronizeStreams
 }
 
 bool CalibrationWatcher::performMonoCalibration(const std::string& camera_id, const CalibrationParams& params) {
-
-    auto frames = loadAndSelectBestFrames(camera_id, params);
-
-    if (frames.size() < static_cast<size_t>(params.min_frames)) {
-        logMessage("Not enough quality frames for camera " + camera_id +
-                  ": " + std::to_string(frames.size()));
+    // Загружаем и выбираем лучшие кадры
+    auto images = loadAndSelectBestFrames(camera_id, params);
+    
+    if (images.size() < params.min_frames) {
+        logMessage("Not enough quality frames for camera " + camera_id + 
+                  ": " + std::to_string(images.size()));
         return false;
     }
-
+    
     // Подготовка данных для калибровки
     std::vector<std::vector<cv::Point3f>> object_points;
     std::vector<std::vector<cv::Point2f>> image_points;
-    cv::Size image_size = frames.front().image.size();
-
+    cv::Size image_size = images[0].size();
+    
     auto world_points = generateChessboardPoints(params);
-
-    for (const auto& frame : frames) {
-        std::vector<cv::Point2f> corners = frame.corners;
-        if (corners.empty() && !frame.image.empty()) {
-            findChessboardInFrame(frame.image, params, corners);
-        }
-
-        if (!corners.empty()) {
+    
+    for (const auto& img : images) {
+        std::vector<cv::Point2f> corners;
+        if (findChessboardInFrame(img, params, corners)) {
             object_points.push_back(world_points);
             image_points.push_back(corners);
         }
-
+        
         if (should_stop_.load()) return false;
     }
-
+    
     if (object_points.size() < params.min_frames) {
         logMessage("Not enough valid calibration frames for camera: " + camera_id);
         return false;
     }
-
+    
     // Выполнение калибровки
     CameraCalibrationResult result;
     result.camera_id = camera_id;
