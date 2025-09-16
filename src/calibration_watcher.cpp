@@ -1172,7 +1172,6 @@ bool CalibrationWatcher::performStereoCalibration(
     time_stream << std::put_time(std::localtime(&now), "%Y-%m-%d %H:%M:%S");
     result.calibration_time = time_stream.str();
 
-    cv::Size image_size = images1[0].size();
 
     try {
         result.reprojection_error = cv::stereoCalibrate(
