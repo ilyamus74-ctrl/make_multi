@@ -51,6 +51,13 @@ struct StereoCalibrationResult {
     std::string calibration_time;
 };
 
+struct BoardPose {
+    float tilt_degrees = 0.0f;                // Rotation of the board in image plane
+    cv::Point2f center = {};                  // Chessboard center in pixels
+    cv::Point2f normalized_center = {};       // Center normalised to [0,1]
+    float scale = 0.0f;                       // Relative size of the board
+};
+
 class CalibrationWatcher {
 public:
     // Callback для обновления статуса
@@ -119,13 +126,6 @@ private:
     };
 
 
-    struct BoardPose {
-        float tilt_degrees = 0.0f;                // Rotation of the board in image plane
-        cv::Point2f center = {};                  // Chessboard center in pixels
-        cv::Point2f normalized_center = {};       // Center normalised to [0,1]
-        float scale = 0.0f;                       // Relative size of the board
-    };
-
     struct DetectedFrame {
         double timestamp = 0.0;                      // Presentation timestamp in seconds
         std::vector<cv::Point2f> corners;            // Refined chessboard corners
@@ -184,8 +184,10 @@ private:
     
     FrameQuality evaluateFrameQuality(const cv::Mat& frame, const CalibrationParams& params,
                                       std::vector<cv::Point2f>* refined_corners = nullptr);
-    std::vector<DetectedFrame> loadAndSelectBestFrames(const std::string& camera_id,
-                                                      const CalibrationParams& params);
+
+    static BoardPose analyzeBoardPose(const std::vector<cv::Point2f>& corners,
+                                      const cv::Size& image_size,
+                                      const cv::Size& pattern_size);
 
     static DetectedFrame::BoardPose analyzeBoardPose(const std::vector<cv::Point2f>& corners,
                                                      const cv::Size& image_size,

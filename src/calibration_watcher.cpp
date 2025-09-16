@@ -688,12 +688,12 @@ CalibrationWatcher::FrameQuality CalibrationWatcher::evaluateFrameQuality(
     return quality;
 }
 
-CalibrationWatcher::DetectedFrame::BoardPose CalibrationWatcher::analyzeBoardPose(
+BoardPose CalibrationWatcher::analyzeBoardPose(
     const std::vector<cv::Point2f>& corners,
     const cv::Size& image_size,
     const cv::Size& pattern_size) {
 
-    DetectedFrame::BoardPose pose;
+    BoardPose pose;
 
     if (corners.empty() || image_size.width <= 0 || image_size.height <= 0) {
         return pose;

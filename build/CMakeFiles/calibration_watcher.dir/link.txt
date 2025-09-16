@@ -1,0 +1,2 @@
+/usr/bin/ar qc libcalibration_watcher.a CMakeFiles/calibration_watcher.dir/src/calibration_watcher.cpp.o
+/usr/bin/ranlib libcalibration_watcher.a
