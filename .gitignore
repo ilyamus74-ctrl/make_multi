@@ -42,6 +42,8 @@ Makefile
 *.bin
 *.pb
 
-# Test results
+# Test results and temporary test files
 test_results/
 *_test_*
+test_tracking_optimization
+test_tracking_optimization.cpp

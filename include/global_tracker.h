@@ -8,6 +8,8 @@
 #include <vector>
 #include <filesystem>
 #include <mutex>
+#include <limits>
+#include <iostream>
 
 class CalibrationWatcher; // forward declaration
 
