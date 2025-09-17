@@ -19,8 +19,6 @@
 #include <unordered_map>
 #include <map>
 #include <mutex>
-#include <cmath>
-#include <algorithm>
 #include "calibration_watcher.h"
 #include <unordered_map>
 #include <future>  // ← ДОБАВЬТЕ ЭТУ СТРОКУ
@@ -99,53 +97,7 @@ static void fetchAndUpdateDetections(std::string cam_id, int det_port) {
         std::vector<cv::Rect> rects;
         for (const auto& det : detections_json["detections"]) {
           const auto& box = det["box"];
-          auto jsonToInt = [](const nlohmann::json& value) {
-            if (value.is_number_integer()) {
-              return value.get<int>();
-            }
-            if (value.is_number_float()) {
-              return static_cast<int>(std::lround(value.get<double>()));
-            }
-            return 0;
-          };
-
-          int left = 0;
-          int top = 0;
-          int width = 0;
-          int height = 0;
-          bool parsed = false;
-
-          if (box.is_array() && box.size() >= 4) {
-            left = jsonToInt(box[0]);
-            top = jsonToInt(box[1]);
-            int right = jsonToInt(box[2]);
-            int bottom = jsonToInt(box[3]);
-            width = std::max(0, right - left);
-            height = std::max(0, bottom - top);
-            parsed = true;
-          } else if (box.is_object()) {
-            if (box.contains("left")) {
-              left = jsonToInt(box["left"]);
-            }
-            if (box.contains("top")) {
-              top = jsonToInt(box["top"]);
-            }
-            if (box.contains("width") && box.contains("height")) {
-              width = jsonToInt(box["width"]);
-              height = jsonToInt(box["height"]);
-              parsed = true;
-            } else if (box.contains("right") && box.contains("bottom")) {
-              int right = jsonToInt(box["right"]);
-              int bottom = jsonToInt(box["bottom"]);
-              width = std::max(0, right - left);
-              height = std::max(0, bottom - top);
-              parsed = true;
-            }
-          }
-
-          if (parsed) {
-            rects.emplace_back(left, top, width, height);
-          }
+          rects.emplace_back(box["left"], box["top"], box["width"], box["height"]);
         }
         auto ts = std::chrono::duration_cast<std::chrono::milliseconds>(
                       std::chrono::steady_clock::now().time_since_epoch())
