@@ -1,11 +1,11 @@
 {
-  "calib_board_cols": 8,
-  "calib_board_rows": 8,
+  "calib_board_cols": 10,
+  "calib_board_rows": 10,
   "calib_delete_videos": true,
   "calib_max_frames": 200,
   "calib_min_frames": 15,
   "calib_quality_threshold": 80.0,
-  "calib_square_size": 22.0,
+  "calib_square_size": 30.0,
   "calib_time_tolerance_ms": 33,
   "cameras": [
     {

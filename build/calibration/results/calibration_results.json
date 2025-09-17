@@ -2,22 +2,22 @@
   "mono_calibrations": [
     {
       "calibration_file": "cam_4_calibration.yml",
-      "calibration_time": "2025-09-16 20:29:23",
+      "calibration_time": "2025-09-17 08:51:43",
       "camera_id": "4",
-      "frames_used": 103,
+      "frames_used": 111,
       "image_height": 600,
       "image_width": 800,
-      "reprojection_error": 0.29051323730411066,
+      "reprojection_error": 0.6013936190828832,
       "success": true
     },
     {
       "calibration_file": "cam_2_calibration.yml",
-      "calibration_time": "2025-09-16 20:31:27",
+      "calibration_time": "2025-09-17 08:54:10",
       "camera_id": "2",
-      "frames_used": 180,
+      "frames_used": 158,
       "image_height": 600,
       "image_width": 800,
-      "reprojection_error": 1.0023278856119235,
+      "reprojection_error": 0.681100981427221,
       "success": true
     }
   ],
