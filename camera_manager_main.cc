@@ -599,8 +599,10 @@ int main(int argc, char **argv) {
                });
 
   g_server.Get("/api/config", [](const httplib::Request &, httplib::Response &res) {
-    nlohmann::json out{{"preview_enabled", g_preview_enabled}};
-    res.set_content(out.dump(), "application/json");
+    auto config = readMainConfig();
+    config["preview_enabled"] = g_preview_enabled;
+    config["grayscale_tracking"] = g_use_grayscale_tracking; // Include current grayscale mode
+    res.set_content(config.dump(), "application/json");
   });
 
 
