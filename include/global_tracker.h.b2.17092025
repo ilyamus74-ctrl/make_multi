@@ -7,7 +7,6 @@
 #include <map>
 #include <vector>
 #include <filesystem>
-#include <mutex>
 
 class CalibrationWatcher; // forward declaration
 
@@ -47,7 +46,6 @@ private:
     CalibrationWatcher* calibration_watcher_ = nullptr;
     std::filesystem::file_time_type last_calibration_write_time_{};
     bool has_last_calibration_write_time_ = false;
-    mutable std::recursive_mutex mutex_;
 
 public:
     GlobalTracker(CameraSchemeManager* scheme_manager,

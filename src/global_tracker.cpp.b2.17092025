@@ -27,10 +27,7 @@ GlobalTracker::~GlobalTracker() {
 bool GlobalTracker::initialize() {
     std::cout << "Инициализация глобального трекера..." << std::endl;
 
-    {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        camera_calibrations_.clear();
-    }
+    camera_calibrations_.clear();
 
     if (calibration_watcher_) {
         calibration_watcher_->loadResults();
@@ -45,13 +42,8 @@ bool GlobalTracker::initialize() {
 
     }
 
-    size_t calibrated_count = 0;
-    {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        calibrated_count = camera_calibrations_.size();
-    }
     std::cout << "Глобальный трекер инициализирован для "
-              << calibrated_count << " камер" << std::endl;
+              << camera_calibrations_.size() << " камер" << std::endl;
     return true;
 }
 
@@ -87,7 +79,6 @@ bool GlobalTracker::calibrateSphereSetup() {
 bool GlobalTracker::calibrateSphereFallback() {
 
     auto cameras = scheme_manager_->getCameras();
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     for (const auto& cam : cameras) {
         if (cam.status != CameraStatus::ACTIVE) continue;
 
@@ -130,7 +121,6 @@ bool GlobalTracker::calibrateHemisphereSetup() {
 bool GlobalTracker::calibrateHemisphereFallback() {
 
     auto cameras = scheme_manager_->getCameras();
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     for (const auto& cam : cameras) {
         if (cam.status != CameraStatus::ACTIVE) continue;
 
@@ -447,16 +437,13 @@ bool GlobalTracker::loadCalibrationFromWatcher(const CalibrationWatcher& watcher
         }
     }
 
-    bool has_calibration = false;
-    {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        camera_calibrations_ = std::move(loaded);
-        has_calibration = !camera_calibrations_.empty();
-        if (has_calibration && (watcher_intrinsics || watcher_extrinsics)) {
-            std::cout << "Загружены калибровочные данные из CalibrationWatcher" << std::endl;
-        }
+    camera_calibrations_ = std::move(loaded);
+
+    if (!camera_calibrations_.empty() && (watcher_intrinsics || watcher_extrinsics)) {
+        std::cout << "Загружены калибровочные данные из CalibrationWatcher" << std::endl;
     }
-    return has_calibration;
+
+    return !camera_calibrations_.empty();
 }
 
 bool GlobalTracker::reloadCalibration(const CalibrationWatcher& watcher) {
@@ -473,11 +460,8 @@ bool GlobalTracker::updateCalibrationTimestamp(const CalibrationWatcher& watcher
     if (ec) {
         return false;
     }
-    {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        last_calibration_write_time_ = ts;
-        has_last_calibration_write_time_ = true;
-    }
+    last_calibration_write_time_ = ts;
+    has_last_calibration_write_time_ = true;
     return true;
 }
 
@@ -493,30 +477,16 @@ bool GlobalTracker::checkAndUpdateCalibration() {
         return false;
     }
 
-    {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        if (has_last_calibration_write_time_ &&
-            current_time <= last_calibration_write_time_) {
+    if (!has_last_calibration_write_time_ || current_time > last_calibration_write_time_) {
+        if (!calibration_watcher_->loadResults()) {
             return false;
         }
-
-    }
-
-    if (!calibration_watcher_->loadResults()) {
-        return false;
-    }
-
-    std::unique_lock<std::recursive_mutex> lock(mutex_);
-    if (has_last_calibration_write_time_ &&
-        current_time <= last_calibration_write_time_) {
-        return false;
-    }
-
-    if (reloadCalibration(*calibration_watcher_)) {
-        last_calibration_write_time_ = current_time;
-        has_last_calibration_write_time_ = true;
-        std::cout << "Обновлены данные калибровки из CalibrationWatcher" << std::endl;
-        return true;
+        if (reloadCalibration(*calibration_watcher_)) {
+            last_calibration_write_time_ = current_time;
+            has_last_calibration_write_time_ = true;
+            std::cout << "Обновлены данные калибровки из CalibrationWatcher" << std::endl;
+            return true;
+        }
     }
     return false;
 }
@@ -527,8 +497,7 @@ bool GlobalTracker::validateCalibration() {
     // Проверяем наличие калибровочных данных для всех активных камер
     auto cameras = scheme_manager_->getCameras();
     int calibrated_count = 0;
-
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    
     for (const auto& cam : cameras) {
         if (cam.status == CameraStatus::ACTIVE) {
             auto it = camera_calibrations_.find(cam.id);
@@ -549,7 +518,6 @@ void GlobalTracker::updateDetections(const std::string& camera_id,
                                    const std::vector<cv::Rect>& detections,
                                    uint64_t timestamp) {
     checkAndUpdateCalibration();
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     // Очищаем старые объекты
     cleanupOldObjects(timestamp);
 
@@ -563,7 +531,6 @@ void GlobalTracker::updateDetections(const std::string& camera_id,
 void GlobalTracker::associateDetections(const std::string& camera_id,
                                        const std::vector<cv::Rect>& detections,
                                        uint64_t timestamp) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (detections.empty()) {
         // уменьшение уверенности для всех объектов, если на камере нет детекций
         for (auto& pair : tracked_objects_) {
@@ -725,10 +692,9 @@ std::vector<int> GlobalTracker::hungarianMatch(const std::vector<std::vector<dou
 }
 
 
-void GlobalTracker::createNewObject(const std::string& camera_id,
-                                   const cv::Rect& detection,
+void GlobalTracker::createNewObject(const std::string& camera_id, 
+                                   const cv::Rect& detection, 
                                    uint64_t timestamp) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     GlobalObject new_obj;
     new_obj.global_id = next_global_id_++;
     new_obj.camera_detections[camera_id] = detection;
@@ -750,10 +716,9 @@ void GlobalTracker::createNewObject(const std::string& camera_id,
 }
 
 void GlobalTracker::updateWorldPositions(const std::string& camera_id, uint64_t timestamp) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     for (auto& pair : tracked_objects_) {
         GlobalObject& obj = pair.second;
-
+        
         // Обновляем позицию только если объект виден на этой камере
         auto det_it = obj.camera_detections.find(camera_id);
         if (det_it != obj.camera_detections.end()) {
@@ -790,7 +755,6 @@ int GlobalTracker::getPrimaryCameraPriority(const std::string& camera_id) {
 }
 
 cv::Point3f GlobalTracker::imageToWorld(const std::string& camera_id, const cv::Point2f& image_point) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto calib_it = camera_calibrations_.find(camera_id);
     if (calib_it == camera_calibrations_.end() || !calib_it->second.is_calibrated) {
         std::cerr << "Камера " << camera_id << " не откалибрована" << std::endl;
@@ -834,14 +798,13 @@ cv::Point3f GlobalTracker::imageToWorld(const std::string& camera_id, const cv::
 }
 
 cv::Point2f GlobalTracker::worldToImage(const std::string& camera_id, const cv::Point3f& world_point) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto calib_it = camera_calibrations_.find(camera_id);
     if (calib_it == camera_calibrations_.end() || !calib_it->second.is_calibrated) {
         return cv::Point2f(-1, -1);
     }
-
+    
     const CameraCalibration& calib = calib_it->second;
-
+    
     // Преобразуем мировую точку в координаты камеры
     std::vector<cv::Point3f> world_points = {world_point};
     std::vector<cv::Point2f> image_points;
@@ -852,10 +815,9 @@ cv::Point2f GlobalTracker::worldToImage(const std::string& camera_id, const cv::
     return image_points[0];
 }
 
-bool GlobalTracker::calibrateCamera(const std::string& camera_id,
+bool GlobalTracker::calibrateCamera(const std::string& camera_id, 
                                    const std::vector<cv::Point3f>& world_points,
                                    const std::vector<cv::Point2f>& image_points) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     if (world_points.size() != image_points.size() || world_points.size() < 4) {
         std::cerr << "Недостаточно точек для калибровки камеры " << camera_id << std::endl;
         return false;
@@ -930,13 +892,11 @@ void GlobalTracker::handleSchemeChange(SchemeType new_scheme) {
 
 
     // Очищаем текущие объекты при смене схемы
-    {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        tracked_objects_.clear();
-        next_global_id_ = 1;
-        // Переинициализируем калибровку для новой схемы
-        camera_calibrations_.clear();
-    }
+    tracked_objects_.clear();
+    next_global_id_ = 1;
+
+    // Переинициализируем калибровку для новой схемы
+    camera_calibrations_.clear();
 
     if (calibration_watcher_) {
         calibration_watcher_->loadResults();
@@ -954,11 +914,8 @@ double GlobalTracker::calculateDistance(const cv::Point3f& p1, const cv::Point3f
 }
 
 bool GlobalTracker::initializeCameraCalibration(const std::string& camera_id) {
-    {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        if (camera_calibrations_.find(camera_id) != camera_calibrations_.end()) {
-            return true;
-        }
+    if (camera_calibrations_.find(camera_id) != camera_calibrations_.end()) {
+        return true;
     }
 
     CameraConfig* cam = scheme_manager_->getCamera(camera_id);
@@ -989,19 +946,15 @@ bool GlobalTracker::initializeCameraCalibration(const std::string& camera_id) {
     calib.is_calibrated = true;
     computeHomography(calib);
 
-    {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        camera_calibrations_[camera_id] = std::move(calib);
-    }
+    camera_calibrations_[camera_id] = std::move(calib);
     return true;
 }
 
 void GlobalTracker::cleanupOldObjects(uint64_t current_timestamp) {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     auto it = tracked_objects_.begin();
     while (it != tracked_objects_.end()) {
         uint64_t age = current_timestamp - it->second.last_seen_timestamp;
-
+        
         if (age > retention_time_ms_ || it->second.confidence < 0.1) {
             std::cout << "Удален объект ID=" << it->second.global_id 
                       << " (возраст=" << age << "мс, уверенность=" 
@@ -1015,14 +968,13 @@ void GlobalTracker::cleanupOldObjects(uint64_t current_timestamp) {
 
 std::vector<GlobalObject> GlobalTracker::getActiveObjects() {
     std::vector<GlobalObject> active_objects;
-
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    
     for (const auto& pair : tracked_objects_) {
         if (pair.second.confidence > 0.3) { // Порог уверенности
             active_objects.push_back(pair.second);
         }
     }
-
+    
     return active_objects;
 
 }

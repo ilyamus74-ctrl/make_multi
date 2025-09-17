@@ -84,33 +84,6 @@ static nlohmann::json serializeGlobalObjects(const std::vector<GlobalObject>& ob
   return result;
 }
 
-static void fetchAndUpdateDetections(std::string cam_id, int det_port) {
-  try {
-    httplib::Client client("localhost", det_port);
-    client.set_connection_timeout(0, 500000);
-    client.set_read_timeout(0, 500000);
-
-    auto result = client.Get("/api/last.json");
-    if (result && result->status == 200) {
-      auto detections_json = nlohmann::json::parse(result->body);
-      if (detections_json.contains("detections")) {
-        std::vector<cv::Rect> rects;
-        for (const auto& det : detections_json["detections"]) {
-          const auto& box = det["box"];
-          rects.emplace_back(box["left"], box["top"], box["width"], box["height"]);
-        }
-        auto ts = std::chrono::duration_cast<std::chrono::milliseconds>(
-                      std::chrono::steady_clock::now().time_since_epoch())
-                      .count();
-        g_global_tracker.updateDetections(cam_id, rects, ts);
-      }
-    }
-  } catch (...) {
-    // Ignore errors from individual detection fetches.
-  }
-}
-
-
 // Cached v4l2 formats per device. Avoids reconfiguring a device that already
 // runs with the requested format.
 static std::unordered_map<std::string, v4l2_format> g_format_cache;
@@ -1574,10 +1547,30 @@ g_server.Get("/api/detections/update", [](const httplib::Request& req, httplib::
     
     for (const auto& cam : cams) {
         if (cam.mode == CameraManager::CamConfig::Mode::Detect && cam.det_running) {
-            futures.emplace_back(std::async(std::launch::async,
-                                            [cam_id = cam.id, det_port = cam.det_port]() {
-                                                fetchAndUpdateDetections(cam_id, det_port);
-                                            }));
+            futures.emplace_back(std::async(std::launch::async, [&cam]() {
+                try {
+                    httplib::Client client("localhost", cam.det_port);
+                    client.set_connection_timeout(0, 500000); // 500ms таймаут
+                    client.set_read_timeout(0, 500000);
+                    
+                    auto result = client.Get("/api/last.json");
+                    if (result && result->status == 200) {
+                        auto detections_json = nlohmann::json::parse(result->body);
+                        if (detections_json.contains("detections")) {
+                            std::vector<cv::Rect> rects;
+                            for (const auto& det : detections_json["detections"]) {
+                                const auto& box = det["box"];
+                                rects.emplace_back(box["left"], box["top"], box["width"], box["height"]);
+                            }
+                            auto ts = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                std::chrono::steady_clock::now().time_since_epoch()).count();
+                            g_global_tracker.updateDetections(cam.id, rects, ts);
+                        }
+                    }
+                } catch (...) {
+                    // Игнорируем ошибки
+                }
+            }));
         }
     }
     
