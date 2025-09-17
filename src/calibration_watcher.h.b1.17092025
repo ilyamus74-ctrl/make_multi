@@ -109,8 +109,6 @@ public:
     bool getCameraMatrix(const std::string& camera_id, cv::Mat& camera_matrix, cv::Mat& dist_coeffs) const;
     bool getStereoParams(const std::string& camera_pair, cv::Mat& R, cv::Mat& T, cv::Mat& Q) const;
 
-    std::filesystem::path getResultsPath() const { return results_dir_; }
-
 private:
     struct VideoFile {
         std::string camera_id;

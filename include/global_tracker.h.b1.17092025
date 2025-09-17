@@ -6,7 +6,6 @@
 #include <opencv2/opencv.hpp>
 #include <map>
 #include <vector>
-#include <filesystem>
 
 class CalibrationWatcher; // forward declaration
 
@@ -44,8 +43,6 @@ private:
     uint64_t retention_time_ms_;
     double area_change_threshold_;
     CalibrationWatcher* calibration_watcher_ = nullptr;
-    std::filesystem::file_time_type last_calibration_write_time_{};
-    bool has_last_calibration_write_time_ = false;
 
 public:
     GlobalTracker(CameraSchemeManager* scheme_manager,
@@ -100,21 +97,13 @@ private:
     bool performAutoCalibration();
     bool calibrateSphereSetup();
     bool calibrateHemisphereSetup();
-    bool loadCalibrationFromWatcher(const CalibrationWatcher& watcher, SchemeType scheme);
-    bool applyWatcherStereoExtrinsics(const CalibrationWatcher& watcher,
-                                      const std::vector<CameraConfig>& cameras,
-                                      std::map<std::string, CameraCalibration>& calibrations);
-    void applyFallbackExtrinsics(const CameraConfig& cam, SchemeType scheme, CameraCalibration& calib);
-    bool calibrateSphereFallback();
-    bool calibrateHemisphereFallback();
-    void setupFallbackCameraIntrinsics(const CameraConfig&, CameraCalibration&);
-    void setupFallbackSphereExtrinsics(const CameraConfig&, CameraCalibration&, double, double);
-    void setupFallbackHemisphereExtrinsics(const CameraConfig&, CameraCalibration&, double, double);
-    void setupFallbackZoomExtrinsics(const CameraConfig&, CameraCalibration&);
+    void setupCameraIntrinsics(const CameraConfig&, CameraCalibration&);
+    void setupSphereExtrinsics(const CameraConfig&, CameraCalibration&, double, double);
+    void setupHemisphereExtrinsics(const CameraConfig&, CameraCalibration&, double, double);
+    void setupZoomExtrinsics(const CameraConfig&, CameraCalibration&);
     bool validateCalibration();
     void computeHomography(CameraCalibration&);
     bool initializeCameraCalibration(const std::string&);
-    bool updateCalibrationTimestamp(const CalibrationWatcher& watcher);
 };
 
 #endif

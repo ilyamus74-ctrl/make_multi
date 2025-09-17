@@ -49,23 +49,6 @@ static std::unique_ptr<CalibrationSession> g_calib;
 static std::filesystem::path g_config_path;
 static std::filesystem::path g_exe_dir;
 static nlohmann::json readMainConfig();
-
-static CalibrationWatcher* ensureCalibrationWatcher() {
-  if (!g_calib_watcher) {
-    std::filesystem::create_directories("/tmp/rec");
-    std::filesystem::create_directories("/tmp/calibration");
-    g_calib_watcher = std::make_unique<CalibrationWatcher>("/tmp/rec", "/tmp/calibration");
-    g_calib_watcher->setStatusCallback([](const std::string &msg, float progress) {
-      printf("Calibration Status: %s (%.1f%%)\n", msg.c_str(), progress);
-    });
-    g_calib_watcher->setLogCallback([](const std::string &msg) {
-      printf("Calibration Log: %s\n", msg.c_str());
-    });
-  }
-  g_global_tracker.setCalibrationWatcher(g_calib_watcher.get());
-  return g_calib_watcher.get();
-}
-
 static nlohmann::json serializeGlobalObjects(const std::vector<GlobalObject>& objects) {
   nlohmann::json result = nlohmann::json::array();
   for (const auto& obj : objects) {
@@ -141,7 +124,6 @@ static bool writeMainConfig(const nlohmann::json &j) {
 
 static void sigint(int) {
   g_mgr.stop();
-  ensureCalibrationWatcher();
   g_global_tracker.initialize();
   printf("Global tracker initialized\n");
   g_server.stop();
@@ -481,7 +463,6 @@ int main(int argc, char **argv) {
   g_mgr.start();
 
   g_scheme_manager.initialize(g_config_path.string());
-  ensureCalibrationWatcher();
   g_global_tracker.initialize();
 
 
@@ -1338,12 +1319,24 @@ g_server.Post("/api/calibration/params", [](const httplib::Request& req, httplib
 
 g_server.Post("/api/calibration/start-auto", [](const httplib::Request&, httplib::Response& res){
     nlohmann::json resp;
-
+    
     try {
         auto cfg = readMainConfig();
-        CalibrationWatcher* watcher = ensureCalibrationWatcher();
-
-        if (watcher->isProcessing()) {
+        
+        // Создаем CalibrationWatcher если его нет
+        if (!g_calib_watcher) {
+            g_calib_watcher = std::make_unique<CalibrationWatcher>("/tmp/rec", "/tmp/calibration");
+            
+            g_calib_watcher->setStatusCallback([](const std::string& msg, float progress) {
+                printf("Calibration Status: %s (%.1f%%)\n", msg.c_str(), progress);
+            });
+            
+            g_calib_watcher->setLogCallback([](const std::string& msg) {
+                printf("Calibration Log: %s\n", msg.c_str());
+            });
+        }
+        
+        if (g_calib_watcher->isProcessing()) {
             resp["status"] = "error";
             resp["error"] = "Calibration already in progress";
             res.status = 400;
@@ -1360,12 +1353,12 @@ g_server.Post("/api/calibration/start-auto", [](const httplib::Request&, httplib
 
             printf("Starting calibration with params: board=%dx%d, square=%.1fmm\n",
                    params.board_cols, params.board_rows, params.square_size);
-
+            
             // Создаем папки
             std::filesystem::create_directories("/tmp/rec");
             std::filesystem::create_directories("/tmp/calibration");
-
-            if (watcher->startCalibration(params)) {
+            
+            if (g_calib_watcher->startCalibration(params)) {
                 resp["status"] = "ok";
                 resp["message"] = "Calibration started successfully";
                 resp["parameters"] = {
@@ -1406,21 +1399,19 @@ g_server.Post("/api/calibration/stop-auto", [](const httplib::Request&, httplib:
 
 g_server.Get("/api/calibration/status-auto", [](const httplib::Request&, httplib::Response& res){
     nlohmann::json resp;
-
+    
     if (g_calib_watcher) {
-        g_global_tracker.setCalibrationWatcher(g_calib_watcher.get());
-        g_global_tracker.checkAndUpdateCalibration();
         resp["processing"] = g_calib_watcher->isProcessing();
         resp["progress"] = g_calib_watcher->getProgress();
         resp["status_message"] = g_calib_watcher->getStatus();
-
+        
         // Получаем результаты
         auto mono_results = g_calib_watcher->getMonoResults();
         auto stereo_results = g_calib_watcher->getStereoResults();
-
+        
         resp["mono_calibrations"] = mono_results.size();
         resp["stereo_calibrations"] = stereo_results.size();
-
+        
         nlohmann::json mono_summary = nlohmann::json::array();
         for (const auto& result : mono_results) {
             nlohmann::json summary;
@@ -1509,7 +1500,6 @@ g_server.Post("/api/tracking/mode", [](const httplib::Request& req, httplib::Res
         
         if (g_use_global_tracking) {
             g_scheme_manager.initialize(g_config_path.string());
-            ensureCalibrationWatcher();
             g_global_tracker.initialize();
         }
         
