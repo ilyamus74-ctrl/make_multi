@@ -235,6 +235,17 @@ window.CameraApp.API = {
         });
     },
 
+    async setGrayscaleTrackingMode(grayscale = false) {
+        return await this.request(window.CameraApp.Config.API.TRACKING.GRAYSCALE_MODE, {
+            method: 'POST',
+            body: JSON.stringify({ grayscale })
+        });
+    },
+
+    async getGrayscaleTrackingMode() {
+        return await this.request(window.CameraApp.Config.API.TRACKING.GRAYSCALE_MODE);
+    },
+
     async getGlobalTracking() {
         return await this.request(window.CameraApp.Config.API.TRACKING.GLOBAL);
     },

@@ -47,6 +47,7 @@ static std::unique_ptr<CalibrationWatcher> g_calib_watcher;
 static MultiCamera::CameraRoleManager g_role_mgr;
 static httplib::Server g_server;
 static bool g_preview_enabled = true;
+static bool g_use_grayscale_tracking = false;
 static std::unique_ptr<CalibrationSession> g_calib;
 static std::filesystem::path g_config_path;
 static std::filesystem::path g_exe_dir;
@@ -546,6 +547,7 @@ int main(int argc, char **argv) {
   nlohmann::json j;
   jf >> j;
   g_preview_enabled = j.value("preview_enabled", true);
+  g_use_grayscale_tracking = j.value("use_grayscale_tracking", false);
   int port = j.value("http", nlohmann::json::object()).value("port", 8080);
 
   g_calib = std::make_unique<CalibrationSession>(
@@ -1595,6 +1597,39 @@ g_server.Post("/api/tracking/mode", [](const httplib::Request& req, httplib::Res
         resp["status"] = "error";
         resp["error"] = e.what();
     }
+    res.set_content(resp.dump(), "application/json");
+});
+
+g_server.Post("/api/tracking/grayscale-mode", [](const httplib::Request& req, httplib::Response& res){
+    nlohmann::json resp;
+    try {
+        auto j = nlohmann::json::parse(req.body);
+        bool new_grayscale_mode = j.value("grayscale", g_use_grayscale_tracking);
+        
+        g_use_grayscale_tracking = new_grayscale_mode;
+        
+        // Update config file to persist setting
+        auto config = readMainConfig();
+        config["use_grayscale_tracking"] = g_use_grayscale_tracking;
+        if (writeMainConfig(config)) {
+            resp["status"] = "ok";
+            resp["grayscale_tracking"] = g_use_grayscale_tracking;
+        } else {
+            resp["status"] = "error";
+            resp["error"] = "Failed to save configuration";
+        }
+        
+    } catch (const std::exception& e) {
+        resp["status"] = "error";
+        resp["error"] = e.what();
+    }
+    res.set_content(resp.dump(), "application/json");
+});
+
+g_server.Get("/api/tracking/grayscale-mode", [](const httplib::Request&, httplib::Response& res){
+    nlohmann::json resp;
+    resp["status"] = "ok";
+    resp["grayscale_tracking"] = g_use_grayscale_tracking;
     res.set_content(resp.dump(), "application/json");
 });
 

@@ -12,6 +12,8 @@ struct Track {
     image_rect_t box;
     int misses;
     float color[3];
+    float grayscale_intensity;    // Average grayscale intensity
+    float texture_features[4];    // Simple texture descriptors: [mean_gradient, gradient_variance, lbp_mean, lbp_variance] 
     int cls;
 };
 
@@ -30,6 +32,10 @@ public:
     bool setParameters(float max_dist, float reid_dist, float color_thresh, 
                       int max_misses, int max_lost_age);
 
+    // Configuration for grayscale tracking mode
+    void setGrayscaleMode(bool use_grayscale);
+    bool isGrayscaleMode() const;
+
 private:
 
     // Use atomic for thread-safe ID generation with overflow protection
@@ -44,12 +50,20 @@ private:
     float color_thresh = 40.0f;
     int max_misses = 30;
     int max_lost_age = 150;
+    bool use_grayscale_tracking = false;  // Configuration parameter
 
     // Improved color calculation with bounds checking
     static void avgColor(const image_buffer_t* img, const image_rect_t& b, float out[3]);
 
     // Enhanced color difference using normalized Euclidean distance
     static float colorDiff(const float a[3], const float b[3]);
+
+    // Grayscale tracking methods
+    static void convertToGrayscale(const image_buffer_t* img, const image_rect_t& b, float& intensity);
+    static void extractTextureFeatures(const image_buffer_t* img, const image_rect_t& b, float features[4]);
+    static float compareGrayscaleFeatures(const float intensity_a, const float features_a[4], 
+                                         const float intensity_b, const float features_b[4]);
+    static float adaptiveThreshold(float base_threshold, const image_buffer_t* img, const image_rect_t& b);
 
     // Helper methods for better algorithm design
     int getNextTrackId();                    // Thread-safe ID generation with overflow protection

@@ -7,12 +7,17 @@ window.CameraApp.MainTab = {
     async init() {
         this.setupEventListeners();
         await this.loadCameras();
+        await this.loadTrackingModes();
     },
 
     setupEventListeners() {
         // Global tracking toggle
         const globalToggle = document.getElementById('global-tracking-toggle');
         globalToggle.addEventListener('change', this.handleGlobalTrackingToggle.bind(this));
+
+        // Grayscale tracking toggle
+        const grayscaleToggle = document.getElementById('grayscale-tracking-toggle');
+        grayscaleToggle.addEventListener('change', this.handleGrayscaleTrackingToggle.bind(this));
 
         // Clear memory button
         const clearBtn = document.getElementById('clear-memory-btn');
@@ -44,6 +49,23 @@ window.CameraApp.MainTab = {
         }
     },
 
+    async handleGrayscaleTrackingToggle(event) {
+        const enabled = event.target.checked;
+        
+        try {
+            await window.CameraApp.API.setGrayscaleTrackingMode(enabled);
+            
+            window.CameraApp.UI.showToast(
+                `Grayscale tracking mode ${enabled ? 'enabled' : 'disabled'}`,
+                'success'
+            );
+        } catch (error) {
+            console.error('Failed to toggle grayscale tracking mode:', error);
+            window.CameraApp.UI.showToast('Failed to toggle grayscale tracking mode', 'danger');
+            event.target.checked = !enabled; // Revert toggle
+        }
+    },
+
     handleClearMemory() {
         window.CameraApp.State.selectedObjectId = -1;
         window.CameraApp.State.lastGlobalObjects = [];
@@ -55,6 +77,19 @@ window.CameraApp.MainTab = {
         if (window.gc) window.gc();
         
         window.CameraApp.UI.showToast('Memory cleared', 'info');
+    },
+
+    async loadTrackingModes() {
+        try {
+            // Load grayscale tracking mode state
+            const grayscaleState = await window.CameraApp.API.getGrayscaleTrackingMode();
+            const grayscaleToggle = document.getElementById('grayscale-tracking-toggle');
+            if (grayscaleToggle && grayscaleState.status === 'ok') {
+                grayscaleToggle.checked = grayscaleState.grayscale_tracking || false;
+            }
+        } catch (error) {
+            console.error('Failed to load tracking modes:', error);
+        }
     },
 
     async loadCameras() {

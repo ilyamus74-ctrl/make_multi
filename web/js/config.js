@@ -39,6 +39,7 @@ window.CameraApp.Config = {
         TRACKING: {
             GLOBAL: '/api/tracking/global',
             MODE: '/api/tracking/mode',
+            GRAYSCALE_MODE: '/api/tracking/grayscale-mode',
             UPDATE: '/api/detections/update'
         }
     },

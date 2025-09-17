@@ -1,4 +1,5 @@
 {
+  "use_grayscale_tracking": false,
   "cameras": [
     {
       "auto_profiles": true,
