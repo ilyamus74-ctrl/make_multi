@@ -32,12 +32,12 @@
       "cap_fps": 30,
       "det_args": [],
       "det_port": 8000,
-      "device": "/dev/video1",
+      "device": "/dev/video2",
       "http_fps_limit": 20,
       "id": "2",
       "jpeg_quality": 60,
       "labels_path": "model/coco_80_labels_list.txt",
-      "log_file": "/tmp/2cam.log",
+      "log_file": "",
       "match": {
         "by_id_contains": "usb-icSpring_WebCamera_20240603201703-video-index0"
       },

@@ -14,14 +14,36 @@ GlobalTracker::GlobalTracker(CameraSchemeManager* scheme_manager,
     : scheme_manager_(scheme_manager), camera_manager_(camera_manager),
       next_global_id_(1) {
 
+    // Parameter validation
+    if (!scheme_manager_) {
+        throw std::invalid_argument("scheme_manager cannot be null");
+    }
+
     auto config = scheme_manager_->getTrackingConfig();
-    distance_threshold_ = config.max_distance_threshold;
-    speed_threshold_ = config.max_object_speed_mps;
-    retention_time_ms_ = static_cast<uint64_t>(config.id_retention_seconds * 1000);
-    area_change_threshold_ = config.max_area_ratio_change;
+
+    // Validate configuration parameters
+    distance_threshold_ = std::max(0.1, config.max_distance_threshold);
+    speed_threshold_ = std::max(0.1, config.max_object_speed_mps);
+    retention_time_ms_ = static_cast<uint64_t>(std::max(1.0, config.id_retention_seconds) * 1000);
+    area_change_threshold_ = std::max(0.1, config.max_area_ratio_change);
 }
 
 GlobalTracker::~GlobalTracker() {
+    // Proper cleanup with RAII pattern
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    tracked_objects_.clear();
+
+    // Clear camera calibrations
+    for (auto& [id, calib] : camera_calibrations_) {
+        // OpenCV Mat objects have automatic memory management
+        // but we explicitly release to be safe
+        calib.camera_matrix.release();
+        calib.dist_coeffs.release();
+        calib.rotation_vector.release();
+        calib.translation_vector.release();
+        calib.homography_matrix.release();
+    }
+    camera_calibrations_.clear();
 }
 
 bool GlobalTracker::initialize() {
@@ -564,6 +586,13 @@ void GlobalTracker::associateDetections(const std::string& camera_id,
                                        const std::vector<cv::Rect>& detections,
                                        uint64_t timestamp) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+
+    // Parameter validation
+    if (camera_id.empty() || timestamp == 0) {
+        return;
+    }
+
+
     if (detections.empty()) {
         // уменьшение уверенности для всех объектов, если на камере нет детекций
         for (auto& pair : tracked_objects_) {
@@ -575,15 +604,25 @@ void GlobalTracker::associateDetections(const std::string& camera_id,
 
     // Подготовка данных: мировые координаты центров детекций
     std::vector<cv::Point3f> detection_world;
+    detection_world.reserve(detections.size());
     for (const auto& det : detections) {
-        cv::Point2f center(det.x + det.width / 2.0f,
-                           det.y + det.height / 2.0f);
+        // Validate detection bounds
+        if (det.width <= 0 || det.height <= 0) {
+            detection_world.push_back(cv::Point3f(0, 0, 0));
+            continue;
+        }
+
+        cv::Point2f center(det.x + det.width * 0.5f,
+                           det.y + det.height * 0.5f);
         detection_world.push_back(imageToWorld(camera_id, center));
     }
 
     // Список существующих объектов
     std::vector<int> object_ids;
     std::vector<cv::Point3f> predicted_positions;
+
+    object_ids.reserve(tracked_objects_.size());
+    predicted_positions.reserve(tracked_objects_.size());
 
     for (auto& pair : tracked_objects_) {
 
@@ -594,7 +633,9 @@ void GlobalTracker::associateDetections(const std::string& camera_id,
     // Если нет активных объектов - создаем новые для всех детекций
     if (object_ids.empty()) {
         for (const auto& det : detections) {
-            createNewObject(camera_id, det, timestamp);
+            if (det.width > 0 && det.height > 0) {
+                createNewObject(camera_id, det, timestamp);
+            }
         }
         return;
     }
@@ -604,9 +645,10 @@ void GlobalTracker::associateDetections(const std::string& camera_id,
                                           std::vector<double>(detection_world.size(), 0.0));
     for (size_t i = 0; i < predicted_positions.size(); ++i) {
         for (size_t j = 0; j < detection_world.size(); ++j) {
-            cost[i][j] = cv::norm(predicted_positions[i] - detection_world[j]);
+            double base_distance = cv::norm(predicted_positions[i] - detection_world[j]);
+            cost[i][j] = base_distance;
 
-
+            // Add area consistency penalty
             auto prev_it = tracked_objects_[object_ids[i]].camera_detections.find(camera_id);
             if (prev_it != tracked_objects_[object_ids[i]].camera_detections.end()) {
                 double prev_area = static_cast<double>(prev_it->second.width) * prev_it->second.height;
@@ -614,7 +656,7 @@ void GlobalTracker::associateDetections(const std::string& camera_id,
                 if (prev_area > 0.0) {
                     double area_ratio = std::abs(new_area - prev_area) / prev_area;
                     if (area_ratio > area_change_threshold_) {
-                        cost[i][j] = distance_threshold_ * 10.0;
+                        cost[i][j] = distance_threshold_ * 10.0; // Heavy penalty
                     }
                 }
             }
@@ -648,7 +690,7 @@ void GlobalTracker::associateDetections(const std::string& camera_id,
     }
     // Создаем новые объекты для неиспользованных детекций
     for (size_t i = 0; i < detections.size(); ++i) {
-        if (!detection_used[i]) {
+        if (!detection_used[i] && detections[i].width > 0 && detections[i].height > 0) {
             createNewObject(camera_id, detections[i], timestamp);
         }
     }
@@ -730,52 +772,91 @@ void GlobalTracker::createNewObject(const std::string& camera_id,
                                    uint64_t timestamp) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
     GlobalObject new_obj;
+
+    // Prevent integer overflow in global ID
+    if (next_global_id_ >= std::numeric_limits<int>::max() - 1000) {
+        next_global_id_ = 1;
+    }
     new_obj.global_id = next_global_id_++;
+
     new_obj.camera_detections[camera_id] = detection;
     new_obj.primary_camera_id = camera_id;
     new_obj.last_seen_timestamp = timestamp;
     new_obj.confidence = 0.5; // Начальная уверенность
     new_obj.velocity = cv::Point3f(0, 0, 0); // Начальная скорость
-    
+
+    // Validate detection bounds
+    if (detection.width <= 0 || detection.height <= 0) {
+        std::cerr << "Invalid detection bounds for camera " << camera_id << std::endl;
+        return;
+    }
+
     // Вычисляем начальную мировую позицию
     cv::Point2f detection_center(
-        detection.x + detection.width / 2.0,
-        detection.y + detection.height / 2.0
+        detection.x + detection.width * 0.5f,
+        detection.y + detection.height * 0.5f
     );
     new_obj.world_position = imageToWorld(camera_id, detection_center);
+    new_obj.position_history.reserve(20); // Pre-allocate for efficiency
     new_obj.position_history.push_back(new_obj.world_position);
-    tracked_objects_[new_obj.global_id] = new_obj;
+    tracked_objects_[new_obj.global_id] = std::move(new_obj); // Use move for efficiency
+
     std::cout << "Создан новый объект ID=" << new_obj.global_id
               << " на камере " << camera_id << std::endl;
 }
 
 void GlobalTracker::updateWorldPositions(const std::string& camera_id, uint64_t timestamp) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+
+    // Parameter validation
+    if (camera_id.empty() || timestamp == 0) {
+        return;
+    }
+
     for (auto& pair : tracked_objects_) {
         GlobalObject& obj = pair.second;
 
         // Обновляем позицию только если объект виден на этой камере
         auto det_it = obj.camera_detections.find(camera_id);
         if (det_it != obj.camera_detections.end()) {
+            const cv::Rect& detection = det_it->second;
+            // Validate detection
+            if (detection.width <= 0 || detection.height <= 0) {
+                continue;
+            }
             cv::Point2f detection_center(
-                det_it->second.x + det_it->second.width / 2.0,
-                det_it->second.y + det_it->second.height / 2.0
+                detection.x + detection.width * 0.5f,
+                detection.y + detection.height * 0.5f
             );
-            
+
             cv::Point3f new_world_pos = imageToWorld(camera_id, detection_center);
-            
-            // Обновляем скорость
-            if (obj.last_seen_timestamp > 0) {
+
+            // Обновляем скорость с валидацией времени
+            if (obj.last_seen_timestamp > 0 && timestamp > obj.last_seen_timestamp) {
                 double dt = (timestamp - obj.last_seen_timestamp) / 1000.0;
-                if (dt > 0) {
-                    obj.velocity = (new_world_pos - obj.world_position) / dt;
+                if (dt > 0 && dt < 10.0) { // Sanity check for time delta
+                    cv::Point3f displacement = new_world_pos - obj.world_position;
+                    obj.velocity = displacement / static_cast<float>(dt);
+
+                    // Limit velocity to reasonable values
+                    float speed = cv::norm(obj.velocity);
+                    if (speed > speed_threshold_) {
+                        obj.velocity = obj.velocity * (speed_threshold_ / speed);
+                    }
+                } else {
+                    obj.velocity = cv::Point3f(0, 0, 0); // Reset on time jump
                 }
             }
             obj.world_position = new_world_pos;
             obj.position_history.push_back(new_world_pos);
-            if (obj.position_history.size() > 20) {
-                obj.position_history.erase(obj.position_history.begin());
+
+            // Limit history size for memory efficiency
+            const size_t max_history = 20;
+            if (obj.position_history.size() > max_history) {
+                obj.position_history.erase(obj.position_history.begin(), 
+                                          obj.position_history.end() - max_history);
             }
+
             obj.last_seen_timestamp = timestamp;
         }
     }
@@ -791,6 +872,12 @@ int GlobalTracker::getPrimaryCameraPriority(const std::string& camera_id) {
 
 cv::Point3f GlobalTracker::imageToWorld(const std::string& camera_id, const cv::Point2f& image_point) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+    // Validate input parameters
+    if (camera_id.empty()) {
+        std::cerr << "Invalid camera ID" << std::endl;
+        return cv::Point3f(0, 0, 0);
+    }
+
     auto calib_it = camera_calibrations_.find(camera_id);
     if (calib_it == camera_calibrations_.end() || !calib_it->second.is_calibrated) {
         std::cerr << "Камера " << camera_id << " не откалибрована" << std::endl;
@@ -799,38 +886,60 @@ cv::Point3f GlobalTracker::imageToWorld(const std::string& camera_id, const cv::
     
     const CameraCalibration& calib = calib_it->second;
     
-    // Предполагаем, что объект находится на уровне земли (z = 0)
-    std::vector<cv::Point2f> image_points = {image_point};
-    std::vector<cv::Point3f> world_points;
-    
-    // Создаем луч от камеры через точку изображения
-    cv::Mat ray_direction;
-    cv::undistortPoints(image_points, image_points, calib.camera_matrix, calib.dist_coeffs);
-    
-    // Преобразуем в однородные координаты
-    cv::Point3f ray(image_points[0].x, image_points[0].y, 1.0);
-    
-    // Применяем обратное преобразование поворота
-    cv::Mat R;
-    cv::Rodrigues(calib.rotation_vector, R);
-    cv::Mat R_inv = R.t();
-    
-    // Позиция камеры в мировых координатах
-    cv::Mat cam_position = -R_inv * calib.translation_vector;
-    
-    // Направление луча в мировых координатах
-    cv::Mat ray_world = R_inv * cv::Mat(ray);
-    
-    // Пересечение луча с плоскостью z = 0
-    double t = -cam_position.at<double>(2) / ray_world.at<double>(2);
-    
-    cv::Point3f world_point(
-        cam_position.at<double>(0) + t * ray_world.at<double>(0),
-        cam_position.at<double>(1) + t * ray_world.at<double>(1),
-        0.0
-    );
-    
-    return world_point;
+    // Validate calibration matrices
+    if (calib.camera_matrix.empty() || calib.rotation_vector.empty() || 
+        calib.translation_vector.empty()) {
+        std::cerr << "Некорректные калибровочные данные для камеры " << camera_id << std::endl;
+        return cv::Point3f(0, 0, 0);
+    }
+
+    try {
+        // Предполагаем, что объект находится на уровне земли (z = 0)
+        std::vector<cv::Point2f> image_points = {image_point};
+        std::vector<cv::Point2f> undistorted_points;
+
+        // Создаем луч от камеры через точку изображения
+        cv::undistortPoints(image_points, undistorted_points, 
+                           calib.camera_matrix, calib.dist_coeffs);
+
+        if (undistorted_points.empty()) {
+            return cv::Point3f(0, 0, 0);
+        }
+
+        // Преобразуем в однородные координаты
+        cv::Point3f ray(undistorted_points[0].x, undistorted_points[0].y, 1.0);
+
+        // Применяем обратное преобразование поворота
+        cv::Mat R;
+        cv::Rodrigues(calib.rotation_vector, R);
+        cv::Mat R_inv = R.t();
+
+        // Позиция камеры в мировых координатах
+        cv::Mat cam_position = -R_inv * calib.translation_vector;
+
+        // Направление луча в мировых координатах
+        cv::Mat ray_world = R_inv * cv::Mat(ray);
+
+        // Пересечение луча с плоскостью z = 0
+        double ray_z = ray_world.at<double>(2);
+        if (std::abs(ray_z) < 1e-6) {
+            // Ray is parallel to ground plane
+            return cv::Point3f(0, 0, 0);
+        }
+
+        double t = -cam_position.at<double>(2) / ray_z;
+
+         cv::Point3f world_point(
+            static_cast<float>(cam_position.at<double>(0) + t * ray_world.at<double>(0)),
+            static_cast<float>(cam_position.at<double>(1) + t * ray_world.at<double>(1)),
+            0.0f
+        );
+
+        return world_point;
+    } catch (const cv::Exception& e) {
+        std::cerr << "OpenCV error in imageToWorld: " << e.what() << std::endl;
+        return cv::Point3f(0, 0, 0);
+    }
 }
 
 cv::Point2f GlobalTracker::worldToImage(const std::string& camera_id, const cv::Point3f& world_point) {
@@ -998,18 +1107,37 @@ bool GlobalTracker::initializeCameraCalibration(const std::string& camera_id) {
 
 void GlobalTracker::cleanupOldObjects(uint64_t current_timestamp) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
+
+    if (current_timestamp == 0) {
+        return;
+    }
+
+    // Use iterator-based removal for better performance
     auto it = tracked_objects_.begin();
+    size_t removed_count = 0;
     while (it != tracked_objects_.end()) {
-        uint64_t age = current_timestamp - it->second.last_seen_timestamp;
+        if (it->second.last_seen_timestamp == 0) {
+            // Handle invalid timestamp
+            it = tracked_objects_.erase(it);
+            removed_count++;
+            continue;
+        }
+
+        uint64_t age = (current_timestamp > it->second.last_seen_timestamp) ? 
+                       (current_timestamp - it->second.last_seen_timestamp) : 0;
 
         if (age > retention_time_ms_ || it->second.confidence < 0.1) {
             std::cout << "Удален объект ID=" << it->second.global_id 
                       << " (возраст=" << age << "мс, уверенность=" 
                       << it->second.confidence << ")" << std::endl;
             it = tracked_objects_.erase(it);
+            removed_count++;
         } else {
             ++it;
         }
+    }
+    if (removed_count > 0) {
+        std::cout << "Очистка завершена: удалено " << removed_count << " объектов" << std::endl;
     }
 }
 
