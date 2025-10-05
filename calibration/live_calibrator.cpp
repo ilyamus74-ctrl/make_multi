@@ -186,6 +186,8 @@ bool MonoCalibrator::getFrame(cv::Mat &frame, std::string &hint_text,
         cv::putText(frame, "Waiting...", {20, frame.rows / 2},
                     cv::FONT_HERSHEY_SIMPLEX, 1.0, {0, 255, 255}, 2);
         hint_text = "Waiting for camera...";
+        progress_current = 0;
+        progress_max = config_.max_frames;
         return true;
     }
 
@@ -237,14 +239,27 @@ bool MonoCalibrator::getFrame(cv::Mat &frame, std::string &hint_text,
         }
     }
 
-    hint_text = hintToString(hint, hint_value);
-
     {
         std::lock_guard<std::mutex> lk(data_mutex_);
         progress_current = static_cast<int>(image_points_.size());
         progress_max = config_.max_frames;
     }
 
+    hint_text = hintToString(hint, hint_value);
+
+    cv::Scalar hint_color =
+        (hint == HintType::CAPTURED || hint == HintType::COMPLETE)
+            ? cv::Scalar(0, 255, 0)
+            : cv::Scalar(0, 165, 255);
+    cv::putText(frame, hint_text, {20, 40}, cv::FONT_HERSHEY_SIMPLEX, 0.8,
+                hint_color, 2);
+
+    if (is_calibrating_) {
+        std::string progress_str = std::to_string(progress_current) + "/" +
+                                   std::to_string(progress_max);
+        cv::putText(frame, progress_str, {20, 80}, cv::FONT_HERSHEY_SIMPLEX,
+                    0.7, cv::Scalar(255, 255, 0), 2);
+    }
     return true;
 }
 
@@ -470,11 +485,29 @@ bool StereoCalibrator::getFrame(cv::Mat &combined, std::string &hint_text,
     }
 
     cv::hconcat(frame_a, frame_b, combined);
-    hint_text = hintToString(hint, hint_value);
+    cv::line(combined, {frame_a.cols, 0},
+             {frame_a.cols, combined.rows}, cv::Scalar(255, 255, 255), 2);
+
     {
         std::lock_guard<std::mutex> lk(data_mutex_);
         progress_current = static_cast<int>(image_points_a_.size());
         progress_max = config_.max_frames;
+    }
+
+    hint_text = hintToString(hint, hint_value);
+    cv::Scalar hint_color =
+        (hint == HintType::CAPTURED || hint == HintType::COMPLETE)
+            ? cv::Scalar(0, 255, 0)
+            : cv::Scalar(0, 165, 255);
+    cv::putText(combined, hint_text, {20, 40}, cv::FONT_HERSHEY_SIMPLEX, 0.8,
+                hint_color, 2);
+
+    if (is_calibrating_) {
+        std::string progress_str = std::to_string(progress_current) + "/" +
+                                   std::to_string(progress_max);
+        cv::putText(combined, progress_str, {20, 80},
+                    cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 0),
+                    2);
     }
 
     return true;
