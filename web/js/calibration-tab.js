@@ -526,6 +526,28 @@ window.CameraApp.CalibrationTab = {
         return Boolean(this.calibrationStatus?.active);
     },
 
+
+    isCaptureReady(status) {
+        if (!status || !status.active) {
+            return false;
+        }
+
+        if (!['mono', 'stereo'].includes(status.mode)) {
+            return false;
+        }
+
+        const current = Number(status.progress?.current) || 0;
+        const max = Number(status.progress?.max) || 0;
+        const minFrames = Number(status.config?.min_frames) || 0;
+        const required = max > 0 ? max : Math.max(minFrames, 0);
+
+        if (required <= 0) {
+            return false;
+        }
+
+        return current >= required;
+    },
+
     updateCaptureControls() {
         const monoBtn = document.getElementById('start-mono-capture-btn');
         const stereoBtn = document.getElementById('start-stereo-capture-btn');
@@ -536,10 +558,10 @@ window.CameraApp.CalibrationTab = {
         const selected = this.getSelectedCameraIds();
         const status = this.calibrationStatus || {};
         const active = !!status.active;
-        const running = !!status.running;
         const calibrating = !!status.calibrating;
         const computing = !!status.compute_in_progress;
         const busy = calibrating || computing;
+        const captureReady = this.isCaptureReady(status);
 
         if (monoBtn) {
             monoBtn.disabled = active || busy || selected.length !== 1;
@@ -558,7 +580,7 @@ window.CameraApp.CalibrationTab = {
         }
 
         if (computeBtn) {
-            computeBtn.disabled = !active || running || calibrating || computing;
+            computeBtn.disabled = !active || calibrating || computing || !captureReady;
         }
     },
 
@@ -1243,12 +1265,7 @@ window.CameraApp.CalibrationTab = {
             return;
         }
 
-        const current = Number(status.progress?.current) || 0;
-        const max = Number(status.progress?.max) || 0;
-        const minFrames = Number(status.config?.min_frames) || 0;
-        const required = max > 0 ? max : Math.max(minFrames, 0);
-
-        if (status.calibrating || required <= 0 || current < required) {
+        if (status.calibrating || !this.isCaptureReady(status)) {
             return;
         }
 
