@@ -1,0 +1,21 @@
+camera_calibration:
+  camera_0:
+    position: [-0.1, 0.0, 0.0]
+    rotation: [0, 0, -90]
+    fov: [180, 180]
+    intrinsics: [1000, 1000, 640, 360]
+  camera_1:
+    position: [0.1, 0.0, 0.0] 
+    rotation: [0, 0, 90]
+    fov: [180, 180]
+    intrinsics: [1000, 1000, 640, 360]
+  camera_2:
+    position: [0.0, 0.0, 0.2]
+    rotation: [0, 0, 0]
+    fov: [30, 30]
+    intrinsics: [2000, 2000, 640, 360]
+
+global_settings:
+  baseline_distance: 0.2
+  fusion_threshold: 0.3
+  tracking_timeout: 3.0
