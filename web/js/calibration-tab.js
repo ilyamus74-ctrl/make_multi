@@ -11,6 +11,8 @@ window.CameraApp.CalibrationTab = {
     activeMonoCameraId: null,
     livePreviewElement: null,
     livePreviewPlaceholder: null,
+    autoComputeEnabled: false,
+    autoComputeTriggered: false,
 
     selectedCameras: new Set(),
     captureInProgress: false,
@@ -27,6 +29,8 @@ window.CameraApp.CalibrationTab = {
         this.activeMonoCameraId = null;
         this.livePreviewElement = null;
         this.livePreviewPlaceholder = null;
+        this.autoComputeEnabled = false;
+        this.autoComputeTriggered = false;
         this.setupEventListeners();
         await this.loadCalibrationParams();
         await this.refreshCalibrationStatus();
@@ -880,6 +884,7 @@ window.CameraApp.CalibrationTab = {
             this.renderCaptureSummary(status);
             this.updateCalibrationProgress(status);
             this.updateCaptureControls();
+            this.maybeTriggerAutoCompute(status);
             return status;
         } catch (error) {
             console.warn('Failed to refresh calibration status:', error);
@@ -995,6 +1000,8 @@ window.CameraApp.CalibrationTab = {
             }
 
             this.updateCaptureStatus(`Starting mono capture for <strong>${cameraId}</strong>...`, 'info');
+            this.autoComputeEnabled = false;
+            this.autoComputeTriggered = false;
 
             const response = await window.CameraApp.API.startLiveCalibration({
                 mode: 'mono',
@@ -1052,6 +1059,8 @@ window.CameraApp.CalibrationTab = {
             }
 
             this.updateCaptureStatus(`Starting stereo capture for <strong>${sortedCameras.join(' & ')}</strong>...`, 'info');
+            this.autoComputeEnabled = false;
+            this.autoComputeTriggered = false;
             const response = await window.CameraApp.API.startLiveCalibration({
                 mode: 'stereo',
                 camera_a: sortedCameras[0],
@@ -1095,6 +1104,8 @@ window.CameraApp.CalibrationTab = {
                 window.CameraApp.UI.setButtonLoading(startBtn, true, 'Starting...');
             }
             this.updateCaptureStatus('Starting calibration...', 'info');
+            this.autoComputeEnabled = true;
+            this.autoComputeTriggered = false;
 
             const response = await window.CameraApp.API.calibrateLiveCalibration();
 
@@ -1110,6 +1121,8 @@ window.CameraApp.CalibrationTab = {
             window.CameraApp.UI.showToast('Calibration started', 'success');
         } catch (error) {
             const message = error?.message || String(error || 'Unknown error');
+            this.autoComputeEnabled = false;
+            this.autoComputeTriggered = false;
             this.updateCaptureStatus(`Calibration failed: ${message}`, 'error');
             window.CameraApp.UI.showToast(`Calibration failed: ${message}`, 'danger');
         } finally {
@@ -1120,7 +1133,9 @@ window.CameraApp.CalibrationTab = {
         }
     },
 
-    async computeCalibrationResults() {
+    async computeCalibrationResults(options = {}) {
+        const opts = typeof options === 'boolean' ? { auto: options } : options;
+        const { auto = false } = opts;
         const computeBtn = document.getElementById('compute-calibration-btn');
 
         if (!this.calibrationStatus?.active) {
@@ -1129,10 +1144,11 @@ window.CameraApp.CalibrationTab = {
         }
 
         try {
-            if (computeBtn) {
+            if (!auto && computeBtn) {
                 window.CameraApp.UI.setButtonLoading(computeBtn, true, 'Computing...');
             }
             this.updateCaptureStatus('Computing calibration results...', 'info');
+            this.autoComputeEnabled = false;
 
             const response = await window.CameraApp.API.computeLiveCalibration();
             if (response?.status !== 'ok') {
@@ -1146,8 +1162,11 @@ window.CameraApp.CalibrationTab = {
             const message = error?.message || String(error || 'Unknown error');
             this.updateCaptureStatus(`Compute failed: ${message}`, 'error');
             window.CameraApp.UI.showToast(`Compute failed: ${message}`, 'danger');
+            if (auto) {
+                this.autoComputeTriggered = false;
+            }
         } finally {
-            if (computeBtn) {
+            if (!auto && computeBtn) {
                 window.CameraApp.UI.setButtonLoading(computeBtn, false);
             }
             await this.refreshCalibrationStatus();
@@ -1210,6 +1229,43 @@ window.CameraApp.CalibrationTab = {
         this.updateCaptureStatus(hint, status.pattern_visible ? 'success' : 'warning');
     },
 
+
+    maybeTriggerAutoCompute(status) {
+        if (!this.autoComputeEnabled || this.autoComputeTriggered) {
+            return;
+        }
+
+        if (!status || !status.active || status.compute_in_progress) {
+            return;
+        }
+
+        if (!['mono', 'stereo'].includes(status.mode)) {
+            return;
+        }
+
+        const current = Number(status.progress?.current) || 0;
+        const max = Number(status.progress?.max) || 0;
+        const minFrames = Number(status.config?.min_frames) || 0;
+        const required = max > 0 ? max : Math.max(minFrames, 0);
+
+        if (status.calibrating || required <= 0 || current < required) {
+            return;
+        }
+
+        const hasResults = (Array.isArray(status.mono_results) && status.mono_results.length > 0)
+            || (Array.isArray(status.stereo_results) && status.stereo_results.length > 0);
+        if (hasResults) {
+            this.autoComputeEnabled = false;
+            this.autoComputeTriggered = true;
+            return;
+        }
+
+        this.autoComputeTriggered = true;
+        this.computeCalibrationResults({ auto: true }).catch(error => {
+            console.warn('Auto calibration compute failed:', error);
+        });
+    },
+
     showCalibrationResults(results) {
         const monoResults = Array.isArray(results?.mono_results) ? results.mono_results : [];
         const stereoResults = Array.isArray(results?.stereo_results) ? results.stereo_results : [];
@@ -1269,6 +1325,8 @@ window.CameraApp.CalibrationTab = {
         } finally {
             this.stopStatusTimer();
             this.setLivePreviewActive(false);
+            this.autoComputeEnabled = false;
+            this.autoComputeTriggered = false;
 
             window.CameraApp.State.isCalibrating = false;
             this.updateCaptureStatus('', 'info');
