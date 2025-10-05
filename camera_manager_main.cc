@@ -24,6 +24,8 @@
 #include <algorithm>
 #include <sstream>
 #include <ctime>
+#include <variant>
+#include <optional>
 #include "calibration_watcher.h"
 #include <unordered_map>
 #include <future>  // ← ДОБАВЬТЕ ЭТУ СТРОКУ
@@ -183,6 +185,272 @@ static CalibrationWatcher* ensureCalibrationWatcher() {
   g_global_tracker.setCalibrationWatcher(g_calib_watcher.get());
   return g_calib_watcher.get();
 }
+
+
+class ManagerPauseGuard {
+ public:
+  ManagerPauseGuard() {
+    was_running_ = g_mgr.isRunning();
+    if (was_running_) {
+      g_mgr.stop();
+    }
+    prev_preview_ = g_preview_enabled;
+    g_preview_enabled = true;
+  }
+
+  ManagerPauseGuard(const ManagerPauseGuard&) = delete;
+  ManagerPauseGuard& operator=(const ManagerPauseGuard&) = delete;
+
+  bool wasRunning() const { return was_running_; }
+
+  ~ManagerPauseGuard() {
+    g_preview_enabled = prev_preview_;
+    if (was_running_) {
+      g_mgr.start();
+    }
+  }
+
+ private:
+  bool was_running_{false};
+  bool prev_preview_{true};
+};
+
+enum class LiveCalibrationMode { None, Mono, Stereo };
+
+class ActiveCalibratorManager {
+ public:
+  using MonoPtr = std::unique_ptr<calibration::MonoCalibrator>;
+  using StereoPtr = std::unique_ptr<calibration::StereoCalibrator>;
+
+  bool isActive() const { return mode_ != LiveCalibrationMode::None; }
+  LiveCalibrationMode mode() const { return mode_; }
+
+  calibration::MonoCalibrator* mono() {
+    if (auto ptr = std::get_if<MonoPtr>(&calibrator_)) {
+      return ptr->get();
+    }
+    return nullptr;
+  }
+
+  calibration::StereoCalibrator* stereo() {
+    if (auto ptr = std::get_if<StereoPtr>(&calibrator_)) {
+      return ptr->get();
+    }
+    return nullptr;
+  }
+
+  const calibration::CalibConfig& config() const { return config_; }
+  const std::string& cameraPrimary() const { return camera_primary_; }
+  const std::string& cameraSecondary() const { return camera_secondary_; }
+
+  void setMono(MonoPtr mono, const calibration::CalibConfig& config,
+               std::unique_ptr<ManagerPauseGuard> guard, std::string camera_id) {
+    reset();
+    calibrator_.emplace<MonoPtr>(std::move(mono));
+    mode_ = LiveCalibrationMode::Mono;
+    config_ = config;
+    camera_primary_ = std::move(camera_id);
+    camera_secondary_.clear();
+    guard_ = std::move(guard);
+    progress_current_ = 0;
+    progress_max_ = config_.max_frames;
+    pattern_visible_ = false;
+    mono_results_.clear();
+    stereo_results_.clear();
+    last_error_.clear();
+  }
+
+  void setStereo(StereoPtr stereo, const calibration::CalibConfig& config,
+                 std::unique_ptr<ManagerPauseGuard> guard,
+                 std::string camera_a, std::string camera_b) {
+    reset();
+    calibrator_.emplace<StereoPtr>(std::move(stereo));
+    mode_ = LiveCalibrationMode::Stereo;
+    config_ = config;
+    camera_primary_ = std::move(camera_a);
+    camera_secondary_ = std::move(camera_b);
+    guard_ = std::move(guard);
+    progress_current_ = 0;
+    progress_max_ = config_.max_frames;
+    pattern_visible_ = false;
+    mono_results_.clear();
+    stereo_results_.clear();
+    last_error_.clear();
+  }
+
+  void setHint(std::string hint) { last_hint_ = std::move(hint); }
+  const std::string& lastHint() const { return last_hint_; }
+
+  void setProgress(int current, int max, bool pattern_visible) {
+    progress_current_ = current;
+    progress_max_ = max;
+    pattern_visible_ = pattern_visible;
+  }
+
+  int progressCurrent() const { return progress_current_; }
+  int progressMax() const { return progress_max_; }
+  bool patternVisible() const { return pattern_visible_; }
+
+  void setVideoActive(bool active) { video_active_ = active; }
+  bool videoActive() const { return video_active_; }
+
+  void setComputeInProgress(bool value) { compute_in_progress_ = value; }
+  bool computeInProgress() const { return compute_in_progress_; }
+
+  void setLastError(std::string err) { last_error_ = std::move(err); }
+  const std::string& lastError() const { return last_error_; }
+
+  void setResults(std::vector<calibration::MonoCalibrationSummary> mono,
+                  std::vector<calibration::StereoCalibrationSummary> stereo) {
+    mono_results_ = std::move(mono);
+    stereo_results_ = std::move(stereo);
+  }
+
+  const std::vector<calibration::MonoCalibrationSummary>& monoResults() const {
+    return mono_results_;
+  }
+
+  const std::vector<calibration::StereoCalibrationSummary>& stereoResults() const {
+    return stereo_results_;
+  }
+
+  struct ReleasedCalibrators {
+    MonoPtr mono;
+    StereoPtr stereo;
+    std::unique_ptr<ManagerPauseGuard> guard;
+    LiveCalibrationMode mode{LiveCalibrationMode::None};
+  };
+
+  ReleasedCalibrators releaseCalibrators() {
+    ReleasedCalibrators released;
+    released.mode = mode_;
+    if (auto ptr = std::get_if<MonoPtr>(&calibrator_)) {
+      released.mono = std::move(*ptr);
+    } else if (auto ptr = std::get_if<StereoPtr>(&calibrator_)) {
+      released.stereo = std::move(*ptr);
+    }
+    released.guard = std::move(guard_);
+    reset();
+    return released;
+  }
+
+  void reset() {
+    calibrator_.emplace<std::monostate>();
+    mode_ = LiveCalibrationMode::None;
+    config_ = calibration::CalibConfig{};
+    camera_primary_.clear();
+    camera_secondary_.clear();
+    progress_current_ = 0;
+    progress_max_ = 0;
+    pattern_visible_ = false;
+    video_active_ = false;
+    compute_in_progress_ = false;
+    last_hint_.clear();
+    last_error_.clear();
+    mono_results_.clear();
+    stereo_results_.clear();
+    guard_.reset();
+  }
+
+ private:
+  std::variant<std::monostate, MonoPtr, StereoPtr> calibrator_;
+  LiveCalibrationMode mode_{LiveCalibrationMode::None};
+  calibration::CalibConfig config_{};
+  std::string camera_primary_;
+  std::string camera_secondary_;
+  std::unique_ptr<ManagerPauseGuard> guard_{};
+  int progress_current_{0};
+  int progress_max_{0};
+  bool pattern_visible_{false};
+  bool video_active_{false};
+  bool compute_in_progress_{false};
+  std::string last_hint_;
+  std::string last_error_;
+  std::vector<calibration::MonoCalibrationSummary> mono_results_;
+  std::vector<calibration::StereoCalibrationSummary> stereo_results_;
+};
+
+static ActiveCalibratorManager g_live_calib_manager;
+static std::mutex g_live_calib_mutex;
+
+static nlohmann::json calibConfigToJson(const calibration::CalibConfig& cfg) {
+  nlohmann::json j;
+  j["pattern_cols"] = cfg.pattern_cols;
+  j["pattern_rows"] = cfg.pattern_rows;
+  j["square_size"] = cfg.square_size;
+  j["min_frames"] = cfg.min_frames;
+  j["max_frames"] = cfg.max_frames;
+  j["max_center_diff_horizontal"] = cfg.max_center_diff_horizontal;
+  j["max_center_diff_vertical"] = cfg.max_center_diff_vertical;
+  j["max_tilt_diff"] = cfg.max_tilt_diff;
+  j["min_coverage"] = cfg.min_coverage;
+  j["max_coverage"] = cfg.max_coverage;
+  j["min_distance_between_frames"] = cfg.min_distance_between_frames;
+  return j;
+}
+
+static calibration::CalibConfig calibConfigFromJson(
+    const nlohmann::json& j, calibration::CalibConfig base = {}) {
+  calibration::CalibConfig cfg = base;
+  if (!j.is_object()) {
+    return cfg;
+  }
+  cfg.pattern_cols = j.value("pattern_cols", cfg.pattern_cols);
+  cfg.pattern_rows = j.value("pattern_rows", cfg.pattern_rows);
+  cfg.square_size = j.value("square_size", cfg.square_size);
+  cfg.min_frames = j.value("min_frames", cfg.min_frames);
+  cfg.max_frames = j.value("max_frames", cfg.max_frames);
+  cfg.max_center_diff_horizontal =
+      j.value("max_center_diff_horizontal", cfg.max_center_diff_horizontal);
+  cfg.max_center_diff_vertical =
+      j.value("max_center_diff_vertical", cfg.max_center_diff_vertical);
+  cfg.max_tilt_diff = j.value("max_tilt_diff", cfg.max_tilt_diff);
+  cfg.min_coverage = j.value("min_coverage", cfg.min_coverage);
+  cfg.max_coverage = j.value("max_coverage", cfg.max_coverage);
+  cfg.min_distance_between_frames =
+      j.value("min_distance_between_frames",
+              cfg.min_distance_between_frames);
+  return cfg;
+}
+
+static nlohmann::json monoSummaryToJson(
+    const calibration::MonoCalibrationSummary& summary) {
+  nlohmann::json j;
+  j["camera_id"] = summary.camera_id;
+  j["output_file"] = summary.output_file.string();
+  j["image_width"] = summary.image_size.width;
+  j["image_height"] = summary.image_size.height;
+  j["frames_used"] = summary.frames_used;
+  j["reprojection_error"] = summary.reprojection_error;
+  j["per_view_errors"] = summary.per_view_errors;
+  j["calibration_time"] = summary.calibration_time;
+  return j;
+}
+
+static nlohmann::json stereoSummaryToJson(
+    const calibration::StereoCalibrationSummary& summary) {
+  nlohmann::json j;
+  j["camera_a"] = summary.camera_a;
+  j["camera_b"] = summary.camera_b;
+  j["output_file"] = summary.output_file.string();
+  j["frames_used"] = summary.frames_used;
+  j["reprojection_error"] = summary.reprojection_error;
+  j["calibration_time"] = summary.calibration_time;
+  return j;
+}
+
+static const char* modeToString(LiveCalibrationMode mode) {
+  switch (mode) {
+    case LiveCalibrationMode::Mono:
+      return "mono";
+    case LiveCalibrationMode::Stereo:
+      return "stereo";
+    default:
+      return "none";
+  }
+}
+
+
 
 static nlohmann::json serializeGlobalObjects(const std::vector<GlobalObject>& objects) {
   nlohmann::json result = nlohmann::json::array();
@@ -1127,6 +1395,511 @@ int main(int argc, char **argv) {
           res.status = 400;
         }
       });
+
+
+  g_server.Get("/api/calibration_new/cameras",
+               [](const httplib::Request&, httplib::Response& res) {
+                 nlohmann::json resp = nlohmann::json::object();
+                 nlohmann::json cams = nlohmann::json::array();
+                 auto infos = g_mgr.configuredCameras();
+                 for (const auto& ci : infos) {
+                   if (ci.mode != CameraManager::CamConfig::Mode::Calibration)
+                     continue;
+                   nlohmann::json cam;
+                   cam["id"] = ci.id;
+                   cam["present"] = ci.present;
+                   cam["device"] = g_mgr.devicePath(ci.id);
+                   cam["preferred"] = {
+                       {"width", ci.preferred.w},
+                       {"height", ci.preferred.h},
+                       {"fps", ci.preferred.fps},
+                   };
+                   cam["role"] = ci.role;
+                   cams.push_back(std::move(cam));
+                 }
+
+                 {
+                   std::lock_guard<std::mutex> lk(g_live_calib_mutex);
+                   resp["active"] = g_live_calib_manager.isActive();
+                   resp["mode"] = modeToString(g_live_calib_manager.mode());
+                   nlohmann::json current = nlohmann::json::object();
+                   if (!g_live_calib_manager.cameraPrimary().empty())
+                     current["camera_a"] = g_live_calib_manager.cameraPrimary();
+                   if (!g_live_calib_manager.cameraSecondary().empty())
+                     current["camera_b"] = g_live_calib_manager.cameraSecondary();
+                   resp["current"] = std::move(current);
+                   resp["config"] =
+                       calibConfigToJson(g_live_calib_manager.config());
+                   resp["video_active"] = g_live_calib_manager.videoActive();
+                 }
+                 resp["defaults"] =
+                     calibConfigToJson(calibration::CalibConfig{});
+                 resp["cameras"] = std::move(cams);
+                 res.set_content(resp.dump(), "application/json");
+               });
+
+  g_server.Post("/api/calibration_new/start",
+                [](const httplib::Request& req, httplib::Response& res) {
+                  nlohmann::json resp = nlohmann::json::object();
+                  nlohmann::json body = nlohmann::json::object();
+                  if (!req.body.empty()) {
+                    try {
+                      body = nlohmann::json::parse(req.body);
+                    } catch (...) {
+                      res.status = 400;
+                      resp["status"] = "error";
+                      resp["error"] = "invalid json";
+                      res.set_content(resp.dump(), "application/json");
+                      return;
+                    }
+                  }
+
+                  {
+                    std::lock_guard<std::mutex> lk(g_live_calib_mutex);
+                    if (g_live_calib_manager.isActive()) {
+                      resp["status"] = "error";
+                      resp["error"] = "calibration already active";
+                      res.status = 409;
+                      res.set_content(resp.dump(), "application/json");
+                      return;
+                    }
+                  }
+
+                  std::string mode = body.value("mode", std::string("mono"));
+                  std::string camera_a =
+                      body.value("camera_a", body.value("camera", std::string{}));
+                  std::string camera_b = body.value("camera_b", std::string{});
+                  calibration::CalibConfig cfg = calibConfigFromJson(
+                      body.value("config", nlohmann::json::object()));
+                  bool client_error = false;
+
+                  try {
+                    if (mode != "mono" && mode != "stereo") {
+                      client_error = true;
+                      throw std::runtime_error("mode must be 'mono' or 'stereo'");
+                    }
+                    if (camera_a.empty()) {
+                      client_error = true;
+                      throw std::runtime_error("camera_a is required");
+                    }
+
+                    std::string dev_a = g_mgr.devicePath(camera_a);
+                    if (dev_a.empty()) {
+                      client_error = true;
+                      throw std::runtime_error("camera_a not available");
+                    }
+
+                    auto guard = std::make_unique<ManagerPauseGuard>();
+                    bool ok = false;
+                    std::unique_ptr<calibration::MonoCalibrator> mono;
+                    std::unique_ptr<calibration::StereoCalibrator> stereo;
+
+                    if (mode == "stereo") {
+                      if (camera_b.empty()) {
+                        client_error = true;
+                        throw std::runtime_error(
+                            "camera_b is required for stereo");
+                      }
+                      std::string dev_b = g_mgr.devicePath(camera_b);
+                      if (dev_b.empty()) {
+                        client_error = true;
+                        throw std::runtime_error("camera_b not available");
+                      }
+                      stereo = std::make_unique<calibration::StereoCalibrator>(
+                          camera_a, camera_b, dev_a, dev_b, cfg);
+                      ok = stereo->startCameras();
+                      if (!ok) {
+                        throw std::runtime_error(
+                            "failed to start stereo cameras");
+                      }
+                    } else {
+                      mode = "mono";
+                      mono = std::make_unique<calibration::MonoCalibrator>(
+                          camera_a, dev_a, cfg);
+                      ok = mono->startCamera();
+                      if (!ok) {
+                        throw std::runtime_error("failed to start camera");
+                      }
+                    }
+
+                    {
+                      std::lock_guard<std::mutex> lk(g_live_calib_mutex);
+                      if (mode == "mono") {
+                        g_live_calib_manager.setMono(std::move(mono), cfg,
+                                                     std::move(guard),
+                                                     camera_a);
+                      } else {
+                        g_live_calib_manager.setStereo(
+                            std::move(stereo), cfg, std::move(guard),
+                            camera_a, camera_b);
+                      }
+                    }
+
+                    resp["status"] = "ok";
+                    resp["mode"] = mode;
+                    resp["camera_a"] = camera_a;
+                    if (mode == "stereo") {
+                      resp["camera_b"] = camera_b;
+                    }
+                    resp["config"] = calibConfigToJson(cfg);
+                  } catch (const std::exception& e) {
+                    resp["status"] = "error";
+                    resp["error"] = e.what();
+                    res.status = client_error ? 400 : 500;
+                  }
+
+                  res.set_content(resp.dump(), "application/json");
+                });
+
+  g_server.Post("/api/calibration_new/stop",
+                [](const httplib::Request&, httplib::Response& res) {
+                  nlohmann::json resp = nlohmann::json::object();
+                  ActiveCalibratorManager::ReleasedCalibrators released;
+                  {
+                    std::lock_guard<std::mutex> lk(g_live_calib_mutex);
+                    released = g_live_calib_manager.releaseCalibrators();
+                  }
+
+                  bool was_active = released.mode != LiveCalibrationMode::None;
+                  if (released.stereo) {
+                    released.stereo->stopCameras();
+                  }
+                  if (released.mono) {
+                    released.mono->stopCamera();
+                  }
+                  released.guard.reset();
+
+                  resp["status"] = "ok";
+                  resp["was_active"] = was_active;
+                  res.set_content(resp.dump(), "application/json");
+                });
+
+  g_server.Post("/api/calibration_new/calibrate",
+                [](const httplib::Request&, httplib::Response& res) {
+                  nlohmann::json resp = nlohmann::json::object();
+                  bool ok = false;
+                  {
+                    std::lock_guard<std::mutex> lk(g_live_calib_mutex);
+                    if (!g_live_calib_manager.isActive()) {
+                      resp["status"] = "error";
+                      resp["error"] = "calibration not started";
+                      res.status = 409;
+                      res.set_content(resp.dump(), "application/json");
+                      return;
+                    }
+
+                    auto mode = g_live_calib_manager.mode();
+                    if (mode == LiveCalibrationMode::Mono) {
+                      if (auto* mono = g_live_calib_manager.mono()) {
+                        mono->startCalibration();
+                        ok = true;
+                      }
+                    } else if (mode == LiveCalibrationMode::Stereo) {
+                      if (auto* stereo = g_live_calib_manager.stereo()) {
+                        stereo->startCalibration();
+                        ok = true;
+                      }
+                    }
+                    g_live_calib_manager.setProgress(
+                        0, g_live_calib_manager.config().max_frames, false);
+                    g_live_calib_manager.setHint({});
+                  }
+
+                  if (!ok) {
+                    resp["status"] = "error";
+                    resp["error"] = "calibrator unavailable";
+                    res.status = 500;
+                  } else {
+                    resp["status"] = "ok";
+                  }
+                  res.set_content(resp.dump(), "application/json");
+                });
+
+  g_server.Post("/api/calibration_new/compute",
+                [](const httplib::Request&, httplib::Response& res) {
+                  nlohmann::json resp = nlohmann::json::object();
+                  calibration::MonoCalibrator* mono_ptr = nullptr;
+                  calibration::StereoCalibrator* stereo_ptr = nullptr;
+                  LiveCalibrationMode mode = LiveCalibrationMode::None;
+                  {
+                    std::lock_guard<std::mutex> lk(g_live_calib_mutex);
+                    if (!g_live_calib_manager.isActive()) {
+                      resp["status"] = "error";
+                      resp["error"] = "calibration not started";
+                      res.status = 409;
+                      res.set_content(resp.dump(), "application/json");
+                      return;
+                    }
+                    if (g_live_calib_manager.computeInProgress()) {
+                      resp["status"] = "error";
+                      resp["error"] =
+                          "calibration compute already in progress";
+                      res.status = 409;
+                      res.set_content(resp.dump(), "application/json");
+                      return;
+                    }
+                    g_live_calib_manager.setComputeInProgress(true);
+                    mode = g_live_calib_manager.mode();
+                    mono_ptr = g_live_calib_manager.mono();
+                    stereo_ptr = g_live_calib_manager.stereo();
+                  }
+
+                  bool ok = false;
+                  std::string err;
+                  std::vector<calibration::MonoCalibrationSummary> mono_results;
+                  std::vector<calibration::StereoCalibrationSummary> stereo_results;
+
+                  auto cfg = readMainConfig();
+                  auto calib_root =
+                      std::filesystem::absolute(cfg.value("calib_root", "."));
+                  auto results_dir = calib_root / "calibration" / "results";
+                  std::error_code ec;
+                  std::filesystem::create_directories(results_dir, ec);
+                  (void)ec;
+
+                  if (mode == LiveCalibrationMode::Mono && mono_ptr) {
+                    calibration::MonoCalibrationSummary summary;
+                    ok = mono_ptr->calibrate(results_dir, summary, err);
+                    if (ok) {
+                      mono_results.push_back(summary);
+                    }
+                  } else if (mode == LiveCalibrationMode::Stereo && stereo_ptr) {
+                    std::optional<calibration::MonoCalibrationSummary> mono_a;
+                    std::optional<calibration::MonoCalibrationSummary> mono_b;
+                    calibration::StereoCalibrationSummary stereo_summary;
+                    ok = stereo_ptr->calibrate(results_dir, mono_a, mono_b,
+                                               stereo_summary, err, false);
+                    if (ok) {
+                      if (mono_a) mono_results.push_back(*mono_a);
+                      if (mono_b) mono_results.push_back(*mono_b);
+                      stereo_results.push_back(stereo_summary);
+                    }
+                  } else {
+                    err = "calibrator unavailable";
+                  }
+
+                  if (ok) {
+                    calibration::updateCalibrationResults(
+                        mono_results, stereo_results, results_dir);
+                    if (auto* watcher = ensureCalibrationWatcher()) {
+                      watcher->loadResults();
+                    }
+                    g_global_tracker.setCalibrationWatcher(
+                        g_calib_watcher.get());
+                    g_global_tracker.checkAndUpdateCalibration();
+                  }
+
+                  {
+                    std::lock_guard<std::mutex> lk(g_live_calib_mutex);
+                    g_live_calib_manager.setComputeInProgress(false);
+                    if (ok) {
+                      g_live_calib_manager.setResults(mono_results,
+                                                      stereo_results);
+                      g_live_calib_manager.setLastError({});
+                    } else {
+                      g_live_calib_manager.setLastError(err);
+                    }
+                  }
+
+                  if (!ok) {
+                    resp["status"] = "error";
+                    resp["error"] =
+                        err.empty() ? "calibration failed" : err;
+                    res.status = 500;
+                  } else {
+                    resp["status"] = "ok";
+                    nlohmann::json mono_json = nlohmann::json::array();
+                    for (const auto& m : mono_results)
+                      mono_json.push_back(monoSummaryToJson(m));
+                    nlohmann::json stereo_json = nlohmann::json::array();
+                    for (const auto& s : stereo_results)
+                      stereo_json.push_back(stereoSummaryToJson(s));
+                    resp["mono_results"] = std::move(mono_json);
+                    resp["stereo_results"] = std::move(stereo_json);
+                  }
+
+                  res.set_content(resp.dump(), "application/json");
+                });
+
+  g_server.Get("/api/calibration_new/status",
+               [](const httplib::Request&, httplib::Response& res) {
+                 nlohmann::json resp = nlohmann::json::object();
+                 {
+                   std::lock_guard<std::mutex> lk(g_live_calib_mutex);
+                   resp["active"] = g_live_calib_manager.isActive();
+                   resp["mode"] = modeToString(g_live_calib_manager.mode());
+                   resp["camera_a"] = g_live_calib_manager.cameraPrimary();
+                   if (!g_live_calib_manager.cameraSecondary().empty()) {
+                     resp["camera_b"] =
+                         g_live_calib_manager.cameraSecondary();
+                   }
+                   resp["config"] =
+                       calibConfigToJson(g_live_calib_manager.config());
+                   resp["hint"] = g_live_calib_manager.lastHint();
+                   resp["pattern_visible"] =
+                       g_live_calib_manager.patternVisible();
+                   resp["compute_in_progress"] =
+                       g_live_calib_manager.computeInProgress();
+                   resp["progress"] = {
+                       {"current", g_live_calib_manager.progressCurrent()},
+                       {"max", g_live_calib_manager.progressMax()},
+                   };
+                   if (!g_live_calib_manager.lastError().empty()) {
+                     resp["error"] = g_live_calib_manager.lastError();
+                   }
+                   nlohmann::json mono_json = nlohmann::json::array();
+                   for (const auto& m : g_live_calib_manager.monoResults()) {
+                     mono_json.push_back(monoSummaryToJson(m));
+                   }
+                   nlohmann::json stereo_json = nlohmann::json::array();
+                   for (const auto& s : g_live_calib_manager.stereoResults()) {
+                     stereo_json.push_back(stereoSummaryToJson(s));
+                   }
+                   resp["mono_results"] = std::move(mono_json);
+                   resp["stereo_results"] = std::move(stereo_json);
+
+                   if (g_live_calib_manager.mode() ==
+                       LiveCalibrationMode::Mono) {
+                     if (auto* mono = g_live_calib_manager.mono()) {
+                       resp["running"] = mono->isRunning();
+                       resp["calibrating"] = mono->isCalibrating();
+                       resp["progress"]["current"] =
+                           mono->framesCollected();
+                     } else {
+                       resp["running"] = false;
+                       resp["calibrating"] = false;
+                     }
+                   } else if (g_live_calib_manager.mode() ==
+                              LiveCalibrationMode::Stereo) {
+                     if (auto* stereo = g_live_calib_manager.stereo()) {
+                       resp["running"] = stereo->isRunning();
+                       resp["calibrating"] = stereo->isCalibrating();
+                       resp["progress"]["current"] =
+                           stereo->framesCollected();
+                     } else {
+                       resp["running"] = false;
+                       resp["calibrating"] = false;
+                     }
+                   } else {
+                     resp["running"] = false;
+                     resp["calibrating"] = false;
+                   }
+                 }
+
+                 res.set_content(resp.dump(), "application/json");
+               });
+
+  g_server.Get("/api/calibration_new/video",
+               [](const httplib::Request&, httplib::Response& res) {
+                 {
+                   std::lock_guard<std::mutex> lk(g_live_calib_mutex);
+                   if (!g_live_calib_manager.isActive()) {
+                     nlohmann::json err;
+                     err["status"] = "error";
+                     err["error"] = "calibration not started";
+                     res.status = 503;
+                     res.set_content(err.dump(), "application/json");
+                     return;
+                   }
+                   g_live_calib_manager.setVideoActive(true);
+                 }
+
+                 res.set_header("Cache-Control",
+                                "no-store, no-cache, must-revalidate");
+                 res.set_header("Pragma", "no-cache");
+                 res.set_header("Connection", "keep-alive");
+
+                 res.set_chunked_content_provider(
+                     "multipart/x-mixed-replace; boundary=frame",
+                     [](size_t, httplib::DataSink& sink) {
+                       while (true) {
+                         LiveCalibrationMode mode =
+                             LiveCalibrationMode::None;
+                         calibration::MonoCalibrator* mono_ptr = nullptr;
+                         calibration::StereoCalibrator* stereo_ptr = nullptr;
+                         {
+                           std::lock_guard<std::mutex> lk(
+                               g_live_calib_mutex);
+                           if (!g_live_calib_manager.isActive()) {
+                             break;
+                           }
+                           mode = g_live_calib_manager.mode();
+                           mono_ptr = g_live_calib_manager.mono();
+                           stereo_ptr = g_live_calib_manager.stereo();
+                         }
+
+                         if (mode == LiveCalibrationMode::None) {
+                           break;
+                         }
+
+                         cv::Mat frame;
+                         std::string hint;
+                         int progress_current = 0;
+                         int progress_max = 0;
+                         bool pattern_visible = false;
+                         bool ok = false;
+
+                         if (mode == LiveCalibrationMode::Mono && mono_ptr) {
+                           ok = mono_ptr->getFrame(frame, hint, progress_current,
+                                                   progress_max, pattern_visible);
+                         } else if (mode == LiveCalibrationMode::Stereo &&
+                                    stereo_ptr) {
+                           ok = stereo_ptr->getFrame(frame, hint,
+                                                     progress_current,
+                                                     progress_max);
+                         }
+
+                         if (!ok || frame.empty()) {
+                           break;
+                         }
+
+                         std::vector<uchar> buffer;
+                         if (!cv::imencode(".jpg", frame, buffer)) {
+                           break;
+                         }
+
+                         std::string header =
+                             "--frame\r\n"
+                             "Content-Type: image/jpeg\r\n"
+                             "Content-Length: " +
+                             std::to_string(buffer.size()) + "\r\n\r\n";
+                         if (!sink.write(header.data(), header.size())) {
+                           break;
+                         }
+                         if (!sink.write(
+                                 reinterpret_cast<const char*>(buffer.data()),
+                                 buffer.size())) {
+                           break;
+                         }
+                         if (!sink.write("\r\n", 2)) {
+                           break;
+                         }
+
+                         {
+                           std::lock_guard<std::mutex> lk(
+                               g_live_calib_mutex);
+                           g_live_calib_manager.setHint(hint);
+                           g_live_calib_manager.setProgress(progress_current,
+                                                             progress_max,
+                                                             pattern_visible);
+                         }
+
+                         std::this_thread::sleep_for(
+                             std::chrono::milliseconds(33));
+                       }
+
+                       {
+                         std::lock_guard<std::mutex> lk(g_live_calib_mutex);
+                         g_live_calib_manager.setVideoActive(false);
+                       }
+                       return true;
+                     },
+                     [](bool) {
+                       std::lock_guard<std::mutex> lk(g_live_calib_mutex);
+                       g_live_calib_manager.setVideoActive(false);
+                     });
+               });
+
 
   g_server.Post("/api/calib/setup",
                 [](const httplib::Request &req, httplib::Response &res) {
