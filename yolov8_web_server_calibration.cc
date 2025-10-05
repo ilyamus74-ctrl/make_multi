@@ -1613,6 +1613,8 @@ private:
                     }
                 }
                 live_calib_manager_.setProgress(0, live_calib_manager_.config().max_frames, false);
+                live_calib_manager_.setResults({}, {});
+                live_calib_manager_.setLastError({});
                 live_calib_manager_.setHint({});
             }
 
