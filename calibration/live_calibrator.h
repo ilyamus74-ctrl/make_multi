@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <filesystem>
 #include <mutex>
@@ -21,9 +22,25 @@ struct CalibConfig {
     float max_center_diff_horizontal = 0.40f;
     float max_center_diff_vertical = 0.40f;
     float max_tilt_diff = 15.0f;
-    float min_coverage = 0.25f;
+    float min_coverage = recommendedMinCoverage(pattern_cols, pattern_rows);
     float max_coverage = 0.75f;
     float min_distance_between_frames = 0.03f;
+
+
+    static constexpr float recommendedMinCoverage(int cols, int rows) {
+        if (cols <= 0 || rows <= 0) {
+            return 0.12f;
+        }
+
+        const int shorter_side = cols < rows ? cols : rows;
+        const int longer_side = cols > rows ? cols : rows;
+        const float aspect_scale = static_cast<float>(shorter_side) /
+                                   static_cast<float>(longer_side);
+        const float aspect_adjusted = 0.25f * aspect_scale;
+        const float minimum_supported = 0.12f;
+        return aspect_adjusted < minimum_supported ? minimum_supported
+                                                   : aspect_adjusted;
+    }
 };
 
 enum class HintType {

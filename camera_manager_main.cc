@@ -420,7 +420,11 @@ static calibration::CalibConfig calibConfigFromJson(
   cfg.max_center_diff_vertical =
       j.value("max_center_diff_vertical", cfg.max_center_diff_vertical);
   cfg.max_tilt_diff = j.value("max_tilt_diff", cfg.max_tilt_diff);
-  cfg.min_coverage = j.value("min_coverage", cfg.min_coverage);
+  const float recommended_min_coverage =
+      calibration::CalibConfig::recommendedMinCoverage(cfg.pattern_cols,
+                                                       cfg.pattern_rows);
+  cfg.min_coverage =
+      j.value("min_coverage", recommended_min_coverage);
   cfg.max_coverage = j.value("max_coverage", cfg.max_coverage);
   cfg.min_distance_between_frames =
       j.value("min_distance_between_frames",

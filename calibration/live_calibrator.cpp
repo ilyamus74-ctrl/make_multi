@@ -246,8 +246,13 @@ bool MonoCalibrator::getFrame(cv::Mat &frame, std::string &hint_text,
                 double area = std::abs(cv::contourArea(hull));
                 double frame_area = static_cast<double>(frame.cols) * frame.rows;
                 float coverage = frame_area > 0.0 ? static_cast<float>(area / frame_area) : 0.0f;
+                const float min_coverage_threshold =
+                    config_.min_coverage > 0.0f
+                        ? config_.min_coverage
+                        : CalibConfig::recommendedMinCoverage(config_.pattern_cols,
+                                                              config_.pattern_rows);
 
-                if (coverage < config_.min_coverage) {
+                if (coverage < min_coverage_threshold) {
                     hint = HintType::TOO_FAR;
                     pose_ok = false;
                 } else if (coverage > config_.max_coverage) {
