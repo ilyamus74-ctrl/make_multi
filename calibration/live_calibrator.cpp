@@ -274,6 +274,36 @@ bool MonoCalibrator::getFrame(cv::Mat &frame, std::string &hint_text,
 
 
             if (pose_ok) {
+                std::vector<cv::Point2f> last_points;
+                {
+                    std::lock_guard<std::mutex> lk(data_mutex_);
+                    if (!image_points_.empty()) {
+                        last_points = image_points_.back();
+                    }
+                }
+
+                if (last_points.size() == corners.size()) {
+                    float diff = 0.0f;
+                    for (size_t i = 0; i < corners.size(); ++i) {
+                        diff += cv::norm(corners[i] - last_points[i]);
+                    }
+                    diff /= static_cast<float>(corners.size());
+                    float diag = std::sqrt(static_cast<float>(frame.cols) *
+                                               static_cast<float>(frame.cols) +
+                                           static_cast<float>(frame.rows) *
+                                               static_cast<float>(frame.rows));
+                    if (diag > 0.0f) {
+                        float norm_diff = diff / diag;
+                        if (norm_diff < config_.min_distance_between_frames) {
+                            hold_start_time_ = 0;
+                            hint = HintType::TOO_SIMILAR;
+                            pose_ok = false;
+                        }
+                    }
+                }
+            }
+
+            if (pose_ok) {
                 if (hold_start_time_ == 0) {
                     hold_start_time_ = std::time(nullptr);
                 }
