@@ -368,6 +368,21 @@ bool MonoCalibrator::getFrame(cv::Mat &frame, std::string &hint_text,
     } else {
         hint_text = hintToString(hint, hint_value);
     }
+
+    cv::Scalar hint_color = pattern_visible ? cv::Scalar(0, 255, 0)
+                                            : cv::Scalar(0, 165, 255);
+    cv::putText(frame, hint_text, {20, 40}, cv::FONT_HERSHEY_SIMPLEX, 0.8,
+                hint_color, 2);
+
+    const bool have_target = pattern_visible || is_calibrating_;
+    if (have_target) {
+        std::string progress_str = std::to_string(progress_current) + "/" +
+                                   std::to_string(progress_max);
+        cv::Scalar counter_color = pattern_visible ? cv::Scalar(0, 255, 0)
+                                                   : cv::Scalar(255, 255, 0);
+        cv::putText(frame, progress_str, {20, 80}, cv::FONT_HERSHEY_SIMPLEX,
+                    0.7, counter_color, 2);
+    }
     return true;
 }
 
