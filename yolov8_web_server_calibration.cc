@@ -1559,7 +1559,6 @@ private:
                     if (!ok) {
                         throw std::runtime_error("failed to start stereo cameras");
                     }
-                    stereo->startCalibration();
                 } else {
                     mode = "mono";
                     mono = std::make_unique<calibration::MonoCalibrator>(camera_a, dev_a, cfg);
@@ -1567,7 +1566,6 @@ private:
                     if (!ok) {
                         throw std::runtime_error("failed to start camera");
                     }
-                    mono->startCalibration();
                 }
 
                 {

@@ -1531,7 +1531,6 @@ int main(int argc, char **argv) {
                         throw std::runtime_error(
                             "failed to start stereo cameras");
                       }
-                      stereo->startCalibration();
                     } else {
                       mode = "mono";
                       mono = std::make_unique<calibration::MonoCalibrator>(
@@ -1540,7 +1539,6 @@ int main(int argc, char **argv) {
                       if (!ok) {
                         throw std::runtime_error("failed to start camera");
                       }
-                      mono->startCalibration();
                     }
 
                     {
