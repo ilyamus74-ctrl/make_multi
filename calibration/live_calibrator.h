@@ -16,16 +16,15 @@ struct CalibConfig {
     int pattern_cols = 15;
     int pattern_rows = 7;
     float square_size = 22.0f;
-    int min_frames = 20;
-    int max_frames = 100;
+    int min_frames = 15;        // Было 20
+    int max_frames = 50;        // Было 100
 
-    float max_center_diff_horizontal = 0.40f;
-    float max_center_diff_vertical = 0.40f;
-    float max_tilt_diff = 15.0f;
-    float min_coverage = recommendedMinCoverage(pattern_cols, pattern_rows);
-    float max_coverage = 0.75f;
-    float min_distance_between_frames = 0.03f;
-
+    float max_center_diff_horizontal = 0.6f;   // Было 0.40f
+    float max_center_diff_vertical = 0.6f;     // Было 0.40f
+    float max_tilt_diff = 30.0f;               // Было 15.0f
+    float min_coverage = 0.08f;                // Было recommendedMinCoverage
+    float max_coverage = 0.85f;                // Было 0.75f
+    float min_distance_between_frames = 0.005f; // Было 0.03f
 
     static constexpr float recommendedMinCoverage(int cols, int rows) {
         if (cols <= 0 || rows <= 0) {
@@ -132,7 +131,7 @@ private:
 
     mutable std::mutex data_mutex_;
     time_t hold_start_time_ = 0;
-    double hold_duration_ = 1.0;
+    double hold_duration_ = 0.3;  // Было 1.0
 
     HintType checkPoseQuality(const std::vector<cv::Point2f>& corners,
                              cv::Size img_size, float& hint_value);
@@ -192,7 +191,7 @@ private:
 
     mutable std::mutex data_mutex_;
     time_t hold_start_time_ = 0;
-    double hold_duration_ = 1.0;
+    double hold_duration_ = 0.3;  // Было 1.0
 };
 
 void updateCalibrationResults(const std::vector<MonoCalibrationSummary> &mono,

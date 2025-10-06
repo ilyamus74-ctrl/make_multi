@@ -174,7 +174,7 @@ int MonoCalibrator::framesCollected() const {
 
 HintType MonoCalibrator::checkPoseQuality(const std::vector<cv::Point2f>& corners,
                                           cv::Size img_size, float& hint_value) {
-    // Проверка центрирования
+    // Проверка центрирования - делаем более мягкой
     cv::Point2f sum(0.0f, 0.0f);
     for (const auto &pt : corners) {
         sum += pt;
@@ -186,7 +186,8 @@ HintType MonoCalibrator::checkPoseQuality(const std::vector<cv::Point2f>& corner
     float diff_x = norm_center.x - 0.5f;
     float diff_y = norm_center.y - 0.5f;
 
-    if (diff_x < -config_.max_center_diff_horizontal) {
+    // Увеличиваем допустимые отклонения
+    if (diff_x < -0.6f) { 
         return HintType::MOVE_RIGHT;
     } else if (diff_x > config_.max_center_diff_horizontal) {
         return HintType::MOVE_LEFT;
@@ -203,14 +204,13 @@ HintType MonoCalibrator::checkPoseQuality(const std::vector<cv::Point2f>& corner
     double frame_area = static_cast<double>(img_size.width) * img_size.height;
     float coverage = frame_area > 0.0 ? static_cast<float>(area / frame_area) : 0.0f;
     
-    const float min_coverage_threshold =
-        config_.min_coverage > 0.0f
-            ? config_.min_coverage
-            : CalibConfig::recommendedMinCoverage(config_.pattern_cols, config_.pattern_rows);
+    // Делаем проверку покрытия более мягкой
+    const float min_coverage_threshold = 0.08f;  // Было config_.min_coverage
+    const float max_coverage_threshold = 0.85f;  // Было config_.max_coverage
 
     if (coverage < min_coverage_threshold) {
         return HintType::TOO_FAR;
-    } else if (coverage > config_.max_coverage) {
+    } else if (coverage > max_coverage_threshold) {
         return HintType::TOO_CLOSE;
     }
 
@@ -219,11 +219,12 @@ HintType MonoCalibrator::checkPoseQuality(const std::vector<cv::Point2f>& corner
     const cv::Point2f &end = corners[config_.pattern_cols - 1];
     float tilt = std::atan2(end.y - start.y, end.x - start.x) * 180.0f / CV_PI;
     float abs_tilt = std::abs(tilt);
-    float min_tilt = config_.max_tilt_diff * 0.2f;
+    float min_tilt = 2.0f;  // Было config_.max_tilt_diff * 0.2f
+    float max_tilt = 45.0f; // Было config_.max_tilt_diff
 
     if (abs_tilt < min_tilt) {
         return HintType::TOO_FLAT;
-    } else if (abs_tilt > config_.max_tilt_diff) {
+    } else if (abs_tilt > max_tilt) {
         return HintType::TOO_TILTED;
     }
 
@@ -246,7 +247,7 @@ HintType MonoCalibrator::checkPoseQuality(const std::vector<cv::Point2f>& corner
                                                    img_size.height * img_size.height));
         if (diag > 0.0f) {
             float norm_diff = diff / diag;
-            if (norm_diff < config_.min_distance_between_frames) {
+            if (norm_diff < 0.005f) {  // Было config_.min_distance_between_frames (0.03)
                 hold_start_time_ = 0;
                 return HintType::TOO_SIMILAR;
             }
@@ -259,8 +260,9 @@ HintType MonoCalibrator::checkPoseQuality(const std::vector<cv::Point2f>& corner
     }
 
     auto elapsed = std::time(nullptr) - hold_start_time_;
-    if (elapsed < hold_duration_) {
-        hint_value = static_cast<float>(hold_duration_ - elapsed);
+    const double reduced_hold_duration = 0.3;  // Было hold_duration_ (1.0 сек)
+    if (elapsed < reduced_hold_duration) {
+        hint_value = static_cast<float>(reduced_hold_duration - elapsed);
         return HintType::HOLD_STILL;
     }
 
@@ -633,8 +635,8 @@ HintType StereoCalibrator::checkStereoQuality(const std::vector<cv::Point2f> &c1
     float diff_x = std::abs(norm1.x - norm2.x);
     float diff_y = std::abs(norm1.y - norm2.y);
 
-    if (diff_x > config_.max_center_diff_horizontal ||
-        diff_y > config_.max_center_diff_vertical) {
+    if (diff_x > 0.7f ||  // Было config_.max_center_diff_horizontal
+        diff_y > 0.7f) {  // Было config_.max_center_diff_vertical
         hold_start_time_ = 0;
         return HintType::STEREO_CENTER_DIFF;
     }
@@ -644,7 +646,7 @@ HintType StereoCalibrator::checkStereoQuality(const std::vector<cv::Point2f> &c1
     float tilt2 = std::atan2(c2[config_.pattern_cols - 1].y - c2[0].y,
                              c2[config_.pattern_cols - 1].x - c2[0].x) * 180.0f / CV_PI;
 
-    if (std::abs(tilt1 - tilt2) > config_.max_tilt_diff) {
+    if (std::abs(tilt1 - tilt2) > 35.0f) {  // Было config_.max_tilt_diff
         hold_start_time_ = 0;
         return HintType::STEREO_TILT_DIFF;
     }
@@ -657,7 +659,7 @@ HintType StereoCalibrator::checkStereoQuality(const std::vector<cv::Point2f> &c1
         diff /= static_cast<float>(c1.size());
         float norm_diff = diff / std::sqrt(static_cast<float>(img_size.width * img_size.width +
                                                               img_size.height * img_size.height));
-        if (norm_diff < config_.min_distance_between_frames) {
+        if (norm_diff < 0.005f) {  // Было config_.min_distance_between_frames
             hold_start_time_ = 0;
             return HintType::TOO_SIMILAR;
         }
