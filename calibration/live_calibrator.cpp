@@ -172,24 +172,112 @@ int MonoCalibrator::framesCollected() const {
     return static_cast<int>(image_points_.size());
 }
 
+HintType MonoCalibrator::checkPoseQuality(const std::vector<cv::Point2f>& corners,
+                                          cv::Size img_size, float& hint_value) {
+    // Проверка центрирования
+    cv::Point2f sum(0.0f, 0.0f);
+    for (const auto &pt : corners) {
+        sum += pt;
+    }
+    cv::Point2f center = sum * (1.0f / static_cast<float>(corners.size()));
+    cv::Point2f norm_center(center.x / static_cast<float>(img_size.width),
+                            center.y / static_cast<float>(img_size.height));
+    
+    float diff_x = norm_center.x - 0.5f;
+    float diff_y = norm_center.y - 0.5f;
+
+    if (diff_x < -config_.max_center_diff_horizontal) {
+        return HintType::MOVE_RIGHT;
+    } else if (diff_x > config_.max_center_diff_horizontal) {
+        return HintType::MOVE_LEFT;
+    } else if (diff_y < -config_.max_center_diff_vertical) {
+        return HintType::MOVE_DOWN;
+    } else if (diff_y > config_.max_center_diff_vertical) {
+        return HintType::MOVE_UP;
+    }
+
+    // Проверка размера (покрытие кадра)
+    std::vector<cv::Point2f> hull;
+    cv::convexHull(corners, hull);
+    double area = std::abs(cv::contourArea(hull));
+    double frame_area = static_cast<double>(img_size.width) * img_size.height;
+    float coverage = frame_area > 0.0 ? static_cast<float>(area / frame_area) : 0.0f;
+    
+    const float min_coverage_threshold =
+        config_.min_coverage > 0.0f
+            ? config_.min_coverage
+            : CalibConfig::recommendedMinCoverage(config_.pattern_cols, config_.pattern_rows);
+
+    if (coverage < min_coverage_threshold) {
+        return HintType::TOO_FAR;
+    } else if (coverage > config_.max_coverage) {
+        return HintType::TOO_CLOSE;
+    }
+
+    // Проверка наклона
+    const cv::Point2f &start = corners.front();
+    const cv::Point2f &end = corners[config_.pattern_cols - 1];
+    float tilt = std::atan2(end.y - start.y, end.x - start.x) * 180.0f / CV_PI;
+    float abs_tilt = std::abs(tilt);
+    float min_tilt = config_.max_tilt_diff * 0.2f;
+
+    if (abs_tilt < min_tilt) {
+        return HintType::TOO_FLAT;
+    } else if (abs_tilt > config_.max_tilt_diff) {
+        return HintType::TOO_TILTED;
+    }
+
+    // Проверка на похожесть с предыдущим кадром
+    std::vector<cv::Point2f> last_points;
+    {
+        std::lock_guard<std::mutex> lk(data_mutex_);
+        if (!image_points_.empty()) {
+            last_points = image_points_.back();
+        }
+    }
+
+    if (last_points.size() == corners.size()) {
+        float diff = 0.0f;
+        for (size_t i = 0; i < corners.size(); ++i) {
+            diff += cv::norm(corners[i] - last_points[i]);
+        }
+        diff /= static_cast<float>(corners.size());
+        float diag = std::sqrt(static_cast<float>(img_size.width * img_size.width +
+                                                   img_size.height * img_size.height));
+        if (diag > 0.0f) {
+            float norm_diff = diff / diag;
+            if (norm_diff < config_.min_distance_between_frames) {
+                hold_start_time_ = 0;
+                return HintType::TOO_SIMILAR;
+            }
+        }
+    }
+
+    // Удержание ("hold still")
+    if (hold_start_time_ == 0) {
+        hold_start_time_ = std::time(nullptr);
+    }
+
+    auto elapsed = std::time(nullptr) - hold_start_time_;
+    if (elapsed < hold_duration_) {
+        hint_value = static_cast<float>(hold_duration_ - elapsed);
+        return HintType::HOLD_STILL;
+    }
+
+    return HintType::CAPTURED;
+}
+
 bool MonoCalibrator::getFrame(cv::Mat &frame, std::string &hint_text,
                               int &progress_current, int &progress_max,
                               bool &pattern_visible) {
     pattern_visible = false;
-    if (!is_running_) {
-        return false;
-    }
-
-    if (!cap_.read(frame) || frame.empty()) {
-        frame = cv::Mat::zeros(actual_img_size_.height > 0 ? actual_img_size_.height : 480,
-                               actual_img_size_.width > 0 ? actual_img_size_.width : 640,
-                               CV_8UC3);
-        cv::putText(frame, "Waiting...", {20, frame.rows / 2},
-                    cv::FONT_HERSHEY_SIMPLEX, 1.0, {0, 255, 255}, 2);
-        hint_text = "Waiting for camera...";
+    
+    // НЕ читаем с камеры, работаем с переданным frame
+    if (frame.empty()) {
+        hint_text = "No frame provided";
         progress_current = 0;
         progress_max = config_.max_frames;
-        return true;
+        return false;
     }
 
     HintType hint = HintType::SEARCHING;
@@ -197,141 +285,46 @@ bool MonoCalibrator::getFrame(cv::Mat &frame, std::string &hint_text,
 
     if (is_calibrating_) {
         std::vector<cv::Point2f> corners;
-        bool found = cv::findChessboardCorners(frame,
-                                               cv::Size(config_.pattern_cols, config_.pattern_rows),
-                                               corners,
-                                               cv::CALIB_CB_ADAPTIVE_THRESH |
-                                                   cv::CALIB_CB_NORMALIZE_IMAGE |
-                                                   cv::CALIB_CB_FAST_CHECK);
+        bool found = cv::findChessboardCorners(
+            frame,
+            cv::Size(config_.pattern_cols, config_.pattern_rows),
+            corners,
+            cv::CALIB_CB_ADAPTIVE_THRESH |
+            cv::CALIB_CB_NORMALIZE_IMAGE |
+            cv::CALIB_CB_FAST_CHECK);
+            
         if (found) {
             pattern_visible = true;
             cv::Mat gray;
-            cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
-            cv::cornerSubPix(gray, corners, {11, 11}, {-1, -1},
-                             cv::TermCriteria(cv::TermCriteria::EPS + cv::TermCriteria::MAX_ITER,
-                                              30, 0.001));
-            cv::drawChessboardCorners(frame,
-                                      cv::Size(config_.pattern_cols, config_.pattern_rows),
-                                      corners, true);
-
-            bool pose_ok = true;
-
-            cv::Point2f sum(0.0f, 0.0f);
-            for (const auto &pt : corners) {
-                sum += pt;
-            }
-            cv::Point2f center = sum * (1.0f / static_cast<float>(corners.size()));
-            cv::Point2f norm_center(center.x / static_cast<float>(frame.cols),
-                                    center.y / static_cast<float>(frame.rows));
-            float diff_x = norm_center.x - 0.5f;
-            float diff_y = norm_center.y - 0.5f;
-
-            if (diff_x < -config_.max_center_diff_horizontal) {
-                hint = HintType::MOVE_RIGHT;
-                pose_ok = false;
-            } else if (diff_x > config_.max_center_diff_horizontal) {
-                hint = HintType::MOVE_LEFT;
-                pose_ok = false;
-            } else if (diff_y < -config_.max_center_diff_vertical) {
-                hint = HintType::MOVE_DOWN;
-                pose_ok = false;
-            } else if (diff_y > config_.max_center_diff_vertical) {
-                hint = HintType::MOVE_UP;
-                pose_ok = false;
-            }
-
-            if (pose_ok) {
-                std::vector<cv::Point2f> hull;
-                cv::convexHull(corners, hull);
-                double area = std::abs(cv::contourArea(hull));
-                double frame_area = static_cast<double>(frame.cols) * frame.rows;
-                float coverage = frame_area > 0.0 ? static_cast<float>(area / frame_area) : 0.0f;
-                const float min_coverage_threshold =
-                    config_.min_coverage > 0.0f
-                        ? config_.min_coverage
-                        : CalibConfig::recommendedMinCoverage(config_.pattern_cols,
-                                                              config_.pattern_rows);
-
-                if (coverage < min_coverage_threshold) {
-                    hint = HintType::TOO_FAR;
-                    pose_ok = false;
-                } else if (coverage > config_.max_coverage) {
-                    hint = HintType::TOO_CLOSE;
-                    pose_ok = false;
-                }
-            }
-
-            if (pose_ok) {
-                const cv::Point2f &start = corners.front();
-                const cv::Point2f &end = corners[config_.pattern_cols - 1];
-                float tilt = std::atan2(end.y - start.y, end.x - start.x) * 180.0f / CV_PI;
-                float abs_tilt = std::abs(tilt);
-                float min_tilt = config_.max_tilt_diff * 0.2f;
-
-                if (abs_tilt < min_tilt) {
-                    hint = HintType::TOO_FLAT;
-                    pose_ok = false;
-                } else if (abs_tilt > config_.max_tilt_diff) {
-                    hint = HintType::TOO_TILTED;
-                    pose_ok = false;
-                }
-            }
-
-
-            if (pose_ok) {
-                std::vector<cv::Point2f> last_points;
-                {
-                    std::lock_guard<std::mutex> lk(data_mutex_);
-                    if (!image_points_.empty()) {
-                        last_points = image_points_.back();
-                    }
-                }
-
-                if (last_points.size() == corners.size()) {
-                    float diff = 0.0f;
-                    for (size_t i = 0; i < corners.size(); ++i) {
-                        diff += cv::norm(corners[i] - last_points[i]);
-                    }
-                    diff /= static_cast<float>(corners.size());
-                    float diag = std::sqrt(static_cast<float>(frame.cols) *
-                                               static_cast<float>(frame.cols) +
-                                           static_cast<float>(frame.rows) *
-                                               static_cast<float>(frame.rows));
-                    if (diag > 0.0f) {
-                        float norm_diff = diff / diag;
-                        if (norm_diff < config_.min_distance_between_frames) {
-                            hold_start_time_ = 0;
-                            hint = HintType::TOO_SIMILAR;
-                            pose_ok = false;
-                        }
-                    }
-                }
-            }
-
-            if (pose_ok) {
-                if (hold_start_time_ == 0) {
-                    hold_start_time_ = std::time(nullptr);
-                }
-
-                auto elapsed = std::time(nullptr) - hold_start_time_;
-                if (elapsed < hold_duration_) {
-                    hint = HintType::HOLD_STILL;
-                    hint_value = static_cast<float>(hold_duration_ - elapsed);
-                } else {
-                    {
-                        std::lock_guard<std::mutex> lk(data_mutex_);
-                        object_points_.push_back(objp_);
-                        image_points_.push_back(corners);
-                    }
-                    hold_start_time_ = 0;
-                    hint = HintType::CAPTURED;
-                    if (framesCollected() >= config_.max_frames) {
-                        is_calibrating_ = false;
-                        hint = HintType::COMPLETE;
-                    }
-                }
+            
+            if (frame.channels() > 1) {
+                cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
             } else {
+                gray = frame;
+            }
+            
+            cv::cornerSubPix(gray, corners, {11, 11}, {-1, -1},
+                           cv::TermCriteria(cv::TermCriteria::EPS + 
+                                          cv::TermCriteria::MAX_ITER, 30, 0.001));
+            
+            // Рисуем углы
+            cv::drawChessboardCorners(frame,
+                                     cv::Size(config_.pattern_cols, config_.pattern_rows),
+                                     corners, true);
+
+            // Проверяем качество позы
+            hint = checkPoseQuality(corners, frame.size(), hint_value);
+
+            if (hint == HintType::CAPTURED) {
+                std::lock_guard<std::mutex> lk(data_mutex_);
+                object_points_.push_back(objp_);
+                image_points_.push_back(corners);
                 hold_start_time_ = 0;
+                
+                if (image_points_.size() >= static_cast<size_t>(config_.max_frames)) {
+                    is_calibrating_ = false;
+                    hint = HintType::COMPLETE;
+                }
             }
         } else {
             hold_start_time_ = 0;
@@ -345,22 +338,9 @@ bool MonoCalibrator::getFrame(cv::Mat &frame, std::string &hint_text,
     }
 
     hint_text = hintToString(hint, hint_value);
-
-    cv::Scalar hint_color =
-        (hint == HintType::CAPTURED || hint == HintType::COMPLETE)
-            ? cv::Scalar(0, 255, 0)
-            : cv::Scalar(0, 165, 255);
-    cv::putText(frame, hint_text, {20, 40}, cv::FONT_HERSHEY_SIMPLEX, 0.8,
-                hint_color, 2);
-
-    if (is_calibrating_) {
-        std::string progress_str = std::to_string(progress_current) + "/" +
-                                   std::to_string(progress_max);
-        cv::putText(frame, progress_str, {20, 80}, cv::FONT_HERSHEY_SIMPLEX,
-                    0.7, cv::Scalar(255, 255, 0), 2);
-    }
     return true;
 }
+
 
 bool MonoCalibrator::calibrate(const std::filesystem::path &results_dir,
                                MonoCalibrationSummary &summary,

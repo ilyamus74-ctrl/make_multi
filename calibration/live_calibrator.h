@@ -133,6 +133,9 @@ private:
     mutable std::mutex data_mutex_;
     time_t hold_start_time_ = 0;
     double hold_duration_ = 1.0;
+
+    HintType checkPoseQuality(const std::vector<cv::Point2f>& corners,
+                             cv::Size img_size, float& hint_value);
 };
 
 class StereoCalibrator {

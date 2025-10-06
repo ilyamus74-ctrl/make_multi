@@ -647,6 +647,7 @@ private:
             pattern_visible_ = false;
         }
 
+
         calibration::MonoCalibrator *mono() {
             if (auto ptr = std::get_if<MonoPtr>(&calibrator_)) {
                 return ptr->get();
@@ -660,6 +661,25 @@ private:
             }
             return nullptr;
         }
+
+// В yolov8_web_server_calibration.cc, внутри класса ActiveCalibratorManager
+void updateFromFrame(const cv::Mat& frame) {
+    if (!isActive()) return;
+    
+    std::string hint;
+    int progress_current = 0;
+    int progress_max = 0;
+    bool pattern_visible = false;
+    
+    if (auto* mono = this->mono()) {
+        mono->getFrame(const_cast<cv::Mat&>(frame), hint, 
+                      progress_current, progress_max, pattern_visible);
+        setProgress(progress_current, progress_max, pattern_visible);
+        setHint(hint);
+    } else if (auto* stereo = this->stereo()) {
+        // Для стерео нужны два кадра, пока пропускаем
+    }
+}
 
         void setHint(std::string hint) { last_hint_ = std::move(hint); }
         const std::string &lastHint() const { return last_hint_; }
@@ -1793,101 +1813,84 @@ private:
             res.set_content(resp.dump(), "application/json");
         });
 
-        server.Get("/api/calibration_new/video", [this](const Request&, Response& res) {
-            {
-                std::lock_guard<std::mutex> lk(live_calib_mutex_);
-                if (!live_calib_manager_.isActive()) {
-                    json err;
-                    err["status"] = "error";
-                    err["error"] = "calibration not started";
-                    res.status = 503;
-                    res.set_content(err.dump(), "application/json");
-                    return;
+
+server.Get("/api/calibration_new/video", [this](const Request&, Response& res) {
+    {
+        std::lock_guard<std::mutex> lk(live_calib_mutex_);
+        if (!live_calib_manager_.isActive()) {
+            json err;
+            err["status"] = "error";
+            err["error"] = "calibration not started";
+            res.status = 503;
+            res.set_content(err.dump(), "application/json");
+            return;
+        }
+        live_calib_manager_.setVideoActive(true);
+    }
+
+    res.set_header("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.set_header("Pragma", "no-cache");
+    res.set_header("Connection", "keep-alive");
+
+    res.set_chunked_content_provider(
+        "multipart/x-mixed-replace; boundary=frame",
+        [this](size_t, DataSink& sink) {
+            auto last_push = Clock::now();
+            
+            while (true) {
+                bool active = false;
+                {
+                    std::lock_guard<std::mutex> lk(live_calib_mutex_);
+                    active = live_calib_manager_.isActive();
+                    if (!active) break;
                 }
-                live_calib_manager_.setVideoActive(true);
+
+                // Берем последний обработанный кадр из основного потока
+                std::vector<uint8_t> jpg;
+                {
+                    std::unique_lock<std::mutex> lk(frame_mtx);
+                    frame_cv.wait_for(lk, std::chrono::milliseconds(1000),
+                                     [this]{ return !last_jpeg.empty() || !cam_running.load(); });
+                    if (!cam_running.load()) break;
+                    jpg = last_jpeg;
+                }
+
+                if (jpg.empty()) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(33));
+                    continue;
+                }
+
+                // Ограничение FPS
+                auto now = Clock::now();
+                double elapsed = std::chrono::duration<double>(now - last_push).count();
+                double min_dt = 1.0 / 30.0; // 30 FPS max
+                if (elapsed < min_dt) {
+                    auto sleep_d = std::chrono::duration<double>(min_dt - elapsed);
+                    std::this_thread::sleep_for(
+                        std::chrono::duration_cast<std::chrono::milliseconds>(sleep_d));
+                }
+                last_push = Clock::now();
+
+                std::string header = "--frame\r\n"
+                                     "Content-Type: image/jpeg\r\n"
+                                     "Content-Length: " + std::to_string(jpg.size()) + "\r\n\r\n";
+                if (!sink.write(header.data(), header.size())) break;
+                if (!sink.write(reinterpret_cast<const char*>(jpg.data()), jpg.size())) break;
+                if (!sink.write("\r\n", 2)) break;
             }
 
-            res.set_header("Cache-Control", "no-store, no-cache, must-revalidate");
-            res.set_header("Pragma", "no-cache");
-            res.set_header("Connection", "keep-alive");
-
-            res.set_chunked_content_provider(
-                "multipart/x-mixed-replace; boundary=frame",
-                [this](size_t, DataSink& sink) {
-                    while (true) {
-                        LiveCalibrationMode mode = LiveCalibrationMode::None;
-                        calibration::MonoCalibrator *mono_ptr = nullptr;
-                        calibration::StereoCalibrator *stereo_ptr = nullptr;
-                        {
-                            std::lock_guard<std::mutex> lk(live_calib_mutex_);
-                            if (!live_calib_manager_.isActive()) {
-                                break;
-                            }
-                            mode = live_calib_manager_.mode();
-                            mono_ptr = live_calib_manager_.mono();
-                            stereo_ptr = live_calib_manager_.stereo();
-                        }
-
-                        if (mode == LiveCalibrationMode::None) {
-                            break;
-                        }
-
-                        cv::Mat frame;
-                        std::string hint;
-                        int progress_current = 0;
-                        int progress_max = 0;
-                        bool pattern_visible = false;
-                        bool ok = false;
-
-                        if (mode == LiveCalibrationMode::Mono && mono_ptr) {
-                            ok = mono_ptr->getFrame(frame, hint, progress_current, progress_max, pattern_visible);
-                        } else if (mode == LiveCalibrationMode::Stereo && stereo_ptr) {
-                            ok = stereo_ptr->getFrame(frame, hint, progress_current, progress_max);
-                        }
-
-                        if (!ok || frame.empty()) {
-                            break;
-                        }
-
-                        std::vector<uchar> buffer;
-                        if (!cv::imencode(".jpg", frame, buffer)) {
-                            break;
-                        }
-
-                        std::string header = "--frame\r\n"
-                                             "Content-Type: image/jpeg\r\n"
-                                             "Content-Length: " + std::to_string(buffer.size()) + "\r\n\r\n";
-                        if (!sink.write(header.data(), header.size())) {
-                            break;
-                        }
-                        if (!sink.write(reinterpret_cast<const char*>(buffer.data()), buffer.size())) {
-                            break;
-                        }
-                        if (!sink.write("\r\n", 2)) {
-                            break;
-                        }
-
-                        {
-                            std::lock_guard<std::mutex> lk(live_calib_mutex_);
-                            live_calib_manager_.setHint(hint);
-                            live_calib_manager_.setProgress(progress_current, progress_max, pattern_visible);
-                        }
-
-                        std::this_thread::sleep_for(std::chrono::milliseconds(33));
-                    }
-
-                    {
-                        std::lock_guard<std::mutex> lk(live_calib_mutex_);
-                        live_calib_manager_.setVideoActive(false);
-                    }
-                    return true;
-                },
-                [this](bool) {
-                    std::lock_guard<std::mutex> lk(live_calib_mutex_);
-                    live_calib_manager_.setVideoActive(false);
-                }
-            );
-        });
+            {
+                std::lock_guard<std::mutex> lk(live_calib_mutex_);
+                live_calib_manager_.setVideoActive(false);
+            }
+            return true;
+        },
+        [this](bool) {
+            std::lock_guard<std::mutex> lk(live_calib_mutex_);
+            live_calib_manager_.setVideoActive(false);
+        }
+    );
+});
 
 
         // Video recording control
@@ -2254,6 +2257,67 @@ private:
                 }
             }
 
+
+// ===== CALIBRATION CHECK =====
+{
+    std::lock_guard<std::mutex> lk(live_calib_mutex_);
+    if (live_calib_manager_.isActive() && 
+        live_calib_manager_.mode() == LiveCalibrationMode::Mono) {
+        
+        // Конвертируем RGB в BGR для OpenCV
+        cv::Mat bgr_frame(frame.height, frame.width, CV_8UC3);
+        for (int y = 0; y < frame.height; ++y) {
+            for (int x = 0; x < frame.width; ++x) {
+                uint8_t* rgb_pixel = frame.virt_addr + (y * frame.width + x) * 3;
+                uint8_t* bgr_pixel = bgr_frame.ptr<uint8_t>(y) + x * 3;
+                bgr_pixel[0] = rgb_pixel[2]; // B
+                bgr_pixel[1] = rgb_pixel[1]; // G
+                bgr_pixel[2] = rgb_pixel[0]; // R
+            }
+        }
+        
+        // Передаем кадр в калибратор
+        if (auto* mono = live_calib_manager_.mono()) {
+            std::string hint;
+            int prog_cur = 0, prog_max = 0;
+            bool pattern_vis = false;
+            
+            // Обрабатываем кадр через calibrator
+            mono->getFrame(bgr_frame, hint, prog_cur, prog_max, pattern_vis);
+            
+            // Обновляем статус
+            live_calib_manager_.setProgress(prog_cur, prog_max, pattern_vis);
+            live_calib_manager_.setHint(hint);
+            
+            // Рисуем подсказку на preview
+            if (!hint.empty()) {
+                std::string display_hint = hint + " (" + 
+                    std::to_string(prog_cur) + "/" + 
+                    std::to_string(prog_max) + ")";
+                    
+                cv::Scalar color = pattern_vis ? 
+                    cv::Scalar(0, 255, 0) : cv::Scalar(0, 165, 255);
+                
+                // Конвертируем обратно в RGB для отрисовки
+                cv::Mat rgb_annotated;
+                cv::cvtColor(bgr_frame, rgb_annotated, cv::COLOR_BGR2RGB);
+                
+                cv::putText(rgb_annotated, display_hint, 
+                           cv::Point(10, 40), cv::FONT_HERSHEY_SIMPLEX,
+                           1.0, color, 2);
+                
+                // Обновляем frame buffer
+                if (rgb_annotated.isContinuous()) {
+                    memcpy(frame.virt_addr, rgb_annotated.data, 
+                           frame.width * frame.height * 3);
+                }
+            }
+        }
+        
+        // Пропускаем обычную детекцию если калибруемся
+        goto skip_detection;
+    }
+}
             // ===== DETECTION =====
 
             object_detect_result_list od{};
