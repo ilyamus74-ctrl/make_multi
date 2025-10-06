@@ -1531,6 +1531,7 @@ int main(int argc, char **argv) {
                         throw std::runtime_error(
                             "failed to start stereo cameras");
                       }
+                      stereo->startCalibration();
                     } else {
                       mode = "mono";
                       mono = std::make_unique<calibration::MonoCalibrator>(
@@ -1539,6 +1540,7 @@ int main(int argc, char **argv) {
                       if (!ok) {
                         throw std::runtime_error("failed to start camera");
                       }
+                      mono->startCalibration();
                     }
 
                     {
@@ -1608,20 +1610,31 @@ int main(int argc, char **argv) {
                     }
 
                     auto mode = g_live_calib_manager.mode();
+                    bool restarted = false;
                     if (mode == LiveCalibrationMode::Mono) {
                       if (auto* mono = g_live_calib_manager.mono()) {
-                        mono->startCalibration();
+                        if (!mono->isCalibrating()) {
+                          mono->startCalibration();
+                          restarted = true;
+                        }
                         ok = true;
                       }
                     } else if (mode == LiveCalibrationMode::Stereo) {
                       if (auto* stereo = g_live_calib_manager.stereo()) {
-                        stereo->startCalibration();
+                        if (!stereo->isCalibrating()) {
+                          stereo->startCalibration();
+                          restarted = true;
+                        }
                         ok = true;
                       }
                     }
-                    g_live_calib_manager.setProgress(
-                        0, g_live_calib_manager.config().max_frames, false);
-                    g_live_calib_manager.setHint({});
+                    if (restarted) {
+                      g_live_calib_manager.setProgress(
+                          0, g_live_calib_manager.config().max_frames, false);
+                      g_live_calib_manager.setHint({});
+                      g_live_calib_manager.setResults({}, {});
+                      g_live_calib_manager.setLastError({});
+                    }
                   }
 
                   if (!ok) {
