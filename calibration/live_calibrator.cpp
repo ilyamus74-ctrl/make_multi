@@ -8,6 +8,7 @@
 #include <thread>
 
 #include <opencv2/calib3d.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "nlohmann/json.hpp"
 
@@ -213,26 +214,89 @@ bool MonoCalibrator::getFrame(cv::Mat &frame, std::string &hint_text,
                                       cv::Size(config_.pattern_cols, config_.pattern_rows),
                                       corners, true);
 
-            if (hold_start_time_ == 0) {
-                hold_start_time_ = std::time(nullptr);
+            bool pose_ok = true;
+
+            cv::Point2f sum(0.0f, 0.0f);
+            for (const auto &pt : corners) {
+                sum += pt;
+            }
+            cv::Point2f center = sum * (1.0f / static_cast<float>(corners.size()));
+            cv::Point2f norm_center(center.x / static_cast<float>(frame.cols),
+                                    center.y / static_cast<float>(frame.rows));
+            float diff_x = norm_center.x - 0.5f;
+            float diff_y = norm_center.y - 0.5f;
+
+            if (diff_x < -config_.max_center_diff_horizontal) {
+                hint = HintType::MOVE_RIGHT;
+                pose_ok = false;
+            } else if (diff_x > config_.max_center_diff_horizontal) {
+                hint = HintType::MOVE_LEFT;
+                pose_ok = false;
+            } else if (diff_y < -config_.max_center_diff_vertical) {
+                hint = HintType::MOVE_DOWN;
+                pose_ok = false;
+            } else if (diff_y > config_.max_center_diff_vertical) {
+                hint = HintType::MOVE_UP;
+                pose_ok = false;
             }
 
-            auto elapsed = std::time(nullptr) - hold_start_time_;
-            if (elapsed < hold_duration_) {
-                hint = HintType::HOLD_STILL;
-                hint_value = static_cast<float>(hold_duration_ - elapsed);
+            if (pose_ok) {
+                std::vector<cv::Point2f> hull;
+                cv::convexHull(corners, hull);
+                double area = std::abs(cv::contourArea(hull));
+                double frame_area = static_cast<double>(frame.cols) * frame.rows;
+                float coverage = frame_area > 0.0 ? static_cast<float>(area / frame_area) : 0.0f;
+
+                if (coverage < config_.min_coverage) {
+                    hint = HintType::TOO_FAR;
+                    pose_ok = false;
+                } else if (coverage > config_.max_coverage) {
+                    hint = HintType::TOO_CLOSE;
+                    pose_ok = false;
+                }
+            }
+
+            if (pose_ok) {
+                const cv::Point2f &start = corners.front();
+                const cv::Point2f &end = corners[config_.pattern_cols - 1];
+                float tilt = std::atan2(end.y - start.y, end.x - start.x) * 180.0f / CV_PI;
+                float abs_tilt = std::abs(tilt);
+                float min_tilt = config_.max_tilt_diff * 0.2f;
+
+                if (abs_tilt < min_tilt) {
+                    hint = HintType::TOO_FLAT;
+                    pose_ok = false;
+                } else if (abs_tilt > config_.max_tilt_diff) {
+                    hint = HintType::TOO_TILTED;
+                    pose_ok = false;
+                }
+            }
+
+
+            if (pose_ok) {
+                if (hold_start_time_ == 0) {
+                    hold_start_time_ = std::time(nullptr);
+                }
+
+                auto elapsed = std::time(nullptr) - hold_start_time_;
+                if (elapsed < hold_duration_) {
+                    hint = HintType::HOLD_STILL;
+                    hint_value = static_cast<float>(hold_duration_ - elapsed);
+                } else {
+                    {
+                        std::lock_guard<std::mutex> lk(data_mutex_);
+                        object_points_.push_back(objp_);
+                        image_points_.push_back(corners);
+                    }
+                    hold_start_time_ = 0;
+                    hint = HintType::CAPTURED;
+                    if (framesCollected() >= config_.max_frames) {
+                        is_calibrating_ = false;
+                        hint = HintType::COMPLETE;
+                    }
+                }
             } else {
-                {
-                    std::lock_guard<std::mutex> lk(data_mutex_);
-                    object_points_.push_back(objp_);
-                    image_points_.push_back(corners);
-                }
                 hold_start_time_ = 0;
-                hint = HintType::CAPTURED;
-                if (framesCollected() >= config_.max_frames) {
-                    is_calibrating_ = false;
-                    hint = HintType::COMPLETE;
-                }
             }
         } else {
             hold_start_time_ = 0;
