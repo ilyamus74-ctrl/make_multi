@@ -2257,6 +2257,7 @@ server.Get("/api/calibration_new/video", [this](const Request&, Response& res) {
                 }
             }
 
+            json meta = json::object();
 
 // ===== CALIBRATION CHECK =====
 {
@@ -2319,7 +2320,6 @@ server.Get("/api/calibration_new/video", [this](const Request&, Response& res) {
     }
 }
             // ===== DETECTION =====
-            json meta = json::object();
             {
             object_detect_result_list od{};
             int ret = 0;
