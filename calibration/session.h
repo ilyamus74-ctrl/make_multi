@@ -61,6 +61,7 @@ private:
         int frames_collected = 0;
         int frames_needed = 0;
         bool board_visible = false;
+        bool processing = false;
         bool done = false;     // finished running
         bool ok = false;       // succeeded
         std::string hint;

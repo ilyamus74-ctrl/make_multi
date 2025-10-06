@@ -702,6 +702,10 @@ window.CameraApp.CalibrationTab = {
                 badgeEl.style.display = 'inline-block';
                 badgeEl.className = 'badge bg-danger';
                 badgeEl.textContent = 'Error';
+            } else if (status.status === 'processing') {
+                badgeEl.style.display = 'inline-block';
+                badgeEl.className = 'badge bg-info text-dark';
+                badgeEl.textContent = 'Processing';
             } else if (status.board_visible) {
                 badgeEl.style.display = 'inline-block';
                 badgeEl.className = 'badge bg-success';
@@ -780,11 +784,21 @@ window.CameraApp.CalibrationTab = {
                 return false;
             }
 
+            const cameraLabel = status.camera || this.activeMonoCameraId || '';
+            if (status.status === 'processing') {
+                let message = `Processing captured frames for <strong>${cameraLabel}</strong>.`;
+                if (status.hint) {
+                    message += `<div class="small mt-1">${status.hint}</div>`;
+                }
+                this.updateCaptureStatus(message, 'info');
+                return true;
+            }
+
             const framesCollected = Number.isFinite(status.frames_collected) ? status.frames_collected : 0;
             const framesNeeded = Number.isFinite(status.frames_needed) && status.frames_needed > 0
                 ? status.frames_needed
                 : '?';
-            let message = `Collecting frames for <strong>${status.camera || this.activeMonoCameraId || ''}</strong> (${framesCollected}/${framesNeeded})`;
+            let message = `Collecting frames for <strong>${cameraLabel}</strong> (${framesCollected}/${framesNeeded})`;
             if (status.hint) {
                 message += `<div class="small mt-1">${status.hint}</div>`;
             }

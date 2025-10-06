@@ -295,7 +295,8 @@ int CalibrationSession::startMonoJob(const std::string &id, int bw, int bh,
     std::thread([this, job_id, id, bw, bh, max_frames, frame_interval_ms]() {
         auto update_job = [this, job_id](int percent, int frames_collected,
                                          int frames_needed, const std::string &hint,
-                                         bool board_visible, const std::string &preview) {
+                                         bool board_visible, const std::string &preview,
+                                         bool processing_flag = false) {
             std::lock_guard<std::mutex> lk(mtx_);
             auto it = mono_jobs_.find(job_id);
             if (it == mono_jobs_.end()) return;
@@ -307,6 +308,7 @@ int CalibrationSession::startMonoJob(const std::string &id, int bw, int bh,
             }
             job.hint = hint;
             job.board_visible = board_visible;
+            job.processing = processing_flag;
             if (!preview.empty()) {
                 job.preview_image = preview;
             }
@@ -321,6 +323,8 @@ int CalibrationSession::startMonoJob(const std::string &id, int bw, int bh,
             job.ok = false;
             job.error = err;
             job.hint = err;
+            job.board_visible = false;
+            job.processing = false;
         };
 
         std::string dev = mgr_.devicePath(id);
@@ -403,6 +407,10 @@ int CalibrationSession::startMonoJob(const std::string &id, int bw, int bh,
             std::this_thread::sleep_for(std::chrono::milliseconds(sleep_interval));
         }
 
+        int frames_captured = last_reported_frames >= 0 ? last_reported_frames : 0;
+        update_job(100, frames_captured, config.max_frames,
+                   "Processing captured frames...", false, "", true);
+
         calibrator.stopCamera();
 
         auto resultsDir = root_path_ / "calibration" / "results";
@@ -424,6 +432,7 @@ int CalibrationSession::startMonoJob(const std::string &id, int bw, int bh,
             if (it != mono_jobs_.end()) {
                 auto &job = it->second;
                 job.progress = 100;
+                job.processing = false;
                 if (ok) {
                     job.frames_collected = summary.frames_used;
                     job.frames_needed = summary.frames_used > 0 ? summary.frames_used : job.frames_needed;
@@ -472,7 +481,15 @@ SessionResult CalibrationSession::monoProgress(int job_id) {
     if (!it->second.preview_image.empty()) {
         result.body["preview"] = it->second.preview_image;
     }
-    result.body["status"] = it->second.done ? (it->second.ok ? "done" : "error") : "running";
+    std::string status;
+    if (it->second.done) {
+        status = it->second.ok ? "done" : "error";
+    } else if (it->second.processing) {
+        status = "processing";
+    } else {
+        status = "running";
+    }
+    result.body["status"] = status;
     if (it->second.done) {
         if (it->second.ok) {
             result.body["result"] = it->second.result;
