@@ -287,6 +287,21 @@ class ActiveCalibratorManager {
     pattern_visible_ = pattern_visible;
   }
 
+
+  void refreshProgressFromCalibrator() {
+    if (auto* mono_ptr = mono()) {
+      progress_current_ = mono_ptr->framesCollected();
+      progress_max_ = config_.max_frames;
+      pattern_visible_ =
+          progress_max_ > 0 && progress_current_ >= progress_max_;
+    } else if (auto* stereo_ptr = stereo()) {
+      progress_current_ = stereo_ptr->framesCollected();
+      progress_max_ = config_.max_frames;
+      pattern_visible_ =
+          progress_max_ > 0 && progress_current_ >= progress_max_;
+    }
+  }
+
   int progressCurrent() const { return progress_current_; }
   int progressMax() const { return progress_max_; }
   bool patternVisible() const { return pattern_visible_; }
@@ -1726,6 +1741,7 @@ int main(int argc, char **argv) {
                  nlohmann::json resp = nlohmann::json::object();
                  {
                    std::lock_guard<std::mutex> lk(g_live_calib_mutex);
+                   g_live_calib_manager.refreshProgressFromCalibrator();
                    resp["active"] = g_live_calib_manager.isActive();
                    resp["mode"] = modeToString(g_live_calib_manager.mode());
                    resp["camera_a"] = g_live_calib_manager.cameraPrimary();
@@ -1763,8 +1779,6 @@ int main(int argc, char **argv) {
                      if (auto* mono = g_live_calib_manager.mono()) {
                        resp["running"] = mono->isRunning();
                        resp["calibrating"] = mono->isCalibrating();
-                       resp["progress"]["current"] =
-                           mono->framesCollected();
                      } else {
                        resp["running"] = false;
                        resp["calibrating"] = false;
@@ -1774,8 +1788,6 @@ int main(int argc, char **argv) {
                      if (auto* stereo = g_live_calib_manager.stereo()) {
                        resp["running"] = stereo->isRunning();
                        resp["calibrating"] = stereo->isCalibrating();
-                       resp["progress"]["current"] =
-                           stereo->framesCollected();
                      } else {
                        resp["running"] = false;
                        resp["calibrating"] = false;

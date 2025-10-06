@@ -670,6 +670,21 @@ private:
             pattern_visible_ = pattern_visible;
         }
 
+        void refreshProgressFromCalibrator() {
+            if (auto *mono_ptr = mono()) {
+                progress_current_ = mono_ptr->framesCollected();
+                progress_max_ = config_.max_frames;
+                pattern_visible_ =
+                    progress_max_ > 0 && progress_current_ >= progress_max_;
+            } else if (auto *stereo_ptr = stereo()) {
+                progress_current_ = stereo_ptr->framesCollected();
+                progress_max_ = config_.max_frames;
+                pattern_visible_ =
+                    progress_max_ > 0 && progress_current_ >= progress_max_;
+            }
+        }
+
+
         int progressCurrent() const { return progress_current_; }
         int progressMax() const { return progress_max_; }
         bool patternVisible() const { return pattern_visible_; }
@@ -1726,6 +1741,7 @@ private:
 
             {
                 std::lock_guard<std::mutex> lk(live_calib_mutex_);
+                live_calib_manager_.refreshProgressFromCalibrator();
                 resp["active"] = live_calib_manager_.isActive();
                 resp["mode"] = modeToString(live_calib_manager_.mode());
                 resp["camera_a"] = live_calib_manager_.cameraPrimary();
@@ -1754,7 +1770,6 @@ private:
                     if (auto *mono = live_calib_manager_.mono()) {
                         resp["running"] = mono->isRunning();
                         resp["calibrating"] = mono->isCalibrating();
-                        resp["progress"]["current"] = mono->framesCollected();
                     } else {
                         resp["running"] = false;
                         resp["calibrating"] = false;
@@ -1763,7 +1778,6 @@ private:
                     if (auto *stereo = live_calib_manager_.stereo()) {
                         resp["running"] = stereo->isRunning();
                         resp["calibrating"] = stereo->isCalibrating();
-                        resp["progress"]["current"] = stereo->framesCollected();
                     } else {
                         resp["running"] = false;
                         resp["calibrating"] = false;

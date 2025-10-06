@@ -536,10 +536,13 @@ window.CameraApp.CalibrationTab = {
             return false;
         }
 
-        const current = Number(status.progress?.current) || 0;
-        const max = Number(status.progress?.max) || 0;
-        const minFrames = Number(status.config?.min_frames) || 0;
-        const required = max > 0 ? max : Math.max(minFrames, 0);
+        const progressCurrent = Number(status?.progress?.current);
+        const current = Number.isFinite(progressCurrent) ? Math.max(progressCurrent, 0) : 0;
+        const progressMax = Number(status?.progress?.max);
+        const max = Number.isFinite(progressMax) ? Math.max(progressMax, 0) : 0;
+        const minFramesValue = Number(status?.config?.min_frames);
+        const minFrames = Number.isFinite(minFramesValue) ? Math.max(minFramesValue, 0) : 0;
+        const required = max > 0 ? max : minFrames;
 
         if (required <= 0) {
             return false;
@@ -1215,12 +1218,14 @@ window.CameraApp.CalibrationTab = {
 
         progressEl.style.display = 'block';
 
-        const current = Number(status.progress?.current) || 0;
-        const max = Number(status.progress?.max) || 0;
+        const progressCurrent = Number(status?.progress?.current);
+        const current = Number.isFinite(progressCurrent) ? Math.max(progressCurrent, 0) : 0;
+        const progressMax = Number(status?.progress?.max);
+        const max = Number.isFinite(progressMax) ? Math.max(progressMax, 0) : 0;
         const percent = max > 0 ? Math.min(100, (current / max) * 100) : 0;
         progressBar.style.width = `${percent}%`;
-        progressBar.setAttribute('aria-valuenow', current);
-        progressBar.setAttribute('aria-valuemax', max || 100);
+        progressBar.setAttribute('aria-valuenow', String(current));
+        progressBar.setAttribute('aria-valuemax', String(max || 100));
         progressBar.textContent = max > 0 ? `${current} / ${max}` : `${current}`;
 
         let headline = '';
