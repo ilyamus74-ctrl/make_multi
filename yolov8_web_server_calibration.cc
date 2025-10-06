@@ -2377,6 +2377,8 @@ server.Get("/api/calibration_new/video", [this](const Request&, Response& res) {
                     meta = formatDetectionResults(&od, frame.width, frame.height, tracker);
                 }
             }
+
+            skip_detection: 
             // ===== PREVIEW UPDATE =====
             auto now = std::chrono::steady_clock::now();
             if (now - last_preview_update_ >= preview_interval_) {
