@@ -2319,10 +2319,10 @@ server.Get("/api/calibration_new/video", [this](const Request&, Response& res) {
     }
 }
             // ===== DETECTION =====
-
+            json meta = json::object();
+            {
             object_detect_result_list od{};
             int ret = 0;
-            json meta = json::object();
             if (draw) {
                 // ===== INFER (RKNN) =====
                 TICK(infer);  // DEBUG
@@ -2377,7 +2377,7 @@ server.Get("/api/calibration_new/video", [this](const Request&, Response& res) {
                     meta = formatDetectionResults(&od, frame.width, frame.height, tracker);
                 }
             }
-
+            }
             skip_detection: 
             // ===== PREVIEW UPDATE =====
             auto now = std::chrono::steady_clock::now();
