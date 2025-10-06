@@ -298,6 +298,7 @@ bool MonoCalibrator::getFrame(cv::Mat &frame, std::string &hint_text,
             frame = cv::Mat::zeros(blank_size, CV_8UC3);
             hold_start_time_ = 0;
         }
+    }
 
     HintType hint = HintType::SEARCHING;
     float hint_value = 0.0f;
