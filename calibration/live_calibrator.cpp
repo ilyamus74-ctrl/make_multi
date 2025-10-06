@@ -271,19 +271,38 @@ bool MonoCalibrator::getFrame(cv::Mat &frame, std::string &hint_text,
                               int &progress_current, int &progress_max,
                               bool &pattern_visible) {
     pattern_visible = false;
-    
-    // НЕ читаем с камеры, работаем с переданным frame
-    if (frame.empty()) {
-        hint_text = "No frame provided";
-        progress_current = 0;
-        progress_max = config_.max_frames;
-        return false;
-    }
+
+
+    bool frame_supplied = !frame.empty();
+    bool camera_unavailable = false;
+    bool waiting_for_frame = false;
+
+    if (!frame_supplied) {
+        if (is_running_ && cap_.isOpened()) {
+            cv::Mat captured;
+            if (cap_.read(captured) && !captured.empty()) {
+                frame = captured;
+                frame_supplied = true;
+            } else {
+                waiting_for_frame = true;
+            }
+        } else {
+            camera_unavailable = true;
+        }
+
+        if (!frame_supplied) {
+            cv::Size blank_size = actual_img_size_;
+            if (blank_size.width <= 0 || blank_size.height <= 0) {
+                blank_size = cv::Size(640, 480);
+            }
+            frame = cv::Mat::zeros(blank_size, CV_8UC3);
+            hold_start_time_ = 0;
+        }
 
     HintType hint = HintType::SEARCHING;
     float hint_value = 0.0f;
 
-    if (is_calibrating_) {
+    if (frame_supplied && is_calibrating_) {
         std::vector<cv::Point2f> corners;
         bool found = cv::findChessboardCorners(
             frame,
@@ -337,7 +356,13 @@ bool MonoCalibrator::getFrame(cv::Mat &frame, std::string &hint_text,
         progress_max = config_.max_frames;
     }
 
-    hint_text = hintToString(hint, hint_value);
+    if (camera_unavailable) {
+        hint_text = "Camera not running";
+    } else if (waiting_for_frame) {
+        hint_text = "Waiting for camera frame";
+    } else {
+        hint_text = hintToString(hint, hint_value);
+    }
     return true;
 }
 
