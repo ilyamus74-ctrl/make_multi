@@ -1212,35 +1212,47 @@ window.CameraApp.CalibrationTab = {
         }
     },
 
-    updateCalibrationProgress(status) {
-        const statusEl = document.getElementById('calibration-status');
-        const progressEl = document.getElementById('calibration-progress');
-        const progressBar = document.querySelector('#calibration-progress .progress-bar');
-        const progressText = document.getElementById('calibration-progress-text');
+updateCalibrationProgress(status) {
+    const statusEl = document.getElementById('calibration-status');
+    const progressEl = document.getElementById('calibration-progress');
+    const progressBar = document.querySelector('#calibration-progress .progress-bar');
+    const progressText = document.getElementById('calibration-progress-text');
 
-        if (!statusEl || !progressEl || !progressBar || !progressText) {
-            return;
-        }
+    if (!statusEl || !progressEl || !progressBar || !progressText) {
+        return;
+    }
 
-        if (!status || !status.active) {
-            statusEl.style.display = 'block';
-            statusEl.className = 'calibration-status';
-            statusEl.innerHTML = 'Calibration idle.';
-            progressEl.style.display = 'none';
-            return;
-        }
+    if (!status || !status.active) {
+        statusEl.style.display = 'block';
+        statusEl.className = 'calibration-status';
+        statusEl.innerHTML = 'Calibration idle.';
+        progressEl.style.display = 'none';
+        return;
+    }
 
-        progressEl.style.display = 'block';
+    progressEl.style.display = 'block';
 
-        const progressCurrent = Number(status?.progress?.current);
-        const current = Number.isFinite(progressCurrent) ? Math.max(progressCurrent, 0) : 0;
-        const progressMax = Number(status?.progress?.max);
-        const max = Number.isFinite(progressMax) ? Math.max(progressMax, 0) : 0;
-        const percent = max > 0 ? Math.min(100, (current / max) * 100) : 0;
+    // НE используем статус-бар для подсчета кадров - только для финального результата
+    const progressCurrent = Number(status?.progress?.current);
+    const current = Number.isFinite(progressCurrent) ? Math.max(progressCurrent, 0) : 0;
+    const progressMax = Number(status?.progress?.max);
+    const max = Number.isFinite(progressMax) ? Math.max(progressMax, 0) : 0;
+    
+    // Показываем прогресс только если калибровка завершена или идет вычисление
+    if (status.compute_in_progress || (status.mono_results && status.mono_results.length > 0) || 
+        (status.stereo_results && status.stereo_results.length > 0)) {
+        const percent = max > 0 ? Math.min(100, (current / max) * 100) : 100;
         progressBar.style.width = `${percent}%`;
         progressBar.setAttribute('aria-valuenow', String(current));
         progressBar.setAttribute('aria-valuemax', String(max || 100));
         progressBar.textContent = max > 0 ? `${current} / ${max}` : `${current}`;
+    } else {
+        // Во время захвата показываем только индикатор активности
+        progressBar.style.width = '0%';
+        progressBar.setAttribute('aria-valuenow', '0');
+        progressBar.setAttribute('aria-valuemax', String(max || 100));
+        progressBar.textContent = 'Capturing...';
+    }
 
         let headline = '';
         if (status.error) {

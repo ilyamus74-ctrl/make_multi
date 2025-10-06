@@ -2271,9 +2271,7 @@ server.Get("/api/calibration_new/video", [this](const Request&, Response& res) {
 // ===== CALIBRATION CHECK =====
 {
     std::lock_guard<std::mutex> lk(live_calib_mutex_);
-    if (live_calib_manager_.isActive() && 
-        live_calib_manager_.mode() == LiveCalibrationMode::Mono) {
-        
+    if (live_calib_manager_.isActive()) {
         // Конвертируем RGB в BGR для OpenCV
         cv::Mat bgr_frame(frame.height, frame.width, CV_8UC3);
         for (int y = 0; y < frame.height; ++y) {
@@ -2285,49 +2283,58 @@ server.Get("/api/calibration_new/video", [this](const Request&, Response& res) {
                 bgr_pixel[2] = rgb_pixel[0]; // R
             }
         }
-        
-        // Передаем кадр в калибратор
-        if (auto* mono = live_calib_manager_.mono()) {
-            std::string hint;
-            int prog_cur = 0, prog_max = 0;
-            bool pattern_vis = false;
-            
-            // Обрабатываем кадр через calibrator
-            mono->getFrame(bgr_frame, hint, prog_cur, prog_max, pattern_vis);
-            
-            // Обновляем статус
-            live_calib_manager_.setProgress(prog_cur, prog_max, pattern_vis);
-            live_calib_manager_.setHint(hint);
-            
-            // Рисуем подсказку на preview
-            if (!hint.empty()) {
-                std::string display_hint = hint + " (" + 
-                    std::to_string(prog_cur) + "/" + 
-                    std::to_string(prog_max) + ")";
-                    
-                cv::Scalar color = pattern_vis ? 
-                    cv::Scalar(0, 255, 0) : cv::Scalar(0, 165, 255);
-                
-                // Конвертируем обратно в RGB для отрисовки
-                cv::Mat rgb_annotated;
-                cv::cvtColor(bgr_frame, rgb_annotated, cv::COLOR_BGR2RGB);
-                
-                cv::putText(rgb_annotated, display_hint, 
-                           cv::Point(10, 40), cv::FONT_HERSHEY_SIMPLEX,
-                           1.0, color, 2);
-                
-                // Обновляем frame buffer
-                if (rgb_annotated.isContinuous()) {
-                    memcpy(frame.virt_addr, rgb_annotated.data, 
-                           frame.width * frame.height * 3);
-                }
+
+        std::string hint;
+        int prog_cur = 0, prog_max = 0;
+        bool pattern_vis = false;
+
+        // Обрабатываем кадр через калибратор
+        if (live_calib_manager_.mode() == LiveCalibrationMode::Mono) {
+            if (auto* mono = live_calib_manager_.mono()) {
+                mono->getFrame(bgr_frame, hint, prog_cur, prog_max, pattern_vis);
+            }
+        } else if (live_calib_manager_.mode() == LiveCalibrationMode::Stereo) {
+            if (auto* stereo = live_calib_manager_.stereo()) {
+                stereo->getFrame(bgr_frame, hint, prog_cur, prog_max);
+                // В стерео калибровке pattern_vis определяется внутри getFrame
+                pattern_vis = (hint.find("detected") != std::string::npos) || 
+                              (hint.find("CAPTURED") != std::string::npos);
             }
         }
-        
+
+        // Обновляем статус
+        live_calib_manager_.setProgress(prog_cur, prog_max, pattern_vis);
+        live_calib_manager_.setHint(hint);
+
+        // Рисуем подсказку на preview
+        if (!hint.empty()) {
+            std::string display_hint = hint + " (" + 
+                std::to_string(prog_cur) + "/" + 
+                std::to_string(prog_max) + ")";
+
+            cv::Scalar color = pattern_vis ? 
+                cv::Scalar(0, 255, 0) : cv::Scalar(0, 165, 255);
+
+            // Конвертируем обратно в RGB для отрисовки
+            cv::Mat rgb_annotated;
+            cv::cvtColor(bgr_frame, rgb_annotated, cv::COLOR_BGR2RGB);
+
+            cv::putText(rgb_annotated, display_hint, 
+                       cv::Point(10, 40), cv::FONT_HERSHEY_SIMPLEX,
+                       1.0, color, 2);
+
+            // Обновляем frame buffer
+            if (rgb_annotated.isContinuous()) {
+                memcpy(frame.virt_addr, rgb_annotated.data, 
+                       frame.width * frame.height * 3);
+            }
+        }
+
         // Пропускаем обычную детекцию если калибруемся
         goto skip_detection;
     }
 }
+
             // ===== DETECTION =====
             {
             object_detect_result_list od{};

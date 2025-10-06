@@ -131,7 +131,7 @@ private:
 
     mutable std::mutex data_mutex_;
     time_t hold_start_time_ = 0;
-    double hold_duration_ = 0.3;  // Было 1.0
+    double hold_duration_ = 0.5;  // Было 1.0
 
     HintType checkPoseQuality(const std::vector<cv::Point2f>& corners,
                              cv::Size img_size, float& hint_value);
@@ -191,7 +191,7 @@ private:
 
     mutable std::mutex data_mutex_;
     time_t hold_start_time_ = 0;
-    double hold_duration_ = 0.3;  // Было 1.0
+    double hold_duration_ = 0.5;  // Было 1.0
 };
 
 void updateCalibrationResults(const std::vector<MonoCalibrationSummary> &mono,

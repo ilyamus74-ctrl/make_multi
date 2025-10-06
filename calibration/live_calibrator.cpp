@@ -247,10 +247,12 @@ HintType MonoCalibrator::checkPoseQuality(const std::vector<cv::Point2f>& corner
                                                    img_size.height * img_size.height));
         if (diag > 0.0f) {
             float norm_diff = diff / diag;
-            if (norm_diff < 0.005f) {  // Было config_.min_distance_between_frames (0.03)
-                hold_start_time_ = 0;
-                return HintType::TOO_SIMILAR;
-            }
+        // Ослабляем требование к расстоянию между кадрами
+        const float relaxed_distance = std::min(config_.min_distance_between_frames, 0.01f);
+           if (norm_diff < relaxed_distance) {
+               hold_start_time_ = 0;
+               return HintType::TOO_SIMILAR;
+           }
         }
     }
 
@@ -635,8 +637,11 @@ HintType StereoCalibrator::checkStereoQuality(const std::vector<cv::Point2f> &c1
     float diff_x = std::abs(norm1.x - norm2.x);
     float diff_y = std::abs(norm1.y - norm2.y);
 
-    if (diff_x > 0.7f ||  // Было config_.max_center_diff_horizontal
-        diff_y > 0.7f) {  // Было config_.max_center_diff_vertical
+    // Ослабляем пороги для лучшего захвата кадров
+    const float relaxed_horizontal = std::max(config_.max_center_diff_horizontal, 0.6f);
+    const float relaxed_vertical = std::max(config_.max_center_diff_vertical, 0.6f);
+
+    if (diff_x > relaxed_horizontal || diff_y > relaxed_vertical) {
         hold_start_time_ = 0;
         return HintType::STEREO_CENTER_DIFF;
     }
