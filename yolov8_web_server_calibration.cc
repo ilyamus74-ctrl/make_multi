@@ -630,6 +630,7 @@ private:
             progress_current_ = 0;
             progress_max_ = config_.max_frames;
             pattern_visible_ = false;
+            compute_completed_ = false;
         }
 
         void setStereo(StereoPtr stereo, const calibration::CalibConfig &config,
@@ -645,6 +646,7 @@ private:
             progress_current_ = 0;
             progress_max_ = config_.max_frames;
             pattern_visible_ = false;
+            compute_completed_ = false;
         }
 
 
@@ -722,6 +724,7 @@ void updateFromFrame(const cv::Mat& frame) {
                         std::vector<calibration::StereoCalibrationSummary> stereo) {
             mono_results_ = std::move(mono);
             stereo_results_ = std::move(stereo);
+            compute_completed_ = !mono_results_.empty() || !stereo_results_.empty();
         }
 
         const std::vector<calibration::MonoCalibrationSummary> &monoResults() const {
@@ -764,10 +767,15 @@ void updateFromFrame(const cv::Mat& frame) {
             pattern_visible_ = false;
             video_active_ = false;
             compute_in_progress_ = false;
+            compute_completed_ = false;
             last_error_.clear();
             mono_results_.clear();
             stereo_results_.clear();
         }
+
+        void setComputeCompleted(bool value) { compute_completed_ = value; }
+        bool computeCompleted() const { return compute_completed_; }
+
 
     private:
         std::variant<std::monostate, MonoPtr, StereoPtr> calibrator_{};
@@ -782,6 +790,7 @@ void updateFromFrame(const cv::Mat& frame) {
         bool pattern_visible_{false};
         bool video_active_{false};
         bool compute_in_progress_{false};
+        bool compute_completed_{false};
         std::string last_error_;
         std::vector<calibration::MonoCalibrationSummary> mono_results_;
         std::vector<calibration::StereoCalibrationSummary> stereo_results_;
@@ -1245,6 +1254,58 @@ private:
         return j;
     }
 
+
+    struct CalibrationComputeResult {
+        bool ok{false};
+        std::string error;
+        std::vector<calibration::MonoCalibrationSummary> mono_results;
+        std::vector<calibration::StereoCalibrationSummary> stereo_results;
+    };
+
+    CalibrationComputeResult runCalibrationCompute(LiveCalibrationMode mode,
+                                                   calibration::MonoCalibrator *mono_ptr,
+                                                   calibration::StereoCalibrator *stereo_ptr) {
+        CalibrationComputeResult result;
+        auto results_dir = calib_root_ / "calibration" / "results";
+        std::error_code ec;
+        std::filesystem::create_directories(results_dir, ec);
+        (void)ec;
+
+        if (mode == LiveCalibrationMode::Mono && mono_ptr) {
+            calibration::MonoCalibrationSummary summary;
+            result.ok = mono_ptr->calibrate(results_dir, summary, result.error);
+            if (result.ok) {
+                result.mono_results.push_back(summary);
+            }
+        } else if (mode == LiveCalibrationMode::Stereo && stereo_ptr) {
+            std::optional<calibration::MonoCalibrationSummary> mono_a;
+            std::optional<calibration::MonoCalibrationSummary> mono_b;
+            calibration::StereoCalibrationSummary stereo_summary;
+            result.ok = stereo_ptr->calibrate(results_dir, mono_a, mono_b,
+                                              stereo_summary, result.error, false);
+            if (result.ok) {
+                if (mono_a) result.mono_results.push_back(*mono_a);
+                if (mono_b) result.mono_results.push_back(*mono_b);
+                result.stereo_results.push_back(stereo_summary);
+            }
+        } else {
+            result.error = "calibrator unavailable";
+        }
+
+        if (result.ok) {
+            calibration::updateCalibrationResults(result.mono_results,
+                                                  result.stereo_results,
+                                                  results_dir);
+            calibration_results_manager_.reload();
+        }
+
+        if (!result.ok && result.error.empty()) {
+            result.error = "calibration failed";
+        }
+
+        return result;
+    }
+
     static calibration::CalibConfig calibConfigFromJson(const json &j,
                                                         calibration::CalibConfig base = {}) {
         calibration::CalibConfig cfg = base;
@@ -1661,6 +1722,7 @@ private:
                     live_calib_manager_.setResults({}, {});
                     live_calib_manager_.setLastError({});
                     live_calib_manager_.setHint({});
+                    live_calib_manager_.setComputeCompleted(false);
                 }
             }
 
@@ -1680,8 +1742,6 @@ private:
             calibration::MonoCalibrator *mono_ptr = nullptr;
             calibration::StereoCalibrator *stereo_ptr = nullptr;
             LiveCalibrationMode mode = LiveCalibrationMode::None;
-            std::string camera_a;
-            std::string camera_b;
             {
                 std::lock_guard<std::mutex> lk(live_calib_mutex_);
                 if (!live_calib_manager_.isActive()) {
@@ -1702,64 +1762,35 @@ private:
                 mode = live_calib_manager_.mode();
                 mono_ptr = live_calib_manager_.mono();
                 stereo_ptr = live_calib_manager_.stereo();
-                camera_a = live_calib_manager_.cameraPrimary();
-                camera_b = live_calib_manager_.cameraSecondary();
             }
 
-            bool ok = false;
-            std::string err;
-            std::vector<calibration::MonoCalibrationSummary> mono_results;
-            std::vector<calibration::StereoCalibrationSummary> stereo_results;
-            auto results_dir = calib_root_ / "calibration" / "results";
-            std::error_code ec;
-            std::filesystem::create_directories(results_dir, ec);
-            (void)ec;
-
-            if (mode == LiveCalibrationMode::Mono && mono_ptr) {
-                calibration::MonoCalibrationSummary summary;
-                ok = mono_ptr->calibrate(results_dir, summary, err);
-                if (ok) {
-                    mono_results.push_back(summary);
-                }
-            } else if (mode == LiveCalibrationMode::Stereo && stereo_ptr) {
-                std::optional<calibration::MonoCalibrationSummary> mono_a;
-                std::optional<calibration::MonoCalibrationSummary> mono_b;
-                calibration::StereoCalibrationSummary stereo_summary;
-                ok = stereo_ptr->calibrate(results_dir, mono_a, mono_b, stereo_summary, err, false);
-                if (ok) {
-                    if (mono_a) mono_results.push_back(*mono_a);
-                    if (mono_b) mono_results.push_back(*mono_b);
-                    stereo_results.push_back(stereo_summary);
-                }
-            } else {
-                err = "calibrator unavailable";
-            }
-            if (ok) {
-                calibration::updateCalibrationResults(mono_results, stereo_results, results_dir);
-                calibration_results_manager_.reload();
+            CalibrationComputeResult compute_result =
+                runCalibrationCompute(mode, mono_ptr, stereo_ptr);
             }
 
             {
                 std::lock_guard<std::mutex> lk(live_calib_mutex_);
                 live_calib_manager_.setComputeInProgress(false);
-                if (ok) {
-                    live_calib_manager_.setResults(mono_results, stereo_results);
+                if (compute_result.ok) {
+                    live_calib_manager_.setResults(compute_result.mono_results,
+                                                   compute_result.stereo_results);
                     live_calib_manager_.setLastError({});
                 } else {
-                    live_calib_manager_.setLastError(err);
+                    live_calib_manager_.setLastError(compute_result.error);
                 }
+                live_calib_manager_.setComputeCompleted(true);
             }
 
-            if (!ok) {
+            if (!compute_result.ok) {
                 resp["status"] = "error";
-                resp["error"] = err.empty() ? "calibration failed" : err;
+                resp["error"] = compute_result.error;
                 res.status = 500;
             } else {
                 resp["status"] = "ok";
                 json mono_json = json::array();
-                for (const auto &m : mono_results) mono_json.push_back(monoSummaryToJson(m));
+                for (const auto &m : compute_result.mono_results) mono_json.push_back(monoSummaryToJson(m));
                 json stereo_json = json::array();
-                for (const auto &s : stereo_results) stereo_json.push_back(stereoSummaryToJson(s));
+                for (const auto &s : compute_result.stereo_results) stereo_json.push_back(stereoSummaryToJson(s));
                 resp["mono_results"] = std::move(mono_json);
                 resp["stereo_results"] = std::move(stereo_json);
             }
@@ -2268,72 +2299,113 @@ server.Get("/api/calibration_new/video", [this](const Request&, Response& res) {
 
             json meta = json::object();
 
-// ===== CALIBRATION CHECK =====
-{
-    std::lock_guard<std::mutex> lk(live_calib_mutex_);
-    if (live_calib_manager_.isActive()) {
-        // Конвертируем RGB в BGR для OpenCV
-        cv::Mat bgr_frame(frame.height, frame.width, CV_8UC3);
-        for (int y = 0; y < frame.height; ++y) {
-            for (int x = 0; x < frame.width; ++x) {
-                uint8_t* rgb_pixel = frame.virt_addr + (y * frame.width + x) * 3;
-                uint8_t* bgr_pixel = bgr_frame.ptr<uint8_t>(y) + x * 3;
-                bgr_pixel[0] = rgb_pixel[2]; // B
-                bgr_pixel[1] = rgb_pixel[1]; // G
-                bgr_pixel[2] = rgb_pixel[0]; // R
+            // ===== CALIBRATION CHECK =====
+            cv::Mat bgr_frame(frame.height, frame.width, CV_8UC3);
+            bool bgr_frame_valid = false;
+            std::string hint;
+            int prog_cur = 0, prog_max = 0;
+            bool pattern_vis = false;
+            bool skip_detection_flag = false;
+            bool trigger_auto_compute = false;
+            LiveCalibrationMode auto_mode = LiveCalibrationMode::None;
+            calibration::MonoCalibrator *auto_mono = nullptr;
+            calibration::StereoCalibrator *auto_stereo = nullptr;
+
+            {
+                std::lock_guard<std::mutex> lk(live_calib_mutex_);
+                if (live_calib_manager_.isActive()) {
+                    bgr_frame_valid = true;
+                    for (int y = 0; y < frame.height; ++y) {
+                        for (int x = 0; x < frame.width; ++x) {
+                            uint8_t *rgb_pixel = frame.virt_addr + (y * frame.width + x) * 3;
+                            uint8_t *bgr_pixel = bgr_frame.ptr<uint8_t>(y) + x * 3;
+                            bgr_pixel[0] = rgb_pixel[2];
+                            bgr_pixel[1] = rgb_pixel[1];
+                            bgr_pixel[2] = rgb_pixel[0];
+                        }
+                    }
+
+                    auto mode = live_calib_manager_.mode();
+                    if (mode == LiveCalibrationMode::Mono) {
+                        if (auto *mono = live_calib_manager_.mono()) {
+                            mono->getFrame(bgr_frame, hint, prog_cur, prog_max, pattern_vis);
+                            int required_frames = live_calib_manager_.config().max_frames;
+                            bool progress_done = required_frames > 0 && prog_cur >= required_frames;
+                            if (progress_done && !mono->isCalibrating() &&
+                                !live_calib_manager_.computeInProgress() &&
+                                !live_calib_manager_.computeCompleted()) {
+                                live_calib_manager_.setComputeInProgress(true);
+                                trigger_auto_compute = true;
+                                auto_mode = LiveCalibrationMode::Mono;
+                                auto_mono = mono;
+                            }
+                        }
+                    } else if (mode == LiveCalibrationMode::Stereo) {
+                        if (auto *stereo = live_calib_manager_.stereo()) {
+                            stereo->getFrame(bgr_frame, hint, prog_cur, prog_max);
+                            pattern_vis = (hint.find("detected") != std::string::npos) ||
+                                          (hint.find("CAPTURED") != std::string::npos);
+                            int required_frames = live_calib_manager_.config().max_frames;
+                            bool progress_done = required_frames > 0 && prog_cur >= required_frames;
+                            if (progress_done && !stereo->isCalibrating() &&
+                                !live_calib_manager_.computeInProgress() &&
+                                !live_calib_manager_.computeCompleted()) {
+                                live_calib_manager_.setComputeInProgress(true);
+                                trigger_auto_compute = true;
+                                auto_mode = LiveCalibrationMode::Stereo;
+                                auto_stereo = stereo;
+                            }
+                        }
+                    }
+
+                    live_calib_manager_.setProgress(prog_cur, prog_max, pattern_vis);
+                    live_calib_manager_.setHint(hint);
+                    skip_detection_flag = true;
+                }
             }
-        }
 
-        std::string hint;
-        int prog_cur = 0, prog_max = 0;
-        bool pattern_vis = false;
-
-        // Обрабатываем кадр через калибратор
-        if (live_calib_manager_.mode() == LiveCalibrationMode::Mono) {
-            if (auto* mono = live_calib_manager_.mono()) {
-                mono->getFrame(bgr_frame, hint, prog_cur, prog_max, pattern_vis);
+            if (trigger_auto_compute) {
+                auto auto_result = runCalibrationCompute(auto_mode, auto_mono, auto_stereo);
+                {
+                    std::lock_guard<std::mutex> lk(live_calib_mutex_);
+                    live_calib_manager_.setComputeInProgress(false);
+                    if (auto_result.ok) {
+                        live_calib_manager_.setResults(auto_result.mono_results,
+                                                       auto_result.stereo_results);
+                        live_calib_manager_.setLastError({});
+                    } else {
+                        live_calib_manager_.setLastError(auto_result.error);
+                    }
+                    live_calib_manager_.setComputeCompleted(true);
+                }
             }
-        } else if (live_calib_manager_.mode() == LiveCalibrationMode::Stereo) {
-            if (auto* stereo = live_calib_manager_.stereo()) {
-                stereo->getFrame(bgr_frame, hint, prog_cur, prog_max);
-                // В стерео калибровке pattern_vis определяется внутри getFrame
-                pattern_vis = (hint.find("detected") != std::string::npos) || 
-                              (hint.find("CAPTURED") != std::string::npos);
-            }
-        }
 
-        // Обновляем статус
-        live_calib_manager_.setProgress(prog_cur, prog_max, pattern_vis);
-        live_calib_manager_.setHint(hint);
+            if (bgr_frame_valid && !hint.empty()) {
+                std::string display_hint = hint + " (" +
+                    std::to_string(prog_cur) + "/" +
+                    std::to_string(prog_max) + ")";
 
-        // Рисуем подсказку на preview
-        if (!hint.empty()) {
-            std::string display_hint = hint + " (" + 
-                std::to_string(prog_cur) + "/" + 
-                std::to_string(prog_max) + ")";
-
-            cv::Scalar color = pattern_vis ? 
-                cv::Scalar(0, 255, 0) : cv::Scalar(0, 165, 255);
+                cv::Scalar color = pattern_vis ?
+                    cv::Scalar(0, 255, 0) : cv::Scalar(0, 165, 255);
 
             // Конвертируем обратно в RGB для отрисовки
-            cv::Mat rgb_annotated;
-            cv::cvtColor(bgr_frame, rgb_annotated, cv::COLOR_BGR2RGB);
+                cv::Mat rgb_annotated;
+                cv::cvtColor(bgr_frame, rgb_annotated, cv::COLOR_BGR2RGB);
 
-            cv::putText(rgb_annotated, display_hint, 
-                       cv::Point(10, 40), cv::FONT_HERSHEY_SIMPLEX,
-                       1.0, color, 2);
+               cv::putText(rgb_annotated, display_hint,
+                           cv::Point(10, 40), cv::FONT_HERSHEY_SIMPLEX,
+                           1.0, color, 2);
 
             // Обновляем frame buffer
-            if (rgb_annotated.isContinuous()) {
-                memcpy(frame.virt_addr, rgb_annotated.data, 
-                       frame.width * frame.height * 3);
+                if (rgb_annotated.isContinuous()) {
+                    memcpy(frame.virt_addr, rgb_annotated.data,
+                           frame.width * frame.height * 3);
+                }
             }
-        }
 
-        // Пропускаем обычную детекцию если калибруемся
-        goto skip_detection;
-    }
-}
+            if (skip_detection_flag) {
+                goto skip_detection;
+            }
 
             // ===== DETECTION =====
             {
