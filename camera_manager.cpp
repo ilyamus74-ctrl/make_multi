@@ -354,6 +354,7 @@ void CameraManager::monitorLoop() {
     };
 
     std::error_code ec;
+
     const fs::path by_id_base{"/dev/v4l/by-id"};
     if (fs::exists(by_id_base, ec)) {
       for (auto it = fs::directory_iterator(by_id_base, ec);
