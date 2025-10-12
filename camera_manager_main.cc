@@ -1310,7 +1310,24 @@ int main(int argc, char **argv) {
 
   g_server.Get("/api/new",
                [](const httplib::Request &, httplib::Response &res) {
-                 nlohmann::json out = g_mgr.unconfiguredCameras();
+                 nlohmann::json out = nlohmann::json::array();
+                 for (const auto &cam : g_mgr.unconfiguredCameras()) {
+                   nlohmann::json item;
+                   item["device"] = cam.device_path;
+                   if (!cam.bus_info.empty())
+                     item["bus_info"] = cam.bus_info;
+                   if (!cam.card.empty())
+                     item["card"] = cam.card;
+                   nlohmann::json identifiers = nlohmann::json::array();
+                   for (const auto &ident : cam.identifiers) {
+                     nlohmann::json id_json;
+                     id_json["type"] = ident.type;
+                     id_json["value"] = ident.value;
+                     identifiers.push_back(std::move(id_json));
+                   }
+                   item["identifiers"] = std::move(identifiers);
+                   out.push_back(std::move(item));
+                 }
                  res.set_content(out.dump(), "application/json");
                });
 
@@ -1319,8 +1336,27 @@ int main(int argc, char **argv) {
                   try {
                     auto j = nlohmann::json::parse(req.body);
                     std::string id = j.at("id").get<std::string>();
-                    std::string by = j.at("by_id").get<std::string>();
-                    if (!g_mgr.addCamera(id, by))
+                    std::string match_type = "by-id";
+                    std::string match_value;
+                    if (j.contains("match") && j["match"].is_object()) {
+                      const auto &match = j["match"];
+                      match_type = match.value("type", std::string("by-id"));
+                      match_value = match.value("value", std::string());
+                    } else if (j.contains("by_path")) {
+                      match_type = "by-path";
+                      match_value = j.at("by_path").get<std::string>();
+                    } else if (j.contains("device")) {
+                      match_type = "device";
+                      match_value = j.at("device").get<std::string>();
+                    } else if (j.contains("by_id")) {
+                      match_type = "by-id";
+                      match_value = j.at("by_id").get<std::string>();
+                    }
+                    if (match_value.empty()) {
+                      res.status = 400;
+                      return;
+                    }
+                    if (!g_mgr.addCamera(id, match_value, match_type))
                       res.status = 400;
                   } catch (...) {
                     res.status = 400;
@@ -2296,8 +2332,13 @@ int main(int argc, char **argv) {
 
 
         std::string dev;
-        if (req.has_param("by"))
+        if (req.has_param("by")) {
           dev = std::string("/dev/v4l/by-id/") + req.get_param_value("by");
+        } else if (req.has_param("path")) {
+          dev = std::string("/dev/v4l/by-path/") + req.get_param_value("path");
+        } else if (req.has_param("dev")) {
+          dev = req.get_param_value("dev");
+        }
         if (dev.empty()) {
           res.status = 404;
           return;
@@ -2333,6 +2374,10 @@ int main(int argc, char **argv) {
           }
         } else if (req.has_param("by")) {
           dev = std::string("/dev/v4l/by-id/") + req.get_param_value("by");
+        } else if (req.has_param("path")) {
+          dev = std::string("/dev/v4l/by-path/") + req.get_param_value("path");
+        } else if (req.has_param("dev")) {
+          dev = req.get_param_value("dev");
         } else {
           res.status = 404;
           return;

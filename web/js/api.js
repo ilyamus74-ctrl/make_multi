@@ -56,13 +56,6 @@ window.CameraApp.API = {
         return `/api/preview.mjpg?id=${encodeURIComponent(cameraId)}`;
     },
 
-    getCameraStreamUrl(detPort) {
-        return `${location.protocol}//${location.hostname}:${detPort}/api/stream.mjpg`;
-    },
-
-    getNewCameraPreviewUrl(byIdPath) {
-        return `/api/preview?by=${encodeURIComponent(byIdPath)}&t=${Date.now()}`;
-    },
 
     // Status and Config APIs
     async getStatus() {
@@ -101,10 +94,19 @@ window.CameraApp.API = {
         return await this.request(window.CameraApp.Config.API.MODELS);
     },
 
-    async addCamera(id, byIdPath) {
+    async addCamera(id, match) {
+        const payload = { id };
+        if (typeof match === 'string') {
+            payload.match = { type: 'by-id', value: match };
+        } else if (match && typeof match === 'object') {
+            payload.match = {
+                type: match.type || 'by-id',
+                value: match.value || ''
+            };
+        }
         return await this.request(window.CameraApp.Config.API.ADD_CAMERA, {
             method: 'POST',
-            body: JSON.stringify({ id, by_id: byIdPath })
+            body: JSON.stringify(payload)
         });
     },
 
@@ -255,8 +257,31 @@ window.CameraApp.API = {
         return `${window.CameraApp.Config.API.PREVIEW_MJPG}?id=${encodeURIComponent(id)}`;
     },
 
-    getNewCameraPreviewUrl(byId) {
-        return `${window.CameraApp.Config.API.PREVIEW}?by=${encodeURIComponent(byId)}&t=${Date.now()}`;
+    getNewCameraPreviewUrl(identifier) {
+        const timestamp = `&t=${Date.now()}`;
+        if (!identifier) {
+            return `${window.CameraApp.Config.API.PREVIEW}?${timestamp.slice(1)}`;
+        }
+
+        const buildUrl = (param, value) =>
+            `${window.CameraApp.Config.API.PREVIEW}?${param}=${encodeURIComponent(value)}${timestamp}`;
+
+        if (typeof identifier === 'string') {
+            return buildUrl('by', identifier);
+        }
+
+        const { type, value } = identifier;
+        if (!value) {
+            return `${window.CameraApp.Config.API.PREVIEW}?${timestamp.slice(1)}`;
+        }
+
+        if (type === 'by-path') {
+            return buildUrl('path', value);
+        }
+        if (type === 'device') {
+            return buildUrl('dev', value);
+        }
+        return buildUrl('by', value);
     },
 
     getCameraStreamUrl(port) {

@@ -45,8 +45,10 @@ window.CameraApp.SettingsTab = {
         // Add new camera button
         const addCameraButton = target.closest('[data-add-camera]');
         if (addCameraButton) {
-            const byIdPath = addCameraButton.getAttribute('data-add-camera');
-            this.addNewCamera(byIdPath);
+            const matchType = addCameraButton.getAttribute('data-match-type') || 'by-id';
+            const matchValue = addCameraButton.getAttribute('data-match-value') ||
+                addCameraButton.getAttribute('data-add-camera');
+            this.addNewCamera({ type: matchType, value: matchValue });
         }
 
         // Advanced settings buttons
@@ -74,6 +76,33 @@ window.CameraApp.SettingsTab = {
             const cameraId = target.getAttribute('data-camera-role');
             const role = target.value;
             this.changeCameraRole(cameraId, role);
+        }
+
+        if (target.matches('[data-new-camera-select]')) {
+            const card = target.closest('[data-new-camera-index]');
+            if (!card) return;
+            const cameraIndex = parseInt(card.getAttribute('data-new-camera-index'), 10);
+            const camera = window.CameraApp.State.newCameras[cameraIndex];
+            if (!camera || !camera.identifiers) return;
+            const identifierIndex = parseInt(target.value, 10);
+            const identifier = camera.identifiers[identifierIndex];
+            const previewImage = card.querySelector('[data-new-camera]');
+            const addButton = card.querySelector('[data-add-camera]');
+
+            if (identifier) {
+                if (previewImage) {
+                    previewImage.setAttribute('data-new-camera-type', identifier.type);
+                    previewImage.setAttribute('data-new-camera-value', identifier.value);
+                    if (window.CameraApp.State.previewEnabled) {
+                        previewImage.style.display = '';
+                        previewImage.src = window.CameraApp.API.getNewCameraPreviewUrl(identifier);
+                    }
+                }
+                if (addButton) {
+                    addButton.setAttribute('data-match-type', identifier.type);
+                    addButton.setAttribute('data-match-value', identifier.value);
+                }
+            }
         }
     },
 
@@ -231,9 +260,15 @@ window.CameraApp.SettingsTab = {
         const images = document.querySelectorAll('[data-new-camera]');
         images.forEach((img, index) => {
             setTimeout(() => {
-                const byIdPath = img.getAttribute('data-new-camera');
+                const matchType = img.getAttribute('data-new-camera-type') || 'by-id';
+                const matchValue = img.getAttribute('data-new-camera-value');
                 if (window.CameraApp.State.previewEnabled) {
-                    img.src = window.CameraApp.API.getNewCameraPreviewUrl(byIdPath);
+                    if (matchValue) {
+                        img.src = window.CameraApp.API.getNewCameraPreviewUrl({
+                            type: matchType,
+                            value: matchValue
+                        });
+                    }
                     img.onerror = () => {
                         img.style.display = 'none';
                         img.parentElement.innerHTML = `
@@ -376,18 +411,22 @@ window.CameraApp.SettingsTab = {
         }
     },
 
-    async addNewCamera(byIdPath) {
+    async addNewCamera(match) {
+        if (!match || !match.value) {
+            window.CameraApp.UI.showToast('Unable to determine camera identifier', 'danger');
+            return;
+        }
         const cameraId = prompt('Enter camera ID (letters, numbers, underscore, and dash only):');
-        
+
         if (!cameraId) return;
-        
+
         if (!window.CameraApp.Utils.validateCameraId(cameraId)) {
             window.CameraApp.UI.showToast('Invalid camera ID format', 'danger');
             return;
         }
 
         try {
-            await window.CameraApp.API.addCamera(cameraId, byIdPath);
+            await window.CameraApp.API.addCamera(cameraId, match);
             window.CameraApp.UI.showToast(`Camera ${cameraId} added successfully`, 'success');
             await this.loadData();
         } catch (error) {
@@ -747,6 +786,10 @@ window.CameraApp.SettingsTab = {
                 if (oldItem.present !== newItem.present ||
                     oldItem.det_running !== newItem.det_running ||
                     Math.abs((oldItem.fps || 0) - (newItem.fps || 0)) > 0.5) {
+                    return true;
+                }
+            } else {
+                if (JSON.stringify(oldItem) !== JSON.stringify(newItem)) {
                     return true;
                 }
             }

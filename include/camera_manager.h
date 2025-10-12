@@ -41,6 +41,7 @@ public:
   struct CamConfig {
     std::string id;           // logical camera id
     std::string match_substr; // substring to match in /dev/v4l/by-id path
+    std::string match_path_substr; // substring to match in /dev/v4l/by-path path
     std::string device_path;  // last known /dev/videoX path
     enum class Mode { Preview, Detect, Calibration };
     Mode mode{Mode::Preview}; // current operating mode
@@ -147,10 +148,23 @@ public:
   std::vector<ConfiguredInfo> configuredCameras();
 
   // Thread-safe snapshot of newly discovered camera paths
-  std::vector<std::string> unconfiguredCameras();
+  struct DiscoveredCamera {
+    struct Identifier {
+      std::string type;  // e.g. "by-id", "by-path", "device"
+      std::string value; // identifier value for the given type
+    };
+
+    std::string device_path; // canonical /dev/videoX path
+    std::string bus_info;    // value from v4l2_capability::bus_info
+    std::string card;        // value from v4l2_capability::card
+    std::vector<Identifier> identifiers;
+  };
+
+  std::vector<DiscoveredCamera> unconfiguredCameras();
 
   // Append new camera definition to config and start monitoring it
-  bool addCamera(const std::string &id, const std::string &by_id_path);
+  bool addCamera(const std::string &id, const std::string &match_value,
+                 const std::string &match_type = "by-id");
 
   // Set operating mode for camera id
   bool setMode(const std::string &id, CamConfig::Mode mode);
@@ -214,7 +228,7 @@ private:
   std::map<std::string, CamConfig> configs_;
   std::set<std::string> active_;
   std::map<std::string, std::string> active_paths_; // id -> /dev/videoX
-  std::set<std::string> unconfigured_;
+  std::vector<DiscoveredCamera> unconfigured_;
   std::map<std::string, pid_t> det_pids_;
   std::mutex mutex_;
   std::condition_variable cv_;

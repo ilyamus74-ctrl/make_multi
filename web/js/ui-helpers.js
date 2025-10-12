@@ -310,25 +310,69 @@ window.CameraApp.UI = {
     },
 
     // Create new camera card
-    createNewCameraCard(byIdPath, index = 0) {
+    createNewCameraCard(camera, index = 0) {
+        const identifiers = Array.isArray(camera.identifiers) && camera.identifiers.length > 0
+            ? camera.identifiers
+            : [{ type: 'device', value: camera.device || '' }];
+
+        const preferredIndex = Math.max(0, identifiers.findIndex(id => id.type === 'by-id' && id.value));
+        const defaultIdentifier = identifiers[preferredIndex] || identifiers[0];
+
+        const identifierOptions = identifiers.map((identifier, optionIndex) => `
+            <option value="${optionIndex}" ${optionIndex === preferredIndex ? 'selected' : ''}>
+                ${identifier.type}: ${identifier.value}
+            </option>
+        `).join('');
+
+        const identifierSelector = identifiers.length > 1
+            ? `
+                <div class="mb-2">
+                    <select class="form-select form-select-sm" data-new-camera-select>
+                        ${identifierOptions}
+                    </select>
+                </div>
+            `
+            : `
+                <div class="mb-2">
+                    <small class="text-muted text-monospace">${defaultIdentifier.type}: ${defaultIdentifier.value}</small>
+                </div>
+            `;
+
+        const infoParts = [];
+        if (camera.card) {
+            infoParts.push(`<div class="fw-semibold">${camera.card}</div>`);
+        }
+        if (camera.device) {
+            infoParts.push(`<div class="text-muted small text-break">${camera.device}</div>`);
+        }
+        if (camera.bus_info) {
+            infoParts.push(`<div class="text-muted small text-break">Bus: ${camera.bus_info}</div>`);
+        }
+        const infoBlock = infoParts.length ? `<div class="mb-2">${infoParts.join('')}</div>` : '';
+
         return `
-            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card new-camera-card" data-new-camera-index="${index}">
                 <div class="card new-camera-card">
                     <div class="card-body text-center">
                         <h6 class="card-title">
                             <i class="bi bi-camera-plus me-2"></i>
                             New Camera
                         </h6>
-                        
+
                         <div class="camera-preview-container mb-3">
-                            <img class="camera-preview" data-new-camera="${byIdPath}" alt="New camera preview">
+                            <img class="camera-preview" data-new-camera data-new-camera-type="${defaultIdentifier.type}"
+                                 data-new-camera-value="${defaultIdentifier.value}" alt="New camera preview">
                         </div>
-                        
-                        <div class="mb-2">
-                            <small class="text-muted text-monospace">${byIdPath}</small>
-                        </div>
-                        
-                        <button class="btn btn-primary btn-sm" data-add-camera="${byIdPath}">
+
+
+                        ${infoBlock}
+                        ${identifierSelector}
+
+                        <button
+                            class="btn btn-primary btn-sm"
+                            data-add-camera="${defaultIdentifier.value}"
+                            data-match-type="${defaultIdentifier.type}"
+                            data-match-value="${defaultIdentifier.value}">
                             <i class="bi bi-plus me-1"></i>Add Camera
                         </button>
                     </div>

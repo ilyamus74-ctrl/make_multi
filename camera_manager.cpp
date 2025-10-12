@@ -156,9 +156,18 @@ bool CameraManager::loadConfig(const std::string &path) {
     for (auto &c : j["cameras"]) {
       CamConfig cfg;
       cfg.id = c.value("id", "");
-      if (c.contains("match") && c["match"].contains("by_id_contains"))
-        cfg.match_substr = c["match"]["by_id_contains"].get<std::string>();
-      cfg.device_path = c.value("device", "");
+      if (c.contains("match") && c["match"].is_object()) {
+        auto &match = c["match"];
+        if (match.contains("by_id_contains"))
+          cfg.match_substr = match["by_id_contains"].get<std::string>();
+        if (match.contains("by_path_contains"))
+          cfg.match_path_substr = match["by_path_contains"].get<std::string>();
+        if (cfg.device_path.empty() && match.contains("device_path"))
+          cfg.device_path = match["device_path"].get<std::string>();
+      }
+      std::string device_from_json = c.value("device", std::string());
+      if (!device_from_json.empty())
+        cfg.device_path = device_from_json;
       cfg.mode = CamConfig::Mode::Preview;
       if (c.contains("mode") && c["mode"].is_string()) {
         std::string m = c["mode"].get<std::string>();
@@ -318,60 +327,161 @@ void CameraManager::monitorLoop() {
         }
       }
     }
+
+    struct AvailableCamera {
+      std::string canonical;
+      std::vector<DiscoveredCamera::Identifier> identifiers;
+      bool checked{false};
+      bool has_capture{false};
+      std::string bus_info;
+      std::string card;
+    };
+
+    std::map<std::string, AvailableCamera> available;
+    auto register_entry = [&](const fs::path &dir_entry,
+                              const std::string &type) {
+      std::error_code ec;
+      if (!dir_entry.is_symlink(ec) || ec)
+        return;
+      auto canonical = fs::canonical(dir_entry, ec);
+      if (ec)
+        return;
+      auto &info = available[canonical.string()];
+      info.canonical = canonical.string();
+      DiscoveredCamera::Identifier ident{type,
+                                         dir_entry.filename().string()};
+      info.identifiers.push_back(std::move(ident));
+    };
+
     std::error_code ec;
-    std::set<std::string> current;
-    const std::string base = "/dev/v4l/by-id";
-    if (fs::exists(base)) {
-      for (auto &p : fs::directory_iterator(base)) {
-        std::string byid = p.path().string();
-        std::string cmd = "udevadm info -q property -n " + byid;
-        FILE *fp = popen(cmd.c_str(), "r");
-        bool has_capture = false;
-        if (fp) {
-          struct LineBuffer {
-            char *ptr = nullptr;
-            size_t len = 0;
-            ~LineBuffer() { free(ptr); }
-          } line;
-          while (getline(&line.ptr, &line.len, fp) != -1) {
-            std::string s(line.ptr);
-            const std::string prefix = "ID_V4L_CAPABILITIES=";
-            if (s.rfind(prefix, 0) == 0) {
-              if (s.find(":capture:") != std::string::npos)
-                has_capture = true;
-              break;
-            }
-          }
-          pclose(fp);
-        }
-        if (has_capture)
-          current.insert(p.path().filename().string());
+    const fs::path by_id_base{"/dev/v4l/by-id"};
+    if (fs::exists(by_id_base, ec)) {
+      for (auto it = fs::directory_iterator(by_id_base, ec);
+           it != fs::directory_iterator(); ++it) {
+        register_entry(it->path(), "by-id");
+      }
+    }
+    ec.clear();
+    const fs::path by_path_base{"/dev/v4l/by-path"};
+    if (fs::exists(by_path_base, ec)) {
+      for (auto it = fs::directory_iterator(by_path_base, ec);
+           it != fs::directory_iterator(); ++it) {
+        register_entry(it->path(), "by-path");
       }
     }
 
-    std::set<std::string> new_unconfigured = current;
+    ec.clear();
+    const fs::path video_base{"/dev"};
+    if (fs::exists(video_base, ec)) {
+      for (auto it = fs::directory_iterator(video_base, ec);
+           it != fs::directory_iterator(); ++it) {
+        if (ec)
+          break;
+        auto name = it->path().filename().string();
+        if (name.rfind("video", 0) != 0)
+          continue;
+        std::error_code sec;
+        auto canonical = fs::canonical(it->path(), sec);
+        if (sec)
+          canonical = it->path();
+        auto &info = available[canonical.string()];
+        if (info.canonical.empty())
+          info.canonical = canonical.string();
+      }
+    }
 
+    auto ensure_capture = [&](AvailableCamera &info) {
+      if (info.checked)
+        return info.has_capture;
+      info.checked = true;
+      int fd = open(info.canonical.c_str(), O_RDONLY | O_NONBLOCK);
+      if (fd >= 0) {
+        v4l2_capability cap{};
+        if (ioctl(fd, VIDIOC_QUERYCAP, &cap) == 0) {
+          uint32_t caps = cap.device_caps ? cap.device_caps : cap.capabilities;
+          info.has_capture = (caps & V4L2_CAP_VIDEO_CAPTURE) ||
+                             (caps & V4L2_CAP_VIDEO_CAPTURE_MPLANE);
+          if (info.has_capture) {
+            info.bus_info = reinterpret_cast<const char *>(cap.bus_info);
+            info.card = reinterpret_cast<const char *>(cap.card);
+          }
+        }
+        close(fd);
+      }
+      if (!info.has_capture) {
+        info.bus_info.clear();
+        info.card.clear();
+      }
+      return info.has_capture;
+    };
+
+    std::vector<DiscoveredCamera> discovered;
+    discovered.reserve(available.size());
+    for (auto it = available.begin(); it != available.end();) {
+      if (!ensure_capture(it->second)) {
+        it = available.erase(it);
+        continue;
+      }
+      DiscoveredCamera dc;
+      dc.device_path = it->second.canonical;
+      dc.bus_info = it->second.bus_info;
+      dc.card = it->second.card;
+      dc.identifiers = it->second.identifiers;
+      if (dc.identifiers.empty())
+        dc.identifiers.push_back({"device", it->second.canonical});
+      discovered.push_back(std::move(dc));
+      ++it;
+    }
+
+    std::vector<bool> matched_for_unconfigured(discovered.size(), false);
     for (auto &kv : configs_) {
       const auto &id = kv.first;
       CamConfig &cfg = kv.second;
       bool present = false;
-      std::string matched;
-      for (const auto &p : current) {
-        if (p.find(cfg.match_substr) != std::string::npos) {
-          present = true;
-          matched = p;
-          break;
-        }
-      }
+      size_t matched_index = discovered.size();
       bool active;
       {
         std::lock_guard<std::mutex> lk(mutex_);
         active = active_.count(id) > 0;
-        if (present) {
-          auto dev = fs::canonical(base + "/" + matched, ec);
-          std::string devpath = ec ? std::string{} : dev.string();
-          active_paths_[id] = devpath;
-          cfg.device_path = devpath;
+      }
+      for (size_t i = 0; i < discovered.size(); ++i) {
+        const auto &dc = discovered[i];
+        bool matched = false;
+        if (!cfg.match_substr.empty()) {
+          for (const auto &ident : dc.identifiers) {
+            if (ident.type == "by-id" &&
+                ident.value.find(cfg.match_substr) != std::string::npos) {
+              matched = true;
+              break;
+            }
+          }
+        }
+        if (!matched && !cfg.match_path_substr.empty()) {
+          for (const auto &ident : dc.identifiers) {
+            if (ident.type == "by-path" &&
+                ident.value.find(cfg.match_path_substr) != std::string::npos) {
+              matched = true;
+              break;
+            }
+          }
+        }
+        if (!matched && !cfg.device_path.empty()) {
+          if (dc.device_path == cfg.device_path)
+            matched = true;
+        }
+        if (matched) {
+          present = true;
+          matched_index = i;
+          break;
+        }
+      }
+
+      {
+        std::lock_guard<std::mutex> lk(mutex_);
+        if (present && matched_index < discovered.size()) {
+          const auto &dc = discovered[matched_index];
+          active_paths_[id] = dc.device_path;
+          cfg.device_path = dc.device_path;
           if (!active) {
             std::cout << "Camera " << id << " connected" << std::endl;
             active_.insert(id);
@@ -379,6 +489,7 @@ void CameraManager::monitorLoop() {
               std::cerr << "CameraManager: detection disabled for camera "
                         << id << std::endl;
           }
+          matched_for_unconfigured[matched_index] = true;
         } else if (active) {
           std::cout << "Camera " << id << " disconnected" << std::endl;
           active_.erase(id);
@@ -391,12 +502,7 @@ void CameraManager::monitorLoop() {
           }
         }
       }
-      for (auto it = new_unconfigured.begin(); it != new_unconfigured.end();) {
-        if (it->find(cfg.match_substr) != std::string::npos)
-          it = new_unconfigured.erase(it);
-        else
-          ++it;
-      }
+
 
       pid_t pid = 0;
       {
@@ -514,12 +620,18 @@ void CameraManager::monitorLoop() {
       }
     }
 
+    std::vector<DiscoveredCamera> new_unconfigured;
+    for (size_t i = 0; i < discovered.size(); ++i) {
+      if (!matched_for_unconfigured[i])
+        new_unconfigured.push_back(discovered[i]);
+    }
+
     {
       std::lock_guard<std::mutex> lk(mutex_);
       unconfigured_ = std::move(new_unconfigured);
     }
 
- {
+    {
       std::unique_lock<std::mutex> lk(mutex_);
       cv_.wait_for(lk, 1s);
     }
@@ -696,27 +808,65 @@ std::vector<CameraManager::ConfiguredInfo> CameraManager::configuredCameras() {
   return out;
 }
 
-std::vector<std::string> CameraManager::unconfiguredCameras() {
+std::vector<CameraManager::DiscoveredCamera>
+CameraManager::unconfiguredCameras() {
   std::lock_guard<std::mutex> lk(mutex_);
-  return std::vector<std::string>(unconfigured_.begin(), unconfigured_.end());
+  return unconfigured_;
 }
 
 bool CameraManager::addCamera(const std::string &id,
-                              const std::string &by_id_path) {
+                              const std::string &match_value,
+                              const std::string &match_type) {
   CamConfig cfg;
   cfg.id = id;
-  cfg.match_substr = by_id_path;
+  if (match_type == "by-path")
+    cfg.match_path_substr = match_value;
+  else if (match_type == "device")
+    cfg.device_path = match_value;
+  else
+    cfg.match_substr = match_value;
   cfg.mode = CamConfig::Mode::Preview;
   cfg.profile = "auto";
   cfg.det_port = 0;
   cfg.position = {};
   cfg.role = "wide_angle_primary";
   std::error_code ec;
-  auto dev = std::filesystem::canonical(
-      std::string("/dev/v4l/by-id/") + by_id_path, ec);
-  if (!ec)
-    cfg.device_path = dev.string();
+  if (match_type != "device") {
+    std::string base = match_type == "by-path" ? "/dev/v4l/by-path/"
+                                                : "/dev/v4l/by-id/";
+    auto dev = std::filesystem::canonical(base + match_value, ec);
+    if (!ec)
+      cfg.device_path = dev.string();
+  }
 
+  if (!cfg.device_path.empty()) {
+    const std::filesystem::path canonical(cfg.device_path);
+    auto populate_match = [&](const std::filesystem::path &dir,
+                              const std::string &type) {
+      std::error_code sec;
+      if (!std::filesystem::exists(dir, sec) || sec)
+        return;
+      for (auto it = std::filesystem::directory_iterator(dir, sec);
+           it != std::filesystem::directory_iterator(); ++it) {
+        if (sec)
+          break;
+        if (!it->is_symlink(sec) || sec)
+          continue;
+        auto target = std::filesystem::canonical(it->path(), sec);
+        if (sec)
+          continue;
+        if (target == canonical) {
+          auto name = it->path().filename().string();
+          if (type == "by-id" && cfg.match_substr.empty())
+            cfg.match_substr = name;
+          if (type == "by-path" && cfg.match_path_substr.empty())
+            cfg.match_path_substr = name;
+        }
+      }
+    };
+    populate_match("/dev/v4l/by-id", "by-id");
+    populate_match("/dev/v4l/by-path", "by-path");
+  }
 
   // Detect whether the device prefers single or multi-plane buffers.
   cfg.buffer_type = "auto";
@@ -812,7 +962,14 @@ bool CameraManager::addCamera(const std::string &id,
     j["scheme_type"] = scheme_type_;
   json cam;
   cam["id"] = id;
-  cam["match"] = json{{"by_id_contains", by_id_path}};
+  json match = json::object();
+  if (!cfg.match_substr.empty())
+    match["by_id_contains"] = cfg.match_substr;
+  if (!cfg.match_path_substr.empty())
+    match["by_path_contains"] = cfg.match_path_substr;
+  if (!cfg.device_path.empty() && match.empty())
+    match["device_path"] = cfg.device_path;
+  cam["match"] = match;
   if (!cfg.device_path.empty())
     cam["device"] = cfg.device_path;
   cam["mode"] = "preview";
