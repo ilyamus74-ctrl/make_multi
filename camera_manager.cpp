@@ -341,7 +341,7 @@ void CameraManager::monitorLoop() {
     auto register_entry = [&](const fs::path &dir_entry,
                               const std::string &type) {
       std::error_code ec;
-      if (!dir_entry.is_symlink(ec) || ec)
+      if (!fs::is_symlink(dir_entry, ec) || ec)
         return;
       auto canonical = fs::canonical(dir_entry, ec);
       if (ec)
