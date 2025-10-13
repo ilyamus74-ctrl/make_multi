@@ -109,12 +109,108 @@ static bool writeMainConfig(const json& j){
 }
 static std::string deviceForCam(const std::string& id){ auto cfg=readMainConfig(); if(cfg.contains("cameras")) for(auto& c:cfg["cameras"]) if(c.value("id","")==id) return c.value("device",""); return ""; }
 
+static std::string canonicalDevicePath(const std::string& dev) {
+    if (dev.empty()) {
+        return {};
+    }
+    std::error_code ec;
+    auto path = std::filesystem::path(dev);
+    auto canonical = std::filesystem::canonical(path, ec);
+    if (!ec) {
+        return canonical.string();
+    }
+    ec.clear();
+    canonical = std::filesystem::weakly_canonical(path, ec);
+    if (!ec) {
+        return canonical.string();
+    }
+    return dev;
+}
+
+static bool symlinkMatchesDevice(const std::filesystem::path& base_dir,
+                                 const std::string& needle,
+                                 const std::string& canonical_dev) {
+    if (needle.empty() || canonical_dev.empty()) {
+        return false;
+    }
+    std::error_code ec;
+    if (!std::filesystem::exists(base_dir, ec)) {
+        return false;
+    }
+    for (const auto& entry : std::filesystem::directory_iterator(base_dir, ec)) {
+        if (ec) {
+            ec.clear();
+            break;
+        }
+        auto status = entry.symlink_status(ec);
+        if (ec) {
+            ec.clear();
+            continue;
+        }
+        if (!std::filesystem::is_symlink(status)) {
+            continue;
+        }
+        auto target = std::filesystem::canonical(entry.path(), ec);
+        if (ec) {
+            ec.clear();
+            continue;
+        }
+        if (target.string() == canonical_dev) {
+            auto name = entry.path().filename().string();
+            if (name.find(needle) != std::string::npos) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool deviceMatches(const std::string& lhs,
+                          const std::string& rhs,
+                          const std::string& canonical_dev) {
+    if (lhs.empty()) {
+        return false;
+    }
+    if (!rhs.empty() && lhs == rhs) {
+        return true;
+    }
+    if (canonical_dev.empty()) {
+        return false;
+    }
+    auto lhs_canonical = canonicalDevicePath(lhs);
+    return !lhs_canonical.empty() && lhs_canonical == canonical_dev;
+}
+
 static std::string camIdForDevice(const std::string& dev){
     auto cfg = readMainConfig();
+    const std::string canonical_dev = canonicalDevicePath(dev);
     if(cfg.contains("cameras"))
-        for(auto& c:cfg["cameras"])
-            if(c.value("device","") == dev)
-                return c.value("id","");
+        for(auto& c:cfg["cameras"]) {
+            auto id = c.value("id", std::string());
+            if (id.empty()) {
+                continue;
+            }
+            auto device = c.value("device", std::string());
+            if (deviceMatches(device, dev, canonical_dev)) {
+                return id;
+            }
+            auto match_it = c.find("match");
+            if (match_it == c.end() || !match_it->is_object()) {
+                continue;
+            }
+            const auto& match = *match_it;
+            if (deviceMatches(match.value("device_path", std::string()), dev, canonical_dev)) {
+                return id;
+            }
+            auto by_id = match.value("by_id_contains", std::string());
+            if (symlinkMatchesDevice("/dev/v4l/by-id", by_id, canonical_dev)) {
+                return id;
+            }
+            auto by_path = match.value("by_path_contains", std::string());
+            if (symlinkMatchesDevice("/dev/v4l/by-path", by_path, canonical_dev)) {
+                return id;
+            }
+        }
     return "";
 }
 
