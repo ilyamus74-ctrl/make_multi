@@ -315,6 +315,11 @@ window.CameraApp.UI = {
             ? camera.identifiers
             : [{ type: 'device', value: camera.device || '' }];
 
+        const utils = window.CameraApp && window.CameraApp.Utils;
+        const isHdmiInput = utils && typeof utils.isHdmiInput === 'function'
+            ? utils.isHdmiInput(camera)
+            : false;
+
         const preferredIndex = Math.max(0, identifiers.findIndex(id => id.type === 'by-id' && id.value));
         const defaultIdentifier = identifiers[preferredIndex] || identifiers[0];
 
@@ -339,6 +344,14 @@ window.CameraApp.UI = {
             `;
 
         const infoParts = [];
+        if (isHdmiInput) {
+            infoParts.push(`
+                <div class="alert alert-warning small text-start mb-2">
+                    <div class="fw-semibold"><i class="bi bi-plug me-1"></i>HDMI capture device</div>
+                    <div class="mb-0">Requires an active HDMI signal before it can stream.</div>
+                </div>
+            `);
+        }
         if (camera.card) {
             infoParts.push(`<div class="fw-semibold">${camera.card}</div>`);
         }

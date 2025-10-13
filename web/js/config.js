@@ -130,7 +130,8 @@ window.CameraApp.State = {
     isCalibrating: false,
     advancedSettingsVisible: false,
     currentAdvancedCameraId: null,
-    lastGlobalFetch: 0
+    lastGlobalFetch: 0,
+    includeHdmiInputs: false
 };
 
 // Utility functions
@@ -209,5 +210,43 @@ window.CameraApp.Utils = {
                 ${showRetry ? '<button class="btn btn-outline-danger btn-sm ms-2" onclick="location.reload()">Retry</button>' : ''}
             </div>
         `;
+  },
+
+    isHdmiInput(camera) {
+        if (!camera) {
+            return false;
+        }
+
+        const keywords = ['hdmi', 'hdmirx'];
+        const values = [];
+
+        if (typeof camera.card === 'string') {
+            values.push(camera.card);
+        }
+        if (typeof camera.device === 'string') {
+            values.push(camera.device);
+        }
+        if (typeof camera.bus_info === 'string') {
+            values.push(camera.bus_info);
+        }
+
+        if (Array.isArray(camera.identifiers)) {
+            camera.identifiers.forEach(identifier => {
+                if (!identifier) {
+                    return;
+                }
+                if (typeof identifier.type === 'string') {
+                    values.push(identifier.type);
+                }
+                if (typeof identifier.value === 'string') {
+                    values.push(identifier.value);
+                }
+            });
+        }
+
+        return values.some(value =>
+            typeof value === 'string' &&
+            keywords.some(keyword => value.toLowerCase().includes(keyword))
+        );
     }
 };

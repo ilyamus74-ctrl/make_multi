@@ -23,6 +23,12 @@ window.CameraApp.SettingsTab = {
             managerDebugToggle.addEventListener('change',
                 this.handleManagerDebugToggle.bind(this));
         }
+
+        const hdmiToggle = document.getElementById('toggle-hdmi-inputs');
+        if (hdmiToggle) {
+            hdmiToggle.addEventListener('change',
+                this.handleHdmiToggleChange.bind(this));
+        }
     },
 
     handleDynamicEvents(event) {
@@ -132,6 +138,13 @@ window.CameraApp.SettingsTab = {
         }
     },
 
+    handleHdmiToggleChange(event) {
+        const enabled = event.target.checked;
+        window.CameraApp.State.includeHdmiInputs = enabled;
+        this.renderNewCameras();
+    },
+
+
     async loadData() {
         try {
             const [configuredCameras, newCameras, roles, config] = await Promise.all([
@@ -172,6 +185,14 @@ window.CameraApp.SettingsTab = {
         window.CameraApp.State.managerDebugEnabled = isEnabled;
     },
 
+    updateHdmiToggle() {
+        const toggle = document.getElementById('toggle-hdmi-inputs');
+        if (toggle) {
+            toggle.checked = !!window.CameraApp.State.includeHdmiInputs;
+        }
+    },
+
+
 
     renderConfiguredCameras() {
         const container = document.getElementById('configured-cameras');
@@ -207,7 +228,17 @@ window.CameraApp.SettingsTab = {
     renderNewCameras() {
         const container = document.getElementById('new-cameras');
         const noCamerasEl = document.getElementById('no-new-cameras');
+        const hdmiMessageEl = document.getElementById('hdmi-filter-message');
         const cameras = window.CameraApp.State.newCameras;
+        const includeHdmiInputs = !!window.CameraApp.State.includeHdmiInputs;
+
+        this.updateHdmiToggle();
+
+        if (hdmiMessageEl) {
+            hdmiMessageEl.style.display = 'none';
+            hdmiMessageEl.innerHTML = '';
+        }
+
 
         if (cameras.length === 0) {
             container.innerHTML = '';
@@ -215,14 +246,51 @@ window.CameraApp.SettingsTab = {
             return;
         }
 
+
+        const utils = window.CameraApp && window.CameraApp.Utils;
+        const entries = cameras.map((camera, index) => ({
+            camera,
+            index,
+            isHdmi: utils && typeof utils.isHdmiInput === 'function'
+                ? utils.isHdmiInput(camera)
+                : false
+        }));
+
+        const hiddenHdmiCount = includeHdmiInputs ? 0 : entries.filter(entry => entry.isHdmi).length;
+        const visibleEntries = includeHdmiInputs
+            ? entries
+            : entries.filter(entry => !entry.isHdmi);
+
+        if (visibleEntries.length === 0) {
+            container.innerHTML = '';
+            noCamerasEl.style.display = 'none';
+            if (hdmiMessageEl && hiddenHdmiCount > 0) {
+                hdmiMessageEl.innerHTML = `
+                    <i class="bi bi-info-circle me-1"></i>
+                    Only HDMI capture devices were detected. Enable "Show HDMI capture devices" to configure them.
+                `;
+                hdmiMessageEl.style.display = 'block';
+            }
+            return;
+        }
+
         noCamerasEl.style.display = 'none';
         container.innerHTML = `
             <div class="row">
-                ${cameras.map((camera, index) => 
-                    window.CameraApp.UI.createNewCameraCard(camera, index)
+                ${visibleEntries.map(entry =>
+                    window.CameraApp.UI.createNewCameraCard(entry.camera, entry.index)
                 ).join('')}
             </div>
         `;
+
+        if (hdmiMessageEl && hiddenHdmiCount > 0) {
+            const plural = hiddenHdmiCount === 1 ? '' : 's';
+            hdmiMessageEl.innerHTML = `
+                <i class="bi bi-info-circle me-1"></i>
+                Hiding ${hiddenHdmiCount} HDMI capture device${plural}. Enable "Show HDMI capture devices" to include them.
+            `;
+            hdmiMessageEl.style.display = 'block';
+        }
 
         // Load new camera previews with delay
         this.loadNewCameraPreviewsWithDelay();

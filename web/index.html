@@ -135,6 +135,14 @@
                                 </h5>
                             </div>
                             <div class="card-body">
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="toggle-hdmi-inputs">
+                                    <label class="form-check-label" for="toggle-hdmi-inputs">
+                                        Show HDMI capture devices
+                                    </label>
+                                    <div class="form-text">Disable this if you do not use the built-in HDMI input.</div>
+                                </div>
+                                <div id="hdmi-filter-message" class="alert alert-info small py-2 px-3" style="display: none;"></div>
                                 <div id="new-cameras"></div>
                                 <div id="no-new-cameras" class="text-center py-3 text-muted" style="display: none;">
                                     <i class="bi bi-camera display-4"></i>
