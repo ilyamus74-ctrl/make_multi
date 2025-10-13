@@ -54,7 +54,24 @@ window.CameraApp.SettingsTab = {
             const matchType = addCameraButton.getAttribute('data-match-type') || 'by-id';
             const matchValue = addCameraButton.getAttribute('data-match-value') ||
                 addCameraButton.getAttribute('data-add-camera');
-            this.addNewCamera({ type: matchType, value: matchValue });
+            const devicePath = addCameraButton.getAttribute('data-device-path') || '';
+            this.addNewCamera({ type: matchType, value: matchValue, device: devicePath });
+        }
+
+        const reassignButton = target.closest('[data-reassign-camera]');
+        if (reassignButton) {
+            const card = reassignButton.closest('[data-new-camera-index]');
+            const select = card ? card.querySelector('[data-reassign-target]') : null;
+            const targetId = select ? (select.value || '').trim() : '';
+            if (!targetId) {
+                window.CameraApp.UI.showToast('Select a camera to assign this device to', 'warning');
+                return;
+            }
+            const matchType = reassignButton.getAttribute('data-match-type') || 'by-id';
+            const matchValue = reassignButton.getAttribute('data-match-value') ||
+                reassignButton.getAttribute('data-add-camera');
+            const devicePath = reassignButton.getAttribute('data-device-path') || '';
+            this.reassignCamera(targetId, { type: matchType, value: matchValue, device: devicePath });
         }
 
         // Advanced settings buttons
@@ -94,6 +111,7 @@ window.CameraApp.SettingsTab = {
             const identifier = camera.identifiers[identifierIndex];
             const previewImage = card.querySelector('[data-new-camera]');
             const addButton = card.querySelector('[data-add-camera]');
+            const reassignButton = card.querySelector('[data-reassign-camera]');
 
             if (identifier) {
                 if (previewImage) {
@@ -107,6 +125,10 @@ window.CameraApp.SettingsTab = {
                 if (addButton) {
                     addButton.setAttribute('data-match-type', identifier.type);
                     addButton.setAttribute('data-match-value', identifier.value);
+                }
+                if (reassignButton) {
+                    reassignButton.setAttribute('data-match-type', identifier.type);
+                    reassignButton.setAttribute('data-match-value', identifier.value);
                 }
             }
         }
@@ -501,6 +523,38 @@ window.CameraApp.SettingsTab = {
             window.CameraApp.UI.showToast(`Failed to add camera: ${error.message}`, 'danger');
         }
     },
+
+    async reassignCamera(cameraId, match) {
+        if (!cameraId) {
+            window.CameraApp.UI.showToast('Select a camera to assign this device to', 'warning');
+            return;
+        }
+        if (!match || !match.value) {
+            window.CameraApp.UI.showToast('Unable to determine camera identifier', 'danger');
+            return;
+        }
+
+        const targetCamera = window.CameraApp.State.configuredCameras
+            .find(c => c.id === cameraId);
+        const identifierLabel = `${match.type || 'by-id'} = ${match.value}`;
+        const confirmMessage = targetCamera
+            ? `Replace camera "${cameraId}" (${targetCamera.device || 'unknown device'}) with the device identified by ${identifierLabel}?`
+            : `Replace camera "${cameraId}" with the device identified by ${identifierLabel}?`;
+
+        const confirmed = await window.CameraApp.UI.confirm(confirmMessage, 'Reassign Camera');
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            await window.CameraApp.API.reassignCamera(cameraId, match);
+            window.CameraApp.UI.showToast(`Camera ${cameraId} reassigned successfully`, 'success');
+            await this.loadData();
+        } catch (error) {
+            window.CameraApp.UI.showToast(`Failed to reassign camera: ${error.message}`, 'danger');
+        }
+    },
+
 
     async showAdvancedSettings(cameraId) {
         const camera = window.CameraApp.State.configuredCameras.find(c => c.id === cameraId);

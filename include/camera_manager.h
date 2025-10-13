@@ -164,8 +164,12 @@ public:
 
   // Append new camera definition to config and start monitoring it
   bool addCamera(const std::string &id, const std::string &match_value,
-                 const std::string &match_type = "by-id");
+                 const std::string &match_type = "by-id",
+                 const std::string &device_path_hint = "");
 
+  bool reassignCamera(const std::string &id, const std::string &match_value,
+                      const std::string &match_type = "by-id",
+                      const std::string &device_path_hint = "");
   // Set operating mode for camera id
   bool setMode(const std::string &id, CamConfig::Mode mode);
 

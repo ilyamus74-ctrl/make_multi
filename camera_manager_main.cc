@@ -1338,10 +1338,12 @@ int main(int argc, char **argv) {
                     std::string id = j.at("id").get<std::string>();
                     std::string match_type = "by-id";
                     std::string match_value;
+                    std::string device_hint;
                     if (j.contains("match") && j["match"].is_object()) {
                       const auto &match = j["match"];
                       match_type = match.value("type", std::string("by-id"));
                       match_value = match.value("value", std::string());
+                      device_hint = match.value("device", std::string());
                     } else if (j.contains("by_path")) {
                       match_type = "by-path";
                       match_value = j.at("by_path").get<std::string>();
@@ -1352,14 +1354,74 @@ int main(int argc, char **argv) {
                       match_type = "by-id";
                       match_value = j.at("by_id").get<std::string>();
                     }
-                    if (match_value.empty()) {
+                    if (j.contains("device") && device_hint.empty())
+                      device_hint = j.at("device").get<std::string>();
+                    if (match_value.empty() || id.empty()) {
                       res.status = 400;
+                      res.set_content("{\"error\":\"invalid camera request\"}",
+                                      "application/json");
                       return;
                     }
-                    if (!g_mgr.addCamera(id, match_value, match_type))
+                    if (!g_mgr.addCamera(id, match_value, match_type,
+                                         device_hint)) {
                       res.status = 400;
+                      res.set_content(
+                          "{\"error\":\"unable to add camera (duplicate id or identifier)\"}",
+                          "application/json");
+                    }
+                      res.set_content(
+                          "{\"error\":\"unable to add camera (duplicate id or identifier)\"}",
+                          "application/json");
+                    }
                   } catch (...) {
                     res.status = 400;
+                    res.set_content("{\"error\":\"invalid camera request\"}",
+                                    "application/json");
+                  }
+                });
+
+  g_server.Post("/api/reassign",
+                [](const httplib::Request &req, httplib::Response &res) {
+                  try {
+                    auto j = nlohmann::json::parse(req.body);
+                    std::string id = j.at("id").get<std::string>();
+                    std::string match_type = "by-id";
+                    std::string match_value;
+                    std::string device_hint;
+                    if (j.contains("match") && j["match"].is_object()) {
+                      const auto &match = j["match"];
+                      match_type = match.value("type", std::string("by-id"));
+                      match_value = match.value("value", std::string());
+                      device_hint = match.value("device", std::string());
+                    } else if (j.contains("by_path")) {
+                      match_type = "by-path";
+                      match_value = j.at("by_path").get<std::string>();
+                    } else if (j.contains("device")) {
+                      match_type = "device";
+                      match_value = j.at("device").get<std::string>();
+                    } else if (j.contains("by_id")) {
+                      match_type = "by-id";
+                      match_value = j.at("by_id").get<std::string>();
+                    }
+                    if (j.contains("device") && device_hint.empty())
+                      device_hint = j.at("device").get<std::string>();
+                    if (match_value.empty() || id.empty()) {
+                      res.status = 400;
+                      res.set_content("{\"error\":\"invalid camera request\"}",
+                                      "application/json");
+                      return;
+                    }
+                    if (!g_mgr.reassignCamera(id, match_value, match_type,
+                                              device_hint)) {
+                      res.status = 400;
+                      res.set_content(
+                          "{\"error\":\"unable to reassign camera\"}",
+                          "application/json");
+                    }
+                  } catch (...) {
+                    res.status = 400;
+                    res.set_content("{\"error\":\"invalid camera request\"}",
+                                    "application/json");
                   }
                 });
 

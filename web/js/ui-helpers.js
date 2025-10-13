@@ -343,6 +343,33 @@ window.CameraApp.UI = {
                 </div>
             `;
 
+        const configuredCameras = Array.isArray(window.CameraApp?.State?.configuredCameras)
+            ? window.CameraApp.State.configuredCameras.filter(c => c && c.id)
+            : [];
+        const reassignControls = configuredCameras.length > 0 ? `
+                <div class="mt-3">
+                    <label class="form-label small mb-1">Assign to existing camera</label>
+                    <div class="input-group input-group-sm">
+                        <select class="form-select form-select-sm" data-reassign-target>
+                            <option value="">Select camera...</option>
+                            ${configuredCameras.map(c => `
+                                <option value="${c.id}">${c.id}${c.role ? ` (${c.role})` : ''}</option>
+                            `).join('')}
+                        </select>
+                        <button
+                            class="btn btn-outline-secondary"
+                            type="button"
+                            data-reassign-camera
+                            data-match-type="${defaultIdentifier.type}"
+                            data-match-value="${defaultIdentifier.value}"
+                            data-device-path="${camera.device || ''}">
+                            <i class="bi bi-arrow-left-right me-1"></i>Assign
+                        </button>
+                    </div>
+                </div>
+            ` : '';
+
+
         const infoParts = [];
         if (isHdmiInput) {
             infoParts.push(`
@@ -385,9 +412,11 @@ window.CameraApp.UI = {
                             class="btn btn-primary btn-sm"
                             data-add-camera="${defaultIdentifier.value}"
                             data-match-type="${defaultIdentifier.type}"
-                            data-match-value="${defaultIdentifier.value}">
+                            data-match-value="${defaultIdentifier.value}"
+                            data-device-path="${camera.device || ''}">
                             <i class="bi bi-plus me-1"></i>Add Camera
                         </button>
+                       ${reassignControls}
                     </div>
                 </div>
             </div>

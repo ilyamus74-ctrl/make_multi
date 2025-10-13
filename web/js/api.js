@@ -103,8 +103,28 @@ window.CameraApp.API = {
                 type: match.type || 'by-id',
                 value: match.value || ''
             };
+            if (match.device) {
+                payload.match.device = match.device;
+            }
         }
         return await this.request(window.CameraApp.Config.API.ADD_CAMERA, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+    },
+
+    async reassignCamera(id, match) {
+        const payload = { id };
+        if (match && typeof match === 'object') {
+            payload.match = {
+                type: match.type || 'by-id',
+                value: match.value || ''
+            };
+            if (match.device) {
+                payload.match.device = match.device;
+            }
+        }
+        return await this.request(window.CameraApp.Config.API.REASSIGN_CAMERA, {
             method: 'POST',
             body: JSON.stringify(payload)
         });

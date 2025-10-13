@@ -13,6 +13,7 @@ window.CameraApp.Config = {
         PREVIEW: '/api/preview',
         PREVIEW_MJPG: '/api/preview.mjpg',
         ADD_CAMERA: '/api/add',
+        REASSIGN_CAMERA: '/api/reassign',
         DELETE_CAMERA: '/api/delete',
         SETTINGS: '/api/settings',
         SETTINGS_RESET: '/api/settings/reset',

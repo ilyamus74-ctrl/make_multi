@@ -817,15 +817,24 @@ CameraManager::unconfiguredCameras() {
 
 bool CameraManager::addCamera(const std::string &id,
                               const std::string &match_value,
-                              const std::string &match_type) {
+                              const std::string &match_type,
+                              const std::string &device_path_hint) {
+  if (id.empty() || match_value.empty())
+    return false;
+
   CamConfig cfg;
   cfg.id = id;
-  if (match_type == "by-path")
+  if (match_type == "by-path") {
     cfg.match_path_substr = match_value;
-  else if (match_type == "device")
+    cfg.match_substr.clear();
+  } else if (match_type == "device") {
     cfg.device_path = match_value;
-  else
+    cfg.match_substr.clear();
+    cfg.match_path_substr.clear();
+  } else {
     cfg.match_substr = match_value;
+    cfg.match_path_substr.clear();
+  }
   cfg.mode = CamConfig::Mode::Preview;
   cfg.profile = "auto";
   cfg.det_port = 0;
@@ -840,6 +849,8 @@ bool CameraManager::addCamera(const std::string &id,
       cfg.device_path = dev.string();
   }
 
+  if (cfg.device_path.empty() && !device_path_hint.empty())
+    cfg.device_path = device_path_hint;
   if (!cfg.device_path.empty()) {
     const std::filesystem::path canonical(cfg.device_path);
     auto populate_match = [&](const std::filesystem::path &dir,
@@ -1001,6 +1012,186 @@ bool CameraManager::addCamera(const std::string &id,
   if (!out.is_open())
     return false;
   out << j.dump(2);
+  cv_.notify_all();
+  return true;
+}
+
+bool CameraManager::reassignCamera(const std::string &id,
+                                   const std::string &match_value,
+                                   const std::string &match_type,
+                                   const std::string &device_path_hint) {
+  if (id.empty() || match_value.empty())
+    return false;
+
+  CamConfig updated;
+  {
+    std::lock_guard<std::mutex> lk(mutex_);
+    auto it = configs_.find(id);
+    if (it == configs_.end())
+      return false;
+    updated = it->second;
+  }
+
+  if (match_type == "by-path") {
+    updated.match_path_substr = match_value;
+    updated.match_substr.clear();
+  } else if (match_type == "device") {
+    updated.device_path = match_value;
+    updated.match_substr.clear();
+    updated.match_path_substr.clear();
+  } else {
+    updated.match_substr = match_value;
+    updated.match_path_substr.clear();
+  }
+
+  std::error_code ec;
+  if (match_type != "device") {
+    std::string base = match_type == "by-path" ? "/dev/v4l/by-path/"
+                                                : "/dev/v4l/by-id/";
+    auto dev = std::filesystem::canonical(base + match_value, ec);
+    if (!ec)
+      updated.device_path = dev.string();
+  }
+  if (updated.device_path.empty() && !device_path_hint.empty())
+    updated.device_path = device_path_hint;
+
+  if (!updated.device_path.empty()) {
+    const std::filesystem::path canonical(updated.device_path);
+    auto populate_match = [&](const std::filesystem::path &dir,
+                              const std::string &type) {
+      std::error_code sec;
+      if (!std::filesystem::exists(dir, sec) || sec)
+        return;
+      for (auto it = std::filesystem::directory_iterator(dir, sec);
+           it != std::filesystem::directory_iterator(); ++it) {
+        if (sec)
+          break;
+        if (!it->is_symlink(sec) || sec)
+          continue;
+        auto target = std::filesystem::canonical(it->path(), sec);
+        if (sec)
+          continue;
+        if (target == canonical) {
+          auto name = it->path().filename().string();
+          if (type == "by-id" && updated.match_substr.empty())
+            updated.match_substr = name;
+          if (type == "by-path" && updated.match_path_substr.empty())
+            updated.match_path_substr = name;
+        }
+      }
+    };
+    populate_match("/dev/v4l/by-id", "by-id");
+    populate_match("/dev/v4l/by-path", "by-path");
+  }
+
+  pid_t pid_to_kill = 0;
+  {
+    std::lock_guard<std::mutex> lk(mutex_);
+    auto it = configs_.find(id);
+    if (it == configs_.end())
+      return false;
+    updated.mode = it->second.mode;
+    updated.preferred = it->second.preferred;
+    updated.npu_worker = it->second.npu_worker;
+    updated.auto_profiles = it->second.auto_profiles;
+    updated.profile = it->second.profile;
+    updated.det_port = it->second.det_port;
+    updated.model_path = it->second.model_path;
+    updated.labels_path = it->second.labels_path;
+    updated.det_args = it->second.det_args;
+    updated.position = it->second.position;
+    updated.cap_fps = it->second.cap_fps;
+    updated.buffers = it->second.buffers;
+    updated.buffer_type = it->second.buffer_type;
+    updated.jpeg_quality = it->second.jpeg_quality;
+    updated.http_fps_limit = it->second.http_fps_limit;
+    updated.show_det_fps = it->second.show_det_fps;
+    updated.npu_core = it->second.npu_core;
+    updated.log_file = it->second.log_file;
+    updated.role = it->second.role;
+    updated.pixel_format = it->second.pixel_format;
+    updated.def_preferred = it->second.def_preferred;
+    updated.def_npu_worker = it->second.def_npu_worker;
+    updated.def_auto_profiles = it->second.def_auto_profiles;
+    updated.def_profile = it->second.def_profile;
+    updated.def_det_port = it->second.def_det_port;
+    updated.def_position = it->second.def_position;
+    updated.def_model_path = it->second.def_model_path;
+    updated.def_labels_path = it->second.def_labels_path;
+    updated.def_cap_fps = it->second.def_cap_fps;
+    updated.def_buffers = it->second.def_buffers;
+    updated.def_buffer_type = it->second.def_buffer_type;
+    updated.def_jpeg_quality = it->second.def_jpeg_quality;
+    updated.def_http_fps_limit = it->second.def_http_fps_limit;
+    updated.def_mode = it->second.def_mode;
+    updated.def_show_det_fps = it->second.def_show_det_fps;
+    updated.def_npu_core = it->second.def_npu_core;
+    updated.def_log_file = it->second.def_log_file;
+    updated.def_role = it->second.def_role;
+    it->second = updated;
+    if (!updated.device_path.empty()) {
+      active_paths_[id] = updated.device_path;
+    } else {
+      active_paths_.erase(id);
+    }
+    for (auto it_u = unconfigured_.begin(); it_u != unconfigured_.end();) {
+      if (!updated.device_path.empty() &&
+          it_u->device_path == updated.device_path)
+        it_u = unconfigured_.erase(it_u);
+      else
+        ++it_u;
+    }
+    auto itp = det_pids_.find(id);
+    if (itp != det_pids_.end()) {
+      pid_to_kill = itp->second;
+      det_pids_.erase(itp);
+    }
+    active_.erase(id);
+  }
+
+  if (pid_to_kill > 0) {
+    kill(pid_to_kill, SIGTERM);
+    waitpid(pid_to_kill, nullptr, 0);
+  }
+
+  json j;
+  {
+    std::ifstream f(config_path_);
+    if (f.is_open()) {
+      try {
+        f >> j;
+      } catch (...) {
+      }
+    }
+  }
+  if (!j.is_object())
+    j = json::object();
+  if (!j.contains("cameras"))
+    j["cameras"] = json::array();
+  if (!j.contains("scheme_type"))
+    j["scheme_type"] = scheme_type_;
+  for (auto &c : j["cameras"]) {
+    if (c.value("id", "") == id) {
+      json match = json::object();
+      if (!updated.match_substr.empty())
+        match["by_id_contains"] = updated.match_substr;
+      if (!updated.match_path_substr.empty())
+        match["by_path_contains"] = updated.match_path_substr;
+      if (!updated.device_path.empty() && match.empty())
+        match["device_path"] = updated.device_path;
+      c["match"] = match;
+      if (!updated.device_path.empty())
+        c["device"] = updated.device_path;
+      else if (c.contains("device"))
+        c.erase("device");
+      break;
+    }
+  }
+  std::ofstream out(config_path_, std::ios::trunc);
+  if (!out.is_open())
+    return false;
+  out << j.dump(2);
+  cv_.notify_all();
   return true;
 }
 
