@@ -1311,8 +1311,8 @@ bool GlobalTracker::reloadCalibration(const CalibrationWatcher& watcher) {
 
 bool GlobalTracker::updateCalibrationTimestamp(const CalibrationWatcher& watcher) {
     std::error_code ec;
-    auto results_file = calibration_watcher_->getResultsPath() / "calibration_results.json";
-//    auto results_file = watcher.getResultsPath() / "calibration_results.json";
+
+    auto results_file = watcher.getResultsPath() / "calibration_results.json";
     auto ts = std::filesystem::last_write_time(results_file, ec);
     if (ec) {
         return false;
