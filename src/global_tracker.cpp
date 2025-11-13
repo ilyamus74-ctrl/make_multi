@@ -3204,8 +3204,8 @@ std::vector<GlobalTracker::TrackGlobalMapping> GlobalTracker::getTrackToGlobalMa
                 }
             }
         }
-    const int total_active_cameras = static_cast<int>(active_camera_ids.size());
     }
+    const int total_active_cameras = static_cast<int>(active_camera_ids.size());
 
     auto camera_position = getCameraWorldPosition(camera_id);
 
@@ -3249,7 +3249,16 @@ std::vector<GlobalTracker::TrackGlobalMapping> GlobalTracker::getTrackToGlobalMa
             }
             mapping.push_back(info);
         }
+    }
 
+    return mapping;
+}
+
+bool GlobalTracker::applyStereoExtrinsicsFromResults(
+    const std::vector<StereoCalibrationResult>& stereo_results,
+    const std::function<bool(const std::string&, cv::Mat&, cv::Mat&, cv::Mat&)>& get_stereo_params,
+    const std::vector<CameraConfig>& cameras,
+    std::map<std::string, CameraCalibration>& calibrations) {
     if (calibrations.empty() || !get_stereo_params) {
         assignStereoMap({});
         return false;
