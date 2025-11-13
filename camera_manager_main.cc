@@ -1368,10 +1368,9 @@ int main(int argc, char **argv) {
                       res.set_content(
                           "{\"error\":\"unable to add camera (duplicate id or identifier)\"}",
                           "application/json");
-                    }
-                      res.set_content(
-                          "{\"error\":\"unable to add camera (duplicate id or identifier)\"}",
-                          "application/json");
+                    } else {
+                      res.set_content("{\"status\":\"ok\"}",
+                                      "application/json");
                     }
                   } catch (...) {
                     res.status = 400;
