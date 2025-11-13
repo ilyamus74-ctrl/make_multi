@@ -43,6 +43,8 @@ public:
     std::string match_substr; // substring to match in /dev/v4l/by-id path
     std::string match_path_substr; // substring to match in /dev/v4l/by-path path
     std::string device_path;  // last known /dev/videoX path
+    std::string expected_bus_info; // unique hardware bus identifier
+    std::string expected_card;     // human readable card name reported by V4L2
     enum class Mode { Preview, Detect, Calibration };
     Mode mode{Mode::Preview}; // current operating mode
     struct VideoMode {
@@ -228,6 +230,7 @@ private:
   void monitorLoop();
   void configWatchLoop();
   bool applyProfile(CamConfig &cfg);
+  void persistMatchMetadata(const CamConfig &cfg);
   std::string config_path_;
   std::map<std::string, CamConfig> configs_;
   std::set<std::string> active_;

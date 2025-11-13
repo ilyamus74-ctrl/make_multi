@@ -124,6 +124,41 @@
       "profile": "auto",
       "role": "zoom",
       "show_fps": true
+    },
+    {
+      "auto_profiles": true,
+      "buffer_type": "single",
+      "buffers": 3,
+      "cap_fps": 30,
+      "det_args": [],
+      "det_port": 8003,
+      "device": "/dev/video5",
+      "http_fps_limit": 20,
+      "id": "11",
+      "jpeg_quality": 60,
+      "labels_path": "model/coco_80_labels_list.txt",
+      "log_file": "",
+      "match": {
+        "by_path_contains": "platform-fc800000.usb-usb-0:1.2:1.0-video-index0"
+      },
+      "mode": "detect",
+      "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
+      "npu_core": "auto",
+      "npu_worker": 0,
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "preferred": {
+        "fps": 30,
+        "h": 600,
+        "pixfmt": "MJPG",
+        "w": 800
+      },
+      "profile": "auto",
+      "role": "wide_angle_primary",
+      "show_fps": false
     }
   ],
   "manager_debug_enabled": false,

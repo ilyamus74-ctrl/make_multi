@@ -164,6 +164,10 @@ bool CameraManager::loadConfig(const std::string &path) {
           cfg.match_path_substr = match["by_path_contains"].get<std::string>();
         if (cfg.device_path.empty() && match.contains("device_path"))
           cfg.device_path = match["device_path"].get<std::string>();
+        if (match.contains("bus_info"))
+          cfg.expected_bus_info = match["bus_info"].get<std::string>();
+        if (match.contains("card"))
+          cfg.expected_card = match["card"].get<std::string>();
       }
       std::string device_from_json = c.value("device", std::string());
       if (!device_from_json.empty())
@@ -441,6 +445,8 @@ void CameraManager::monitorLoop() {
       bool present = false;
       size_t matched_index = discovered.size();
       bool active;
+      bool persist_identity = false;
+      CamConfig persist_snapshot;
       {
         std::lock_guard<std::mutex> lk(mutex_);
         active = active_.count(id) > 0;
@@ -471,6 +477,14 @@ void CameraManager::monitorLoop() {
             matched = true;
         }
         if (matched) {
+          if (!cfg.expected_bus_info.empty() && !dc.bus_info.empty() &&
+              cfg.expected_bus_info != dc.bus_info)
+            matched = false;
+          if (!cfg.expected_card.empty() && !dc.card.empty() &&
+              cfg.expected_card != dc.card)
+            matched = false;
+        }
+        if (matched) {
           present = true;
           matched_index = i;
           break;
@@ -483,6 +497,15 @@ void CameraManager::monitorLoop() {
           const auto &dc = discovered[matched_index];
           active_paths_[id] = dc.device_path;
           cfg.device_path = dc.device_path;
+          bool identity_updated = false;
+          if (cfg.expected_bus_info.empty() && !dc.bus_info.empty()) {
+            cfg.expected_bus_info = dc.bus_info;
+            identity_updated = true;
+          }
+          if (cfg.expected_card.empty() && !dc.card.empty()) {
+            cfg.expected_card = dc.card;
+            identity_updated = true;
+          }
           if (!active) {
             std::cout << "Camera " << id << " connected" << std::endl;
             active_.insert(id);
@@ -491,6 +514,10 @@ void CameraManager::monitorLoop() {
                         << id << std::endl;
           }
           matched_for_unconfigured[matched_index] = true;
+          if (identity_updated) {
+            persist_identity = true;
+            persist_snapshot = cfg;
+          }
         } else if (active) {
           std::cout << "Camera " << id << " disconnected" << std::endl;
           active_.erase(id);
@@ -504,6 +531,9 @@ void CameraManager::monitorLoop() {
         }
       }
 
+      if (persist_identity) {
+        persistMatchMetadata(persist_snapshot);
+      }
 
       pid_t pid = 0;
       {
@@ -775,6 +805,72 @@ bool CameraManager::applyProfile(CamConfig &cfg) {
   return true;
 }
 
+void CameraManager::persistMatchMetadata(const CamConfig &cfg) {
+  if (config_path_.empty() || cfg.id.empty())
+    return;
+
+  json j;
+  {
+    std::ifstream f(config_path_);
+    if (f.is_open()) {
+      try {
+        f >> j;
+      } catch (...) {
+        j = json::object();
+      }
+    }
+  }
+
+  if (!j.is_object() || !j.contains("cameras") || !j["cameras"].is_array())
+    return;
+
+  bool modified = false;
+  for (auto &c : j["cameras"]) {
+    if (c.value("id", std::string()) != cfg.id)
+      continue;
+
+    json match = (c.contains("match") && c["match"].is_object())
+                     ? c["match"].get<json>()
+                     : json::object();
+
+    auto apply_value = [&](const char *key, const std::string &value) {
+      auto it = match.find(key);
+      if (!value.empty()) {
+        if (it == match.end() || !it->is_string() || it->get<std::string>() != value) {
+          match[key] = value;
+          modified = true;
+        }
+      } else if (it != match.end()) {
+        match.erase(it);
+        modified = true;
+      }
+    };
+
+    apply_value("bus_info", cfg.expected_bus_info);
+    apply_value("card", cfg.expected_card);
+    if (!cfg.device_path.empty()) {
+      auto it = match.find("device_path");
+      if (it == match.end()) {
+        match["device_path"] = cfg.device_path;
+        modified = true;
+      }
+    }
+
+    if (modified)
+      c["match"] = match;
+
+    break;
+  }
+
+  if (!modified)
+    return;
+
+  std::ofstream out(config_path_, std::ios::trunc);
+  if (!out.is_open())
+    return;
+  out << j.dump(2);
+}
+
 std::vector<CameraManager::ConfiguredInfo> CameraManager::configuredCameras() {
   std::lock_guard<std::mutex> lk(mutex_);
   std::vector<ConfiguredInfo> out;
@@ -981,6 +1077,10 @@ bool CameraManager::addCamera(const std::string &id,
     match["by_path_contains"] = cfg.match_path_substr;
   if (!cfg.device_path.empty() && match.empty())
     match["device_path"] = cfg.device_path;
+  if (!cfg.expected_bus_info.empty())
+    match["bus_info"] = cfg.expected_bus_info;
+  if (!cfg.expected_card.empty())
+    match["card"] = cfg.expected_card;
   cam["match"] = match;
   if (!cfg.device_path.empty())
     cam["device"] = cfg.device_path;
@@ -1110,6 +1210,8 @@ bool CameraManager::reassignCamera(const std::string &id,
     updated.log_file = it->second.log_file;
     updated.role = it->second.role;
     updated.pixel_format = it->second.pixel_format;
+    updated.expected_bus_info = it->second.expected_bus_info;
+    updated.expected_card = it->second.expected_card;
     updated.def_preferred = it->second.def_preferred;
     updated.def_npu_worker = it->second.def_npu_worker;
     updated.def_auto_profiles = it->second.def_auto_profiles;
@@ -1179,6 +1281,10 @@ bool CameraManager::reassignCamera(const std::string &id,
         match["by_path_contains"] = updated.match_path_substr;
       if (!updated.device_path.empty() && match.empty())
         match["device_path"] = updated.device_path;
+      if (!updated.expected_bus_info.empty())
+        match["bus_info"] = updated.expected_bus_info;
+      if (!updated.expected_card.empty())
+        match["card"] = updated.expected_card;
       c["match"] = match;
       if (!updated.device_path.empty())
         c["device"] = updated.device_path;

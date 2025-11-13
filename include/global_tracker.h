@@ -22,6 +22,7 @@
 
 class CalibrationWatcher; // forward declaration
 class GlobalTrackerTestHelper;
+struct StereoCalibrationResult;
 
 struct DetectionDescriptor {
     bool has_color = false;
@@ -162,6 +163,7 @@ private:
     TrackerStatistics tracker_stats_;
     ResidualStatisticsSnapshot residual_stats_{};
     CalibrationWatcher* calibration_watcher_ = nullptr;
+    std::filesystem::path external_calibration_dir_{};
     std::filesystem::file_time_type last_calibration_write_time_{};
     bool has_last_calibration_write_time_ = false;
     mutable std::recursive_mutex mutex_;
@@ -183,6 +185,7 @@ public:
 
      // Установка CalibrationWatcher для автоматической загрузки калибровки
     void setCalibrationWatcher(CalibrationWatcher* watcher) { calibration_watcher_ = watcher; }
+    void setExternalCalibrationDirectory(const std::filesystem::path& path);
 
     // Проверка и обновление калибровки
     bool checkAndUpdateCalibration();
@@ -296,6 +299,20 @@ private:
     bool applyWatcherStereoExtrinsics(const CalibrationWatcher& watcher,
                                       const std::vector<CameraConfig>& cameras,
                                       std::map<std::string, CameraCalibration>& calibrations);
+
+    bool loadExternalCalibration(SchemeType scheme);
+    bool loadCalibrationFromDirectory(const std::filesystem::path& directory, SchemeType scheme);
+    bool loadCalibrationFromProvider(
+        const std::function<bool(const std::string&, cv::Mat&, cv::Mat&)>& get_camera_matrix,
+        const std::function<bool(const std::string&, cv::Mat&, cv::Mat&, cv::Mat&)>& get_stereo_params,
+        const std::vector<StereoCalibrationResult>& stereo_results,
+        SchemeType scheme,
+        const std::string& source_name);
+    bool applyStereoExtrinsicsFromResults(
+        const std::vector<StereoCalibrationResult>& stereo_results,
+        const std::function<bool(const std::string&, cv::Mat&, cv::Mat&, cv::Mat&)>& get_stereo_params,
+        const std::vector<CameraConfig>& cameras,
+        std::map<std::string, CameraCalibration>& calibrations);
     bool applyFallbackExtrinsics(const CameraConfig& cam, SchemeType scheme, CameraCalibration& calib);
     bool calibrateSphereFallback();
     bool calibrateHemisphereFallback();

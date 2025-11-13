@@ -17,6 +17,7 @@
 #include <chrono>
 #include <stdexcept>
 #include <cstdio>
+#include <cstdlib>
 #include <unordered_map>
 #include <map>
 #include <mutex>
@@ -1149,6 +1150,17 @@ int main(int argc, char **argv) {
   g_use_grayscale_tracking = j.value("use_grayscale_tracking", false);
   bool manager_debug = j.value("manager_debug_enabled", false);
   setManagerDebugEnabled(manager_debug);
+  std::string calibration_results_path = j.value("calibration_results_path", std::string());
+  if (calibration_results_path.empty()) {
+    if (const char *env_path = std::getenv("CALIBRATION_RESULTS_PATH")) {
+      calibration_results_path = env_path;
+    }
+  }
+  if (!calibration_results_path.empty()) {
+    g_global_tracker.setExternalCalibrationDirectory(calibration_results_path);
+  } else {
+    g_global_tracker.setExternalCalibrationDirectory(exe_dir / "build" / "result");
+  }
   int port = j.value("http", nlohmann::json::object()).value("port", 8080);
 
   g_calib = std::make_unique<CalibrationSession>(

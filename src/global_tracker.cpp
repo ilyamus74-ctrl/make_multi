@@ -1,5 +1,6 @@
 #include "global_tracker.h"
 #include "calibration_watcher.h"
+#include "nlohmann/json.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -35,6 +36,187 @@ constexpr double kVelocityResetGapSeconds = 1.5;
 constexpr double kConfidenceDecayOnClamp = 0.05;
 constexpr int kCameraMissCountThreshold = 10; //было 5
 constexpr size_t kResidualSummaryInterval = 50;
+
+
+class DirectoryCalibrationSource {
+public:
+    explicit DirectoryCalibrationSource(const std::filesystem::path& directory)
+        : results_dir_(std::filesystem::absolute(directory)) {}
+
+    bool load() {
+        camera_matrices_.clear();
+        dist_coeffs_.clear();
+        stereo_results_.clear();
+        stereo_params_.clear();
+
+        std::filesystem::path json_path = results_dir_ / "calibration_results.json";
+        std::ifstream json_file(json_path);
+        if (!json_file.is_open()) {
+            return false;
+        }
+
+        nlohmann::json results;
+        try {
+            json_file >> results;
+        } catch (...) {
+            return false;
+        }
+
+        if (!results.is_object()) {
+            return false;
+        }
+
+        bool loaded = false;
+
+        if (results.contains("mono_calibrations") && results["mono_calibrations"].is_array()) {
+            for (const auto& mono_json : results["mono_calibrations"]) {
+                if (!mono_json.value("success", false)) {
+                    continue;
+                }
+
+                std::string camera_id = mono_json.value("camera_id", std::string());
+                if (camera_id.empty()) {
+                    continue;
+                }
+
+                std::string mode = CalibrationWatcher::normalizeModeName(
+                    mono_json.value("mode", std::string()));
+
+                std::string calibration_file = mono_json.value("calibration_file", std::string());
+                if (calibration_file.empty()) {
+                    continue;
+                }
+
+                std::filesystem::path yaml_path = results_dir_ / calibration_file;
+                cv::FileStorage fs(yaml_path.string(), cv::FileStorage::READ);
+                if (!fs.isOpened()) {
+                    continue;
+                }
+
+                cv::Mat camera_matrix;
+                cv::Mat dist_coeffs;
+                fs["camera_matrix"] >> camera_matrix;
+                fs["distortion_coefficients"] >> dist_coeffs;
+                fs.release();
+
+                if (camera_matrix.empty() || dist_coeffs.empty()) {
+                    continue;
+                }
+
+                camera_matrix.convertTo(camera_matrix, CV_64F);
+                dist_coeffs.convertTo(dist_coeffs, CV_64F);
+                camera_matrices_[camera_id][mode] = camera_matrix.clone();
+                dist_coeffs_[camera_id][mode] = dist_coeffs.clone();
+                loaded = true;
+            }
+        }
+
+        if (results.contains("stereo_calibrations") && results["stereo_calibrations"].is_array()) {
+            for (const auto& stereo_json : results["stereo_calibrations"]) {
+                if (!stereo_json.value("success", false)) {
+                    continue;
+                }
+
+                std::string camera_pair = stereo_json.value("camera_pair", std::string());
+                std::string calibration_file = stereo_json.value("calibration_file", std::string());
+                if (camera_pair.empty() || calibration_file.empty()) {
+                    continue;
+                }
+
+                std::filesystem::path yaml_path = results_dir_ / calibration_file;
+                cv::FileStorage fs(yaml_path.string(), cv::FileStorage::READ);
+                if (!fs.isOpened()) {
+                    continue;
+                }
+
+                StereoCalibrationResult result;
+                result.camera_pair = camera_pair;
+                result.reprojection_error = stereo_json.value("reprojection_error", 0.0);
+                result.calibration_time = stereo_json.value("calibration_time", std::string());
+                result.success = true;
+
+                fs["R"] >> result.R;
+                fs["T"] >> result.T;
+                fs["E"] >> result.E;
+                fs["F"] >> result.F;
+                fs["R1"] >> result.R1;
+                fs["R2"] >> result.R2;
+                fs["P1"] >> result.P1;
+                fs["P2"] >> result.P2;
+                fs["Q"] >> result.Q;
+                fs.release();
+
+                auto convert_to_double = [](cv::Mat& mat) {
+                    if (!mat.empty() && mat.type() != CV_64F) {
+                        mat.convertTo(mat, CV_64F);
+                    }
+                };
+
+                convert_to_double(result.R);
+                convert_to_double(result.T);
+                convert_to_double(result.E);
+                convert_to_double(result.F);
+                convert_to_double(result.R1);
+                convert_to_double(result.R2);
+                convert_to_double(result.P1);
+                convert_to_double(result.P2);
+                convert_to_double(result.Q);
+
+                stereo_results_.push_back(result);
+                stereo_params_[camera_pair] = result;
+                loaded = true;
+            }
+        }
+
+        return loaded;
+    }
+
+    bool getCameraMatrix(const std::string& camera_id, cv::Mat& camera_matrix, cv::Mat& dist_coeffs) const {
+        auto it = camera_matrices_.find(camera_id);
+        auto dist_it = dist_coeffs_.find(camera_id);
+        if (it == camera_matrices_.end() || dist_it == dist_coeffs_.end() || it->second.empty()) {
+            return false;
+        }
+
+        const auto& mode_map = it->second;
+        auto mode_it = mode_map.find(std::string());
+        if (mode_it == mode_map.end()) {
+            mode_it = mode_map.begin();
+        }
+
+        const auto& dist_mode_map = dist_it->second;
+        auto dist_mode_it = dist_mode_map.find(mode_it->first);
+        if (dist_mode_it == dist_mode_map.end()) {
+            return false;
+        }
+
+        camera_matrix = mode_it->second.clone();
+        dist_coeffs = dist_mode_it->second.clone();
+        return true;
+    }
+
+    bool getStereoParams(const std::string& camera_pair, cv::Mat& R, cv::Mat& T, cv::Mat& Q) const {
+        auto it = stereo_params_.find(camera_pair);
+        if (it == stereo_params_.end()) {
+            return false;
+        }
+
+        R = it->second.R.clone();
+        T = it->second.T.clone();
+        Q = it->second.Q.clone();
+        return true;
+    }
+
+    const std::vector<StereoCalibrationResult>& stereo_results() const { return stereo_results_; }
+
+private:
+    std::filesystem::path results_dir_;
+    std::map<std::string, std::map<std::string, cv::Mat>> camera_matrices_;
+    std::map<std::string, std::map<std::string, cv::Mat>> dist_coeffs_;
+    std::vector<StereoCalibrationResult> stereo_results_;
+    std::map<std::string, StereoCalibrationResult> stereo_params_;
+};
+
 
 } // namespace
 
@@ -84,6 +266,10 @@ GlobalTracker::GlobalTracker(CameraSchemeManager* scheme_manager,
     if (!scheme_manager_) {
         throw std::invalid_argument("scheme_manager cannot be null");
     }
+
+    std::error_code ec;
+    auto default_dir = std::filesystem::absolute("build/result", ec);
+    external_calibration_dir_ = ec ? std::filesystem::path("build/result") : default_dir;
 
     auto config = scheme_manager_->getTrackingConfig();
 
@@ -178,6 +364,13 @@ void GlobalTracker::setDebugLogPath(const std::string& path) {
     if (!debug_log_stream_.is_open()) {
         std::cerr << "Failed to open debug log at " << debug_log_path_ << std::endl;
     }
+}
+
+
+void GlobalTracker::setExternalCalibrationDirectory(const std::filesystem::path& path) {
+    std::error_code ec;
+    auto absolute_path = std::filesystem::absolute(path, ec);
+    external_calibration_dir_ = ec ? path : absolute_path;
 }
 
 void GlobalTracker::logDebugLine(const std::string& line) {
@@ -792,6 +985,11 @@ bool GlobalTracker::calibrateSphereSetup(SchemeType scheme) {
         std::cout << "Данные калибровки из CalibrationWatcher недоступны, используем резервные значения." << std::endl;
     }
 
+    if (loadExternalCalibration(scheme)) {
+        return validateCalibration();
+    }
+    std::cout << "Данные калибровки из внешнего каталога недоступны, используем резервные значения." << std::endl;
+
     return calibrateSphereFallback();
 }
 
@@ -852,6 +1050,11 @@ bool GlobalTracker::calibrateHemisphereSetup(SchemeType scheme) {
         }
         std::cout << "Данные калибровки из CalibrationWatcher недоступны, используем резервные значения." << std::endl;
     }
+
+    if (loadExternalCalibration(scheme)) {
+        return validateCalibration();
+    }
+    std::cout << "Данные калибровки из внешнего каталога недоступны, используем резервные значения." << std::endl;
 
     return calibrateHemisphereFallback();
 }
@@ -1081,278 +1284,22 @@ bool GlobalTracker::applyFallbackExtrinsics(const CameraConfig& cam, SchemeType 
 bool GlobalTracker::applyWatcherStereoExtrinsics(const CalibrationWatcher& watcher,
                                                 const std::vector<CameraConfig>& cameras,
                                                 std::map<std::string, CameraCalibration>& calibrations) {
-    auto assignStereoMap = [&](std::map<std::string, std::map<std::string, StereoPairCalibration>> map) {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        stereo_calibrations_ = std::move(map);
+    auto get_params = [&watcher](const std::string& camera_pair, cv::Mat& R, cv::Mat& T, cv::Mat& Q) {
+        return watcher.getStereoParams(camera_pair, R, T, Q);
     };
-
-    if (calibrations.empty()) {
-        assignStereoMap({});
-        return false;
-    }
-
-    auto stereo_results = watcher.getStereoResults();
-    if (stereo_results.empty()) {
-        assignStereoMap({});
-        return false;
-    }
-
-    struct Edge {
-        std::string neighbor;
-        cv::Mat R;
-        cv::Mat T;
-    };
-
-    std::map<std::string, std::vector<Edge>> adjacency;
-    std::map<std::string, std::map<std::string, StereoPairCalibration>> stereo_pairs;
-
-    for (const auto& result : stereo_results) {
-        if (!result.success) {
-            continue;
-        }
-
-        cv::Mat R, T, Q;
-        if (!watcher.getStereoParams(result.camera_pair, R, T, Q)) {
-            continue;
-        }
-
-        auto delim = result.camera_pair.find('_');
-        if (delim == std::string::npos) {
-            continue;
-        }
-
-        std::string cam1 = result.camera_pair.substr(0, delim);
-        std::string cam2 = result.camera_pair.substr(delim + 1);
-
-        if (calibrations.find(cam1) == calibrations.end() ||
-            calibrations.find(cam2) == calibrations.end()) {
-            continue;
-        }
-
-        cv::Mat R64;
-        R.convertTo(R64, CV_64F);
-        cv::Mat T64;
-        T.convertTo(T64, CV_64F);
-
-        // The watcher reports translation in millimetres; convert to metres
-        // before the values are propagated through the stereo graph.
-        constexpr double kMillimetersToMeters = 0.001;
-        T64 *= kMillimetersToMeters;
-
-        StereoPairCalibration forward_pair;
-
-        forward_pair.R = R64.clone();
-        forward_pair.T = T64.clone();
-        if (!Q.empty()) {
-            forward_pair.Q = Q.clone();
-            forward_pair.has_Q = true;
-        }
-        stereo_pairs[cam1][cam2] = forward_pair;
-
-        Edge forward_edge{cam2, R64.clone(), T64.clone()};
-        adjacency[cam1].push_back(forward_edge);
-
-        cv::Mat R_inv = R64.t();
-        cv::Mat T_inv = -R_inv * T64;
-        Edge backward{cam1, R_inv.clone(), T_inv.clone()};
-        adjacency[cam2].push_back(backward);
-
-
-        StereoPairCalibration backward_params;
-        backward_params.R = R_inv.clone();
-        backward_params.T = T_inv.clone();
-        backward_params.has_Q = false;
-        stereo_pairs[cam2][cam1] = backward_params;
-    }
-
-    if (adjacency.empty()) {
-        assignStereoMap(std::move(stereo_pairs));
-        return false;
-    }
-
-    std::string base_camera;
-    if (!calibrations.empty()) {
-        base_camera = calibrations.begin()->first;
-    }
-
-    if (base_camera.empty()) {
-        return false;
-    }
-
-    cv::Mat base_rotation = cv::Mat::eye(3, 3, CV_64F);
-    cv::Mat base_translation = cv::Mat::zeros(3, 1, CV_64F);
-
-    std::queue<std::string> pending;
-    std::set<std::string> visited;
-    std::map<std::string, cv::Mat> rotations;
-    std::map<std::string, cv::Mat> translations;
-
-    rotations[base_camera] = base_rotation.clone();
-    translations[base_camera] = base_translation.clone();
-
-    pending.push(base_camera);
-    visited.insert(base_camera);
-
-    while (!pending.empty()) {
-        std::string current = pending.front();
-        pending.pop();
-
-        auto adj_it = adjacency.find(current);
-        if (adj_it == adjacency.end()) {
-            continue;
-        }
-
-        const cv::Mat& R_current = rotations[current];
-        const cv::Mat& t_current = translations[current];
-
-        for (const auto& edge : adj_it->second) {
-            if (visited.count(edge.neighbor)) {
-                continue;
-            }
-
-            cv::Mat R_next = edge.R * R_current;
-            cv::Mat t_next = edge.R * t_current + edge.T;
-
-            rotations[edge.neighbor] = R_next.clone();
-            translations[edge.neighbor] = t_next.clone();
-            visited.insert(edge.neighbor);
-            pending.push(edge.neighbor);
-        }
-    }
-
-    bool updated = false;
-    std::vector<std::string> calibration_logs;
-    for (auto& [id, calib] : calibrations) {
-        auto rot_it = rotations.find(id);
-        auto trans_it = translations.find(id);
-        if (rot_it == rotations.end() || trans_it == translations.end()) {
-            continue;
-        }
-
-        cv::Mat rvec;
-        cv::Rodrigues(rot_it->second, rvec);
-
-        rvec.convertTo(rvec, CV_64F);
-
-        cv::Mat tvec;
-        trans_it->second.convertTo(tvec, CV_64F);
-
-        calib.rotation_vector = rvec.clone();
-        calib.translation_vector = tvec.clone();
-        calib.is_calibrated = true;
-        updateCalibrationWorldPosition(calib);
-
-        computeHomography(calib);
-        if (calib.has_world_position) {
-            std::ostringstream oss;
-            oss << "calibration_camera_center camera=" << id
-                << " world_x=" << std::fixed << std::setprecision(4)
-                << calib.world_position.x
-                << " world_y=" << calib.world_position.y
-                << " world_z=" << calib.world_position.z;
-            calibration_logs.push_back(oss.str());
-        }
-        updated = true;
-    }
-    for (const auto& line : calibration_logs) {
-        logDebugLine(line);
-        std::cout << line << std::endl;
-    }
-    assignStereoMap(std::move(stereo_pairs));
-    return updated;
+    return applyStereoExtrinsicsFromResults(watcher.getStereoResults(), get_params, cameras, calibrations);
 }
 
 bool GlobalTracker::loadCalibrationFromWatcher(const CalibrationWatcher& watcher, SchemeType scheme) {
-    auto cameras = scheme_manager_->getCameras();
-    std::map<std::string, CameraCalibration> loaded;
-    bool watcher_intrinsics = false;
-
-    for (const auto& cam : cameras) {
-        if (cam.status != CameraStatus::ACTIVE) {
-            continue;
-        }
-
-        cv::Mat K, D;
-        if (watcher.getCameraMatrix(cam.id, K, D)) {
-            CameraCalibration calib;
-            calib.camera_matrix = K.clone();
-            calib.dist_coeffs = D.clone();
-            calib.rotation_vector = cv::Mat::zeros(3, 1, CV_64F);
-            calib.translation_vector = cv::Mat::zeros(3, 1, CV_64F);
-            calib.homography_matrix = cv::Mat::eye(3, 3, CV_64F);
-            calib.is_calibrated = false;
-            loaded.emplace(cam.id, std::move(calib));
-            watcher_intrinsics = true;
-        }
-    }
-
-    bool watcher_extrinsics = applyWatcherStereoExtrinsics(watcher, cameras, loaded);
-
-    for (const auto& cam : cameras) {
-        if (cam.status != CameraStatus::ACTIVE) {
-            continue;
-        }
-
-        auto it = loaded.find(cam.id);
-        if (it == loaded.end()) {
-            CameraCalibration calib;
-            setupFallbackCameraIntrinsics(cam, calib);
-            bool extrinsics_ok = applyFallbackExtrinsics(cam, scheme, calib);
-            if (!extrinsics_ok || calib.rotation_vector.empty() || calib.translation_vector.empty()) {
-                std::cerr << "Не удалось вычислить внешние параметры для камеры "
-                          << cam.id << " (" << scheme_manager_->roleToString(cam.role)
-                          << ")." << std::endl;
-                continue;
-            }
-            calib.is_calibrated = true;
-            computeHomography(calib);
-            loaded[cam.id] = std::move(calib);
-        } else if (!it->second.is_calibrated) {
-            bool extrinsics_ok = applyFallbackExtrinsics(cam, scheme, it->second);
-            if (!extrinsics_ok || it->second.rotation_vector.empty() || it->second.translation_vector.empty()) {
-                std::cerr << "Не удалось обновить внешние параметры для камеры "
-                          << cam.id << " (" << scheme_manager_->roleToString(cam.role)
-                          << ")." << std::endl;
-                continue;
-            }
-            it->second.is_calibrated = true;
-            computeHomography(it->second);
-        }
-    }
-
-    bool has_calibration = false;
-    std::vector<std::string> calibration_logs;
-    {
-        std::lock_guard<std::recursive_mutex> lock(mutex_);
-        camera_calibrations_ = std::move(loaded);
-        has_calibration = !camera_calibrations_.empty();
-        if (has_calibration && (watcher_intrinsics || watcher_extrinsics)) {
-            std::cout << "Загружены калибровочные данные из CalibrationWatcher" << std::endl;
-        }
-        if (has_calibration) {
-            for (const auto& [cam_id, calib] : camera_calibrations_) {
-                if (calib.has_world_position) {
-                    std::ostringstream oss;
-                    oss << "calibration_world_position camera=" << cam_id
-                        << " world_x=" << std::fixed << std::setprecision(4)
-                        << calib.world_position.x
-                        << " world_y=" << calib.world_position.y
-                        << " world_z=" << calib.world_position.z;
-                    calibration_logs.push_back(oss.str());
-                } else {
-                    std::ostringstream oss;
-                    oss << "calibration_world_position camera=" << cam_id
-                        << " world_position_unavailable=1";
-                    calibration_logs.push_back(oss.str());
-                }
-            }
-        }
-    }
-    for (const auto& line : calibration_logs) {
-        logDebugLine(line);
-        std::cout << line << std::endl;
-    }
-    return has_calibration;
+    auto get_camera_matrix = [&watcher](const std::string& camera_id, cv::Mat& camera_matrix, cv::Mat& dist_coeffs) {
+        return watcher.getCameraMatrix(camera_id, camera_matrix, dist_coeffs);
+    };
+    auto get_stereo_params = [&watcher](const std::string& camera_pair, cv::Mat& R, cv::Mat& T, cv::Mat& Q) {
+        return watcher.getStereoParams(camera_pair, R, T, Q);
+    };
+    auto stereo_results = watcher.getStereoResults();
+    return loadCalibrationFromProvider(get_camera_matrix, get_stereo_params, stereo_results, scheme,
+                                       "CalibrationWatcher");
 }
 
 bool GlobalTracker::reloadCalibration(const CalibrationWatcher& watcher) {
@@ -1382,22 +1329,19 @@ bool GlobalTracker::checkAndUpdateCalibration() {
     if (!calibration_watcher_) {
         return false;
     }
-
     std::error_code ec;
     auto results_file = calibration_watcher_->getResultsPath() / "calibration_results.json";
     auto current_time = std::filesystem::last_write_time(results_file, ec);
     if (ec) {
         return false;
     }
-
     {
         std::lock_guard<std::recursive_mutex> lock(mutex_);
         if (has_last_calibration_write_time_ &&
             current_time <= last_calibration_write_time_) {
             return false;
         }
-
-    }
+     }
 
     if (!calibration_watcher_->loadResults()) {
         return false;
@@ -1437,7 +1381,6 @@ bool GlobalTracker::validateCalibration() {
             }
         }
     }
-
     std::cout << "Калибровка завершена для " << calibrated_count << " камер" << std::endl;
     return calibrated_count >= 2; // Минимум 2 камеры
 }
@@ -1633,12 +1576,10 @@ void GlobalTracker::associateDetections(const std::string& camera_id,
             if (prev_it == obj.camera_detections.end()) {
                 continue;
             }
-
             int prev_track_id = prev_it->second.track_id;
             if (prev_track_id < 0) {
                 continue;
             }
-
             auto det_it = detections_by_track_id.find(prev_track_id);
             if (det_it == detections_by_track_id.end()) {
                 continue;
@@ -3126,6 +3067,7 @@ void GlobalTracker::cleanupOldObjects(uint64_t current_timestamp) {
             }
             bool camera_miss_threshold_exceeded = miss_count >= kCameraMissCountThreshold;
 
+
             if (camera_expired || camera_miss_threshold_exceeded) {
                 std::string reason;
                 if (camera_expired) {
@@ -3149,7 +3091,6 @@ void GlobalTracker::cleanupOldObjects(uint64_t current_timestamp) {
                 ++camera_it;
             }
         }
-
         bool is_expired = age > retention_time_ms_;
         bool is_low_confidence = it->second.confidence < 0.1;
         bool cache_dormant = pending_reid_retention_ms_ > 0;
@@ -3220,8 +3161,9 @@ void GlobalTracker::cleanupOldObjects(uint64_t current_timestamp) {
             ++it;
         }
     }
+
     if (removed_count > 0) {
-        std::cout << "Очистка завершена: удалено " << removed_count << " объектов" << std::endl;
+        std::cout << "Очистка завершена: удалено " << removed_count << " объектов" << std::end
     }
 }
 
@@ -3235,6 +3177,7 @@ std::vector<GlobalObject> GlobalTracker::getActiveObjects() {
         }
     }
 
+
     return active_objects;
 }
 
@@ -3244,6 +3187,7 @@ std::vector<GlobalTracker::TrackGlobalMapping> GlobalTracker::getTrackToGlobalMa
     if (camera_id.empty()) {
         return mapping;
     }
+
 
     std::unordered_set<std::string> active_camera_ids;
     if (scheme_manager_) {
@@ -3260,8 +3204,8 @@ std::vector<GlobalTracker::TrackGlobalMapping> GlobalTracker::getTrackToGlobalMa
                 }
             }
         }
-    }
     const int total_active_cameras = static_cast<int>(active_camera_ids.size());
+    }
 
     auto camera_position = getCameraWorldPosition(camera_id);
 
@@ -3305,6 +3249,303 @@ std::vector<GlobalTracker::TrackGlobalMapping> GlobalTracker::getTrackToGlobalMa
             }
             mapping.push_back(info);
         }
+
+    if (calibrations.empty() || !get_stereo_params) {
+        assignStereoMap({});
+        return false;
     }
-    return mapping;
+
+    if (stereo_results.empty()) {
+        assignStereoMap({});
+        return false;
+
+    }
+    struct Edge {
+        std::string neighbor;
+        cv::Mat R;
+        cv::Mat T;
+    };
+
+    std::map<std::string, std::vector<Edge>> adjacency;
+    std::map<std::string, std::map<std::string, StereoPairCalibration>> stereo_pairs;
+    for (const auto& result : stereo_results) {
+        if (!result.success) {
+            continue;
+        }
+        cv::Mat R, T, Q;
+        if (!get_stereo_params(result.camera_pair, R, T, Q)) {
+            continue;
+        }
+        auto delim = result.camera_pair.find('_');
+        if (delim == std::string::npos) {
+            continue;
+        }
+
+        std::string cam1 = result.camera_pair.substr(0, delim);
+        std::string cam2 = result.camera_pair.substr(delim + 1);
+
+        if (calibrations.find(cam1) == calibrations.end() ||
+            calibrations.find(cam2) == calibrations.end()) {
+            continue;
+        }
+
+        cv::Mat R64;
+        R.convertTo(R64, CV_64F);
+        cv::Mat T64;
+        T.convertTo(T64, CV_64F);
+
+        constexpr double kMillimetersToMeters = 0.001;
+        T64 *= kMillimetersToMeters;
+
+        StereoPairCalibration forward_pair;
+        forward_pair.R = R64.clone();
+        forward_pair.T = T64.clone();
+        if (!Q.empty()) {
+            forward_pair.Q = Q.clone();
+            forward_pair.has_Q = true;
+
+        }
+        stereo_pairs[cam1][cam2] = forward_pair;
+
+        Edge forward_edge{cam2, R64.clone(), T64.clone()};
+        adjacency[cam1].push_back(forward_edge);
+
+        cv::Mat R_inv = R64.t();
+        cv::Mat T_inv = -R_inv * T64;
+        Edge backward{cam1, R_inv.clone(), T_inv.clone()};
+        adjacency[cam2].push_back(backward);
+
+        StereoPairCalibration backward_params;
+        backward_params.R = R_inv.clone();
+        backward_params.T = T_inv.clone();
+        backward_params.has_Q = false;
+        stereo_pairs[cam2][cam1] = backward_params;
+    }
+
+    if (adjacency.empty()) {
+        assignStereoMap(std::move(stereo_pairs));
+        return false;
+    }
+
+    std::string base_camera;
+    if (!calibrations.empty()) {
+        base_camera = calibrations.begin()->first;
+    }
+    if (base_camera.empty()) {
+        return false;
+    }
+    cv::Mat base_rotation = cv::Mat::eye(3, 3, CV_64F);
+    cv::Mat base_translation = cv::Mat::zeros(3, 1, CV_64F);
+
+    std::queue<std::string> pending;
+    std::set<std::string> visited;
+    std::map<std::string, cv::Mat> rotations;
+    std::map<std::string, cv::Mat> translations;
+
+
+    rotations[base_camera] = base_rotation.clone();
+    translations[base_camera] = base_translation.clone();
+
+    pending.push(base_camera);
+    visited.insert(base_camera);
+
+    while (!pending.empty()) {
+        std::string current = pending.front();
+        pending.pop();
+
+        auto adj_it = adjacency.find(current);
+        if (adj_it == adjacency.end()) {
+            continue;
+        }
+
+        const cv::Mat& R_current = rotations[current];
+        const cv::Mat& t_current = translations[current];
+
+        for (const auto& edge : adj_it->second) {
+            if (visited.count(edge.neighbor)) {
+                continue;
+            }
+
+            cv::Mat R_next = edge.R * R_current;
+            cv::Mat t_next = edge.R * t_current + edge.T;
+
+            rotations[edge.neighbor] = R_next.clone();
+            translations[edge.neighbor] = t_next.clone();
+            visited.insert(edge.neighbor);
+            pending.push(edge.neighbor);
+        }
+    }
+    bool updated = false;
+    std::vector<std::string> calibration_logs;
+    for (auto& [id, calib] : calibrations) {
+        auto rot_it = rotations.find(id);
+        auto trans_it = translations.find(id);
+        if (rot_it == rotations.end() || trans_it == translations.end()) {
+            continue;
+        }
+
+        cv::Mat rvec;
+        cv::Rodrigues(rot_it->second, rvec);
+        rvec.convertTo(rvec, CV_64F);
+
+        cv::Mat tvec;
+        trans_it->second.convertTo(tvec, CV_64F);
+
+        calib.rotation_vector = rvec.clone();
+        calib.translation_vector = tvec.clone();
+        calib.is_calibrated = true;
+        updateCalibrationWorldPosition(calib);
+
+        computeHomography(calib);
+        if (calib.has_world_position) {
+            std::ostringstream oss;
+            oss << "calibration_camera_center camera=" << id
+                << " world_x=" << std::fixed << std::setprecision(4)
+                << calib.world_position.x
+                << " world_y=" << calib.world_position.y
+                << " world_z=" << calib.world_position.z;
+            calibration_logs.push_back(oss.str());
+        }
+        updated = true;
+    }
+    for (const auto& line : calibration_logs) {
+        logDebugLine(line);
+        std::cout << line << std::endl;
+    }
+    assignStereoMap(std::move(stereo_pairs));
+    return updated;
+}
+
+bool GlobalTracker::loadCalibrationFromProvider(
+    const std::function<bool(const std::string&, cv::Mat&, cv::Mat&)>& get_camera_matrix,
+    const std::function<bool(const std::string&, cv::Mat&, cv::Mat&, cv::Mat&)>& get_stereo_params,
+    const std::vector<StereoCalibrationResult>& stereo_results,
+    SchemeType scheme,
+    const std::string& source_name) {
+    auto cameras = scheme_manager_->getCameras();
+    std::map<std::string, CameraCalibration> loaded;
+    bool intrinsics_loaded = false;
+
+    if (get_camera_matrix) {
+        for (const auto& cam : cameras) {
+            if (cam.status != CameraStatus::ACTIVE) {
+                continue;
+            }
+
+            cv::Mat K, D;
+            if (get_camera_matrix(cam.id, K, D)) {
+                CameraCalibration calib;
+                calib.camera_matrix = K.clone();
+                calib.dist_coeffs = D.clone();
+                calib.rotation_vector = cv::Mat::zeros(3, 1, CV_64F);
+                calib.translation_vector = cv::Mat::zeros(3, 1, CV_64F);
+                calib.homography_matrix = cv::Mat::eye(3, 3, CV_64F);
+                calib.is_calibrated = false;
+                loaded.emplace(cam.id, std::move(calib));
+                intrinsics_loaded = true;
+            }
+        }
+    }
+    bool extrinsics_loaded = false;
+    if (get_stereo_params) {
+        extrinsics_loaded = applyStereoExtrinsicsFromResults(stereo_results, get_stereo_params, cameras, loaded);
+    }
+
+    for (const auto& cam : cameras) {
+        if (cam.status != CameraStatus::ACTIVE) {
+            continue
+        }
+
+        auto it = loaded.find(cam.id);
+        if (it == loaded.end()) {
+            CameraCalibration calib;
+            setupFallbackCameraIntrinsics(cam, calib);
+            bool extrinsics_ok = applyFallbackExtrinsics(cam, scheme, calib);
+            if (!extrinsics_ok || calib.rotation_vector.empty() || calib.translation_vector.empty()) {
+                std::cerr << "Не удалось вычислить внешние параметры для камеры "
+                          << cam.id << " (" << scheme_manager_->roleToString(cam.role)
+                          << ")." << std::endl;
+                continue;
+            }
+            calib.is_calibrated = true;
+            computeHomography(calib);
+            loaded[cam.id] = std::move(calib);
+        } else if (!it->second.is_calibrated) {
+            bool extrinsics_ok = applyFallbackExtrinsics(cam, scheme, it->second);
+            if (!extrinsics_ok || it->second.rotation_vector.empty() || it->second.translation_vector.empty()) {
+                std::cerr << "Не удалось обновить внешние параметры для камеры "
+                          << cam.id << " (" << scheme_manager_->roleToString(cam.role)
+                          << ")." << std::endl;
+                continue;
+            }
+            it->second.is_calibrated = true;
+            computeHomography(it->second);
+        }
+    }
+    bool has_calibration = false;
+    std::vector<std::string> calibration_logs;
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        camera_calibrations_ = std::move(loaded);
+        has_calibration = !camera_calibrations_.empty();
+        if (has_calibration && (intrinsics_loaded || extrinsics_loaded) && !source_name.empty()) {
+            std::cout << "Загружены калибровочные данные из " << source_name << std::endl;
+        }
+        if (has_calibration) {
+            for (const auto& [cam_id, calib] : camera_calibrations_) {
+                if (calib.has_world_position) {
+                    std::ostringstream oss;
+                    oss << "calibration_world_position camera=" << cam_id
+                        << " world_x=" << std::fixed << std::setprecision(4)
+                        << calib.world_position.x
+                        << " world_y=" << calib.world_position.y
+                        << " world_z=" << calib.world_position.z;
+                    calibration_logs.push_back(oss.str());
+                } else {
+                    std::ostringstream oss;
+                    oss << "calibration_world_position camera=" << cam_id
+                        << " world_position_unavailable=1";
+                    calibration_logs.push_back(oss.str());
+                }
+
+            }
+        }
+    }
+
+    for (const auto& line : calibration_logs) {
+        logDebugLine(line);
+        std::cout << line << std::endl;
+    }
+    return has_calibration;
+}
+
+bool GlobalTracker::loadCalibrationFromDirectory(const std::filesystem::path& directory, SchemeType scheme) {
+    DirectoryCalibrationSource source(directory);
+    if (!source.load()) {
+        return false;
+    }
+
+    auto get_camera_matrix = [&source](const std::string& camera_id, cv::Mat& camera_matrix, cv::Mat& dist_coeffs) {
+        return source.getCameraMatrix(camera_id, camera_matrix, dist_coeffs);
+    };
+    auto get_stereo_params = [&source](const std::string& camera_pair, cv::Mat& R, cv::Mat& T, cv::Mat& Q) {
+        return source.getStereoParams(camera_pair, R, T, Q);
+    };
+    std::string source_label = "директории " + directory.string();
+    return loadCalibrationFromProvider(get_camera_matrix, get_stereo_params, source.stereo_results(), scheme,
+                                       source_label);
+}
+
+bool GlobalTracker::loadExternalCalibration(SchemeType scheme) {
+    if (external_calibration_dir_.empty()) {
+        return false;
+    }
+
+    std::error_code ec;
+    auto json_path = external_calibration_dir_ / "calibration_results.json";
+    if (!std::filesystem::exists(json_path, ec) || ec) {
+        return false;
+    }
+
+    return loadCalibrationFromDirectory(external_calibration_dir_, scheme);
 }
