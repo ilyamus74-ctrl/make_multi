@@ -3163,7 +3163,7 @@ void GlobalTracker::cleanupOldObjects(uint64_t current_timestamp) {
     }
 
     if (removed_count > 0) {
-        std::cout << "Очистка завершена: удалено " << removed_count << " объектов" << std::end
+        std::cout << "Очистка завершена: удалено " << removed_count << " объектов" << std::endl;
     }
 }
 
