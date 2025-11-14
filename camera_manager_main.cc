@@ -692,6 +692,64 @@ static void fetchAndUpdateDetections(std::string cam_id, int det_port) {
                     .count();
       g_global_tracker.updateDetections(cam_id, detections, ts);
 
+      auto assignments = g_global_tracker.get_last_assignments();
+      std::unordered_map<std::string, std::vector<std::pair<int, int>>> assignments_by_cam;
+      for (const auto &assignment : assignments) {
+        if (assignment.cam_id.empty() || assignment.local_id < 0 ||
+            assignment.global_id < 0) {
+          continue;
+        }
+        assignments_by_cam[assignment.cam_id].emplace_back(assignment.local_id,
+                                                          assignment.global_id);
+      }
+      if (!assignments_by_cam.empty()) {
+        struct CameraEndpoint {
+          std::string host;
+          int port = 0;
+        };
+        std::unordered_map<std::string, CameraEndpoint> camera_endpoints;
+        for (const auto &cfg : g_mgr.configuredCameras()) {
+          if (cfg.mode != CameraManager::CamConfig::Mode::Detect ||
+              !cfg.det_running || cfg.det_port <= 0) {
+            continue;
+          }
+          camera_endpoints[cfg.id] = {"localhost", cfg.det_port};
+        }
+
+        for (const auto &entry : assignments_by_cam) {
+          const auto &target_cam = entry.first;
+          const auto &pairs = entry.second;
+          if (pairs.empty()) {
+            continue;
+          }
+          auto endpoint_it = camera_endpoints.find(target_cam);
+          if (endpoint_it == camera_endpoints.end()) {
+            continue;
+          }
+          httplib::Client apply_client(endpoint_it->second.host.c_str(),
+                                       endpoint_it->second.port);
+          apply_client.set_connection_timeout(0, 500000);
+          apply_client.set_read_timeout(0, 500000);
+          nlohmann::json apply_payload;
+          apply_payload["camera_id"] = target_cam;
+          nlohmann::json mapping = nlohmann::json::array();
+          for (const auto &pair : pairs) {
+            mapping.push_back({{"local", pair.first}, {"global", pair.second}});
+          }
+          apply_payload["map"] = mapping;
+          auto apply_res = apply_client.Post("/apply_global", apply_payload.dump(),
+                                             "application/json");
+          log_stream << "\napply_global[" << target_cam << "] size=" << pairs.size()
+                     << " status=";
+          if (apply_res) {
+            log_stream << apply_res->status;
+          } else {
+            log_stream << "error(" << httplib::to_string(apply_res.error()) << ")";
+          }
+        }
+      }
+
+
       auto mapping = g_global_tracker.getTrackToGlobalMapForCamera(cam_id);
       nlohmann::json labels_json = nlohmann::json::array();
       for (const auto &assoc : mapping) {

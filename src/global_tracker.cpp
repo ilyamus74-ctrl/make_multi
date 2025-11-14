@@ -1444,7 +1444,7 @@ void GlobalTracker::updateDetections(const std::string& camera_id,
 
     // Очищаем старые объекты после обновления данных текущей итерации
     cleanupOldObjects(timestamp);
-
+    rebuildAssignmentsLocked();
     flushDebugLog();
 }
 
@@ -3204,6 +3204,28 @@ void GlobalTracker::cleanupOldObjects(uint64_t current_timestamp) {
     }
 }
 
+void GlobalTracker::rebuildAssignmentsLocked() {
+    last_assignments_.clear();
+    size_t estimate = 0;
+    for (const auto& pair : tracked_objects_) {
+        estimate += pair.second.camera_detections.size();
+    }
+    last_assignments_.reserve(estimate);
+    for (const auto& [global_id, obj] : tracked_objects_) {
+        for (const auto& [camera_id, detection] : obj.camera_detections) {
+            if (detection.track_id < 0) {
+                continue;
+            }
+            GlobalAssignment assignment;
+            assignment.cam_id = camera_id;
+            assignment.local_id = detection.track_id;
+            assignment.global_id = global_id;
+            last_assignments_.push_back(std::move(assignment));
+        }
+    }
+}
+
+
 std::vector<GlobalObject> GlobalTracker::getActiveObjects() {
     std::vector<GlobalObject> active_objects;
 
@@ -3290,6 +3312,13 @@ std::vector<GlobalTracker::TrackGlobalMapping> GlobalTracker::getTrackToGlobalMa
 
     return mapping;
 }
+
+const std::vector<GlobalTracker::GlobalAssignment>& GlobalTracker::get_last_assignments() const {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    last_assignments_snapshot_ = last_assignments_;
+    return last_assignments_snapshot_;
+}
+
 
 bool GlobalTracker::applyStereoExtrinsicsFromResults(
     const std::vector<StereoCalibrationResult>& stereo_results,

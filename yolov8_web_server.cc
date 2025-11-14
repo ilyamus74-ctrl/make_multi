@@ -89,6 +89,18 @@ static std::filesystem::path g_exe_dir;
 static std::filesystem::path g_config_path;
 static bool fileExists(const std::string& p){ struct stat st{}; return stat(p.c_str(), &st)==0; }
 static bool dirExists(const std::string& p){ struct stat st{}; return stat(p.c_str(), &st)==0 && S_ISDIR(st.st_mode); }
+static int lookupGlobalIdForLocal(int local_id) {
+    std::lock_guard<std::mutex> lk(g_global_map_mx);
+    auto it = g_local_to_global.find(local_id);
+    if (it == g_local_to_global.end()) {
+        return -1;
+    }
+    return it->second;
+}
+static std::mutex g_global_map_mx;
+static std::unordered_map<int, int> g_local_to_global;
+static std::string g_this_camera_id;
+static std::atomic<int> g_applied_global_cnt{0};
 static json readMainConfig(){
     json cfg=json::object();
     auto p=std::filesystem::absolute(g_config_path);
@@ -391,6 +403,7 @@ struct Args {
     std::string npu_core = "auto"; // auto|0|1|2|01|012
     std::string log_file;
     std::string config;
+    std::string cam_id;
 };
 
 static bool parseSize(const std::string& s, int& w, int& h) {
@@ -432,6 +445,7 @@ static Args parseArgs(int argc, char** argv) {
         else if (k == "--log-file" && need(1)) a.log_file = argv[++i];
         else if (k == "--labels" && need(1)) a.labels = argv[++i];
         else if (k == "--config" && need(1)) a.config = argv[++i];
+        else if (k == "--cam-id" && need(1)) a.cam_id = argv[++i];
     }
     return a;
 }
@@ -630,7 +644,14 @@ public:
         if (log_enabled) rotateLogs();
         cam_mgr_.loadConfig(g_config_path.string());
         cam_mgr_.start(false);
-        cam_id_ = camIdForDevice(cam_dev);
+        if (!a.cam_id.empty()) {
+            cam_id_ = a.cam_id;
+        } else {
+            cam_id_ = camIdForDevice(cam_dev);
+        }
+        if (g_this_camera_id.empty()) {
+            g_this_camera_id = cam_id_;
+        }
     }
     ~YOLOWebServer() { cleanup(); cam_mgr_.stop(); }
 
@@ -882,6 +903,67 @@ private:
                 res.status = 400;
                 res.set_content("{\"error\":\"invalid json\"}", "application/json");
             }
+        });
+
+        server.Post("/apply_global", [this](const Request& req, Response& res) {
+            try {
+                auto body = json::parse(req.body);
+                std::string camera = body.value("camera_id", body.value("camera", std::string()));
+                std::string expected = !g_this_camera_id.empty() ? g_this_camera_id : cam_id_;
+                if (!camera.empty() && !expected.empty() && camera != expected) {
+                    res.set_content("ignored (other camera)", "text/plain");
+                    return;
+                }
+                if (expected.empty() && !camera.empty()) {
+                    g_this_camera_id = camera;
+                }
+                auto map_it = body.find("map");
+                if (map_it == body.end() || !map_it->is_array()) {
+                    res.status = 400;
+                    res.set_content("{\"error\":\"invalid map\"}", "application/json");
+                    return;
+                }
+                std::unordered_map<int, int> new_map;
+                auto to_int = [](const json& value) -> std::optional<int> {
+                    if (value.is_number_integer()) return value.get<int>();
+                    if (value.is_number_float()) return static_cast<int>(std::lround(value.get<double>()));
+                    if (value.is_string()) {
+                        try { return std::stoi(value.get<std::string>()); } catch (...) { return std::nullopt; }
+                    }
+                    return std::nullopt;
+                };
+                for (const auto& entry : *map_it) {
+                    if (!entry.is_object()) continue;
+                    auto local_opt = entry.contains("local") ? to_int(entry["local"]) : std::optional<int>();
+                    if (!local_opt && entry.contains("track_id")) {
+                        local_opt = to_int(entry["track_id"]);
+                    }
+                    auto global_opt = entry.contains("global") ? to_int(entry["global"]) : std::optional<int>();
+                    if (!global_opt && entry.contains("global_id")) {
+                        global_opt = to_int(entry["global_id"]);
+                    }
+                    if (!local_opt || !global_opt) continue;
+                    if (*local_opt < 0 || *global_opt < 0) continue;
+                    new_map[*local_opt] = *global_opt;
+                }
+                int applied = static_cast<int>(new_map.size());
+                {
+                    std::lock_guard<std::mutex> lk(g_global_map_mx);
+                    g_local_to_global = std::move(new_map);
+                }
+                g_applied_global_cnt.fetch_add(applied, std::memory_order_relaxed);
+                res.set_content("OK", "text/plain");
+            } catch (...) {
+                res.status = 400;
+                res.set_content("{\"error\":\"invalid json\"}", "application/json");
+            }
+        });
+
+        server.Get("/_state", [](const Request&, Response& res) {
+            json state;
+            state["camera_id"] = g_this_camera_id;
+            state["applied_global_ids"] = g_applied_global_cnt.load(std::memory_order_relaxed);
+            res.set_content(state.dump(), "application/json");
         });
 
 
@@ -1551,30 +1633,34 @@ private:
                        }
 
                        if (show_fps) {
+                           int mapped_global = lookupGlobalIdForLocal(d->track_id);
                            std::string id_text;
+                           if (mapped_global >= 0) {
+                               id_text = "G#" + std::to_string(mapped_global);
+                           } else if (d->track_id >= 0) {
+                               id_text = "L#" + std::to_string(d->track_id);
+                           } else {
+                               id_text = "L#?";
+                           }
                            auto map_it = global_labels.find(d->track_id);
                            if (map_it != global_labels.end()) {
                                const auto& info = map_it->second;
-                               id_text = "G#" + std::to_string(info.global_id);
                                int total_cams = info.active_cameras;
                                if (total_cams <= 0) {
                                    total_cams = std::max(info.active_cameras, info.visible_cameras);
                                }
-                               id_text += " (" + std::to_string(info.visible_cameras) + "/" +
-                                          std::to_string(total_cams) + ")";
-                               if (d->track_id >= 0) {
-                                   id_text += " (#" + std::to_string(d->track_id) + ")";
+                               if (total_cams > 0 || info.visible_cameras > 0) {
+                                   id_text += " (" + std::to_string(info.visible_cameras) + "/" +
+                                              std::to_string(std::max(total_cams, 1)) + ")";
                                }
                                if (info.distance_m && std::isfinite(*info.distance_m)) {
                                    char dist_buf[32];
                                    snprintf(dist_buf, sizeof(dist_buf), " %.1fm", *info.distance_m);
                                    id_text += dist_buf;
                                }
-                           } else {
-                               id_text = "#" + std::to_string(d->track_id);
                            }
 
-                           char text[128];
+                           char text[160];
                            snprintf(text, sizeof(text), "%s %s %.1f%%", id_text.c_str(),
                                coco_cls_to_name(d->cls_id), d->prop * 100.f);
 
@@ -1660,8 +1746,12 @@ private:
                 det["color"] = {col[0], col[1], col[2]};
             }
             auto map_it = global_labels.find(d->track_id);
+            int mapped_global = lookupGlobalIdForLocal(d->track_id);
+            if (mapped_global < 0 && map_it != global_labels.end()) {
+                mapped_global = map_it->second.global_id;
+            }
+            det["global_id"] = mapped_global >= 0 ? mapped_global : -1;
             if (map_it != global_labels.end()) {
-                det["global_id"] = map_it->second.global_id;
                 det["visible_cameras"] = map_it->second.visible_cameras;
                 det["active_cameras"] = map_it->second.active_cameras;
                 if (map_it->second.distance_m && std::isfinite(*map_it->second.distance_m)) {
@@ -1714,6 +1804,7 @@ static void printUsage(const char* argv0){
     printf("  --log-file FILE NAME     write detection log to /tmp/npudet.DATE.FILE\n");
     printf("  --labels PATH         labels file path\n");
     printf("  --config PATH        configuration file path\n");
+    printf("  --cam-id ID          explicit camera identifier\n");
 }
 
 int main(int argc, char** argv) {
@@ -1723,6 +1814,11 @@ int main(int argc, char** argv) {
 
     g_exe_dir = std::filesystem::canonical(argv[0]).parent_path();
     g_config_path = a.config.empty() ? g_exe_dir / "config.json" : std::filesystem::path(a.config);
+    if (!a.cam_id.empty()) {
+        g_this_camera_id = a.cam_id;
+    } else {
+        g_this_camera_id = camIdForDevice(a.dev);
+    }
 
     mkdir("./web", 0755);
     std::signal(SIGINT,  signalHandler);

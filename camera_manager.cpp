@@ -583,6 +583,10 @@ void CameraManager::monitorLoop() {
                              ? "yolov8_web_server_calibration"
                              : "yolov8_web_server");
           args.push_back(cfg.model_path);
+          if (!id.empty()) {
+            args.push_back("--cam-id");
+            args.push_back(id);
+          }
           args.push_back("--dev");
           args.push_back(cfg.device_path);
           args.push_back("--port");

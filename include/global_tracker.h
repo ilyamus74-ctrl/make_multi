@@ -175,6 +175,8 @@ private:
     std::unordered_map<int, PendingReidEntry> pending_reid_;
     uint64_t pending_reid_retention_ms_ = 0;
     double pending_reid_descriptor_threshold_ = 0.0;
+    std::vector<GlobalAssignment> last_assignments_;
+    mutable std::vector<GlobalAssignment> last_assignments_snapshot_;
 
 public:
     GlobalTracker(CameraSchemeManager* scheme_manager,
@@ -226,9 +228,18 @@ public:
         int total_active_cameras = 0;
     };
 
+    struct GlobalAssignment {
+        std::string cam_id;
+        int local_id = -1;
+        int global_id = -1;
+    };
+
+
     std::vector<GlobalObject> getActiveObjects();
     std::vector<TrackGlobalMapping> getTrackToGlobalMapForCamera(const std::string& camera_id);
-    
+
+    const std::vector<GlobalAssignment>& get_last_assignments() const;
+
 private:
     // Вспомогательные методы
     void associateDetections(const std::string& camera_id,
@@ -251,6 +262,7 @@ private:
     int getPrimaryCameraPriority(const std::string& camera_id);
     double calculateDistance(const cv::Point3f& p1, const cv::Point3f& p2);
     void cleanupOldObjects(uint64_t current_timestamp);
+    void rebuildAssignmentsLocked();
     void logDebugLine(const std::string& line);
     void flushDebugLog();
     void logCameraDrop(const std::string& camera_id,
