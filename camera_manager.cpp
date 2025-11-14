@@ -389,6 +389,7 @@ void CameraManager::monitorLoop() {
   using namespace std::chrono_literals;
 
   auto perform_scan = [&]() {
+    {
       std::lock_guard<std::mutex> lk(mutex_);
       for (auto it = active_.begin(); it != active_.end();) {
         if (!configs_.count(*it)) {
@@ -405,8 +406,7 @@ void CameraManager::monitorLoop() {
           ++it;
         }
       }
-    };
-
+   }
     struct AvailableCamera {
       std::string canonical;
       std::vector<DiscoveredCamera::Identifier> identifiers;
