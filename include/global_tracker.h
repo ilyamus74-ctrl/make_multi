@@ -132,6 +132,12 @@ struct ImageToWorldResult {
 };
 
 class GlobalTracker {
+public:
+    struct GlobalAssignment {
+        std::string cam_id;
+        int local_id = -1;
+        int global_id = -1;
+    };
 private:
     friend class GlobalTrackerTestHelper;
     struct PendingReidEntry {
@@ -175,7 +181,6 @@ private:
     std::unordered_map<int, PendingReidEntry> pending_reid_;
     uint64_t pending_reid_retention_ms_ = 0;
     double pending_reid_descriptor_threshold_ = 0.0;
-    struct GlobalAssignment;
     std::vector<GlobalAssignment> last_assignments_;
     mutable std::vector<GlobalAssignment> last_assignments_snapshot_;
 
@@ -228,13 +233,6 @@ public:
         int visible_camera_count = 0;
         int total_active_cameras = 0;
     };
-
-    struct GlobalAssignment {
-        std::string cam_id;
-        int local_id = -1;
-        int global_id = -1;
-    };
-
 
     std::vector<GlobalObject> getActiveObjects();
     std::vector<TrackGlobalMapping> getTrackToGlobalMapForCamera(const std::string& camera_id);
