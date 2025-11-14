@@ -30,6 +30,8 @@
 #include <map>
 #include <unordered_map>
 #include <optional>
+#include <array>
+#include <unordered_set>
 #include <dirent.h>
 #include <filesystem>
 #include <errno.h>
@@ -84,6 +86,12 @@ struct StageAcc {
 using json = nlohmann::json;
 using namespace httplib;
 using Clock = std::chrono::high_resolution_clock;
+
+static uint64_t now_ms() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+               std::chrono::system_clock::now().time_since_epoch())
+        .count();
+}
 
 static std::filesystem::path g_exe_dir;
 static std::filesystem::path g_config_path;
@@ -507,6 +515,21 @@ private:
     std::vector<uint8_t> last_jpeg GUARDED_BY(frame_mtx);  // guarded by frame_mtx
     json last_meta GUARDED_BY(frame_mtx);                  // guarded by frame_mtx
     SimpleTracker tracker; // maintains unique object IDs
+    struct TrackSnapshot {
+        int local_id = -1;
+        int global_id = -1;
+        std::string cls;
+        float conf = 0.f;
+        uint64_t age_ms = 0;
+        std::array<int, 4> bbox{0, 0, 0, 0};
+        uint64_t ts_ms = 0;
+    };
+    std::mutex track_snapshots_mx_;
+    std::vector<TrackSnapshot> track_snapshots_ GUARDED_BY(track_snapshots_mx_);
+    uint64_t last_tracks_ts_ms_ GUARDED_BY(track_snapshots_mx_) = 0;
+    std::unordered_map<int, uint64_t> track_first_seen_ms_;
+    std::unordered_map<int, uint64_t> track_last_seen_ms_;
+
     struct GlobalLabelInfo {
         int global_id = -1;
         std::optional<double> distance_m;
@@ -761,6 +784,34 @@ private:
             j["is_quantized"] = rknn_app_ctx.is_quant;
             j["input_count"] = rknn_app_ctx.io_num.n_input;
             j["output_count"] = rknn_app_ctx.io_num.n_output;
+            res.set_content(j.dump(), "application/json");
+        });
+
+        server.Get("/tracks", [this](const Request&, Response& res) {
+            json j;
+            j["camera_id"] = g_this_camera_id;
+            j["ts_ms"] = now_ms();
+            std::vector<TrackSnapshot> snapshot;
+            uint64_t last_update = 0;
+            {
+                std::lock_guard<std::mutex> lk(track_snapshots_mx_);
+                snapshot = track_snapshots_;
+                last_update = last_tracks_ts_ms_;
+            }
+            auto arr = json::array();
+            for (const auto& t : snapshot) {
+                json jt;
+                jt["local_id"] = t.local_id;
+                jt["global_id"] = t.global_id;
+                jt["class"] = t.cls;
+                jt["conf"] = t.conf;
+                jt["age_ms"] = t.age_ms;
+                jt["bbox"] = {t.bbox[0], t.bbox[1], t.bbox[2], t.bbox[3]};
+                jt["ts_ms"] = t.ts_ms;
+                arr.push_back(std::move(jt));
+            }
+            j["tracks"] = std::move(arr);
+            j["last_update_ms"] = last_update;
             res.set_content(j.dump(), "application/json");
         });
 
@@ -1679,7 +1730,9 @@ private:
                 auto jpg = encode_rgb_to_jpeg(frame.virt_addr, frame.width, frame.height, jpeg_q);
                 TOCK(enc, acc.enc);  // DEBUG
 
+                uint64_t frame_ts_ms = now_ms();
                 auto meta = formatDetectionResults(&od, frame.width, frame.height, global_labels);
+                updateTrackSnapshots(&od, frame_ts_ms);
                 {
                     std::lock_guard<std::mutex> lk(frame_mtx);
                     last_jpeg.swap(jpg);
@@ -1731,6 +1784,49 @@ private:
         if (log_enabled) logMinuteSummary(std::chrono::system_clock::now());
     }
 // end main loop
+    void updateTrackSnapshots(const object_detect_result_list* results, uint64_t ts_ms) {
+        std::vector<TrackSnapshot> current;
+        current.reserve(results ? results->count : 0);
+        std::unordered_set<int> seen;
+        if (results) {
+            for (int i = 0; i < results->count; ++i) {
+                const auto& det = results->results[i];
+                if (det.track_id < 0) continue;
+                seen.insert(det.track_id);
+                auto fs_it = track_first_seen_ms_.find(det.track_id);
+                if (fs_it == track_first_seen_ms_.end()) {
+                    fs_it = track_first_seen_ms_.emplace(det.track_id, ts_ms).first;
+                }
+                track_last_seen_ms_[det.track_id] = ts_ms;
+                TrackSnapshot snap;
+                snap.local_id = det.track_id;
+                snap.global_id = lookupGlobalIdForLocal(det.track_id);
+                snap.cls = coco_cls_to_name(det.cls_id);
+                snap.conf = det.prop;
+                snap.age_ms = ts_ms >= fs_it->second ? ts_ms - fs_it->second : 0;
+                snap.bbox = {det.box.left, det.box.top,
+                             det.box.right - det.box.left,
+                             det.box.bottom - det.box.top};
+                snap.ts_ms = ts_ms;
+                current.push_back(std::move(snap));
+            }
+        }
+        uint64_t expire_before = ts_ms > 10000 ? ts_ms - 10000 : 0;
+        for (auto it = track_last_seen_ms_.begin(); it != track_last_seen_ms_.end();) {
+            if (!seen.count(it->first) && it->second < expire_before) {
+                track_first_seen_ms_.erase(it->first);
+                it = track_last_seen_ms_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        {
+            std::lock_guard<std::mutex> lk(track_snapshots_mx_);
+            track_snapshots_ = std::move(current);
+            last_tracks_ts_ms_ = ts_ms;
+        }
+    }
+
     json formatDetectionResults(object_detect_result_list* results, int img_w, int img_h, const std::unordered_map<int, GlobalLabelInfo>& global_labels) {
 
         json detections = json::array();
