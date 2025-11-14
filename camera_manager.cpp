@@ -388,8 +388,7 @@ void CameraManager::monitorLoop() {
   namespace fs = std::filesystem;
   using namespace std::chrono_literals;
 
-  auto perform_scan = [&]()
-    {
+  auto perform_scan = [&]() {
       std::lock_guard<std::mutex> lk(mutex_);
       for (auto it = active_.begin(); it != active_.end();) {
         if (!configs_.count(*it)) {
@@ -406,7 +405,7 @@ void CameraManager::monitorLoop() {
           ++it;
         }
       }
-    }
+    };
 
     struct AvailableCamera {
       std::string canonical;
@@ -509,7 +508,8 @@ void CameraManager::monitorLoop() {
       dc.card = it->second.card;
       dc.identifiers = it->second.identifiers;
       if (dc.identifiers.empty())
-        dc.identifiers.push_back({"device", it->second.canonical});
+        dc.identifiers.push_back(DiscoveredCamera::Identifier{
+            "device", it->second.canonical});
       discovered.push_back(std::move(dc));
       ++it;
     }
