@@ -1,0 +1,27 @@
+{
+  "http_port": 8095,
+  "cameras": [
+    {
+      "id": "cam_a",
+      "frame": "frame.jpg",
+      "calibration": {
+        "position": [0.0, 0.0, 2.2],
+        "meters_per_pixel": 0.018,
+        "floor_z": 0.0
+      }
+    },
+    {
+      "id": "cam_b",
+      "frame": "frame.jpg",
+      "calibration": {
+        "position": [2.5, 0.5, 2.0],
+        "meters_per_pixel": 0.018,
+        "floor_z": 0.0
+      }
+    }
+  ],
+  "objects": [
+    { "id": 1, "box": [220, 150, 190, 300], "velocity": [1.4, 0.9] },
+    { "id": 2, "box": [420, 200, 160, 260], "velocity": [-1.2, 1.3] }
+  ]
+}

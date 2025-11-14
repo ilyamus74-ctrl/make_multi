@@ -332,4 +332,21 @@ target_link_libraries(calibration_cli
   calibration_watcher
 )
 
+##install(TARGETS calibration_cli DESTINATION .)
 install(TARGETS calibration_cli DESTINATION .)
+
+# ---------- simple synthetic tracking server ----------
+add_executable(simple_tracking_server
+  simple_tracking_server.cc
+)
+
+target_include_directories(simple_tracking_server PRIVATE
+  ${PROJ}
+  ${PROJ}/include
+  ${OpenCV_INCLUDE_DIRS}
+)
+
+target_link_libraries(simple_tracking_server
+  ${OpenCV_LIBS}
+  Threads::Threads
+)

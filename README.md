@@ -63,3 +63,28 @@ collecting calibration images. Detection and bounding-box drawing are disabled
 when the server is started with the `--no-draw` flag, and the web UI fetches the
 undistorted preview via `/api/preview.mjpg`. While calibration is running the
 video feed shows no detections or overlays.
+
+
+## Simple tracking demo server
+
+For quick tests without real cameras you can launch the new
+`simple_tracking_server` utility. It loads a compact JSON configuration with
+synthetic camera calibration data, animates a couple of demo targets and exposes
+frames with drawn detections via HTTP.
+
+```
+cmake --build build --target simple_tracking_server
+./build/simple_tracking_server --config web/simple_tracking_demo.json
+```
+
+The bundled `web/simple_tracking_demo.json` file references the existing
+`frame.jpg` sample and declares two virtual cameras (`cam_a` and `cam_b`). Each
+camera contains a calibration block with its 3D position, metric scaling
+(`meters_per_pixel`) and floor height. You can duplicate the camera entries or
+change the positions to emulate your setup. The `objects` array controls the
+initial bounding boxes and their velocities so you can experiment with different
+scenarios.
+
+Once the server is running open `http://localhost:8095` to see the available
+cameras, download `/api/frame/<camera_id>` for individual previews and query
+`/api/tracks` to inspect the current global tracking data.
