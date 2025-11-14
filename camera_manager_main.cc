@@ -57,6 +57,30 @@ static std::atomic<bool> g_manager_debug_enabled{false};
 static std::unordered_map<std::string, std::chrono::steady_clock::time_point>
     g_last_poll_time;
 
+static std::filesystem::path detectCalibrationResultsPath(
+    const std::filesystem::path &exe_dir) {
+  const std::vector<std::filesystem::path> candidates = {
+      exe_dir / "calibration" / "results",
+      exe_dir / "build" / "calibration" / "results",
+      exe_dir / "build" / "result"};
+
+  for (const auto &candidate : candidates) {
+    std::error_code ec;
+    auto json_path = candidate / "calibration_results.json";
+    if (std::filesystem::exists(json_path, ec)) {
+      auto absolute = std::filesystem::absolute(candidate, ec);
+      return ec ? candidate : absolute;
+    }
+    ec.clear();
+    if (std::filesystem::exists(candidate, ec)) {
+      auto absolute = std::filesystem::absolute(candidate, ec);
+      return ec ? candidate : absolute;
+    }
+  }
+
+  return exe_dir / "build" / "result";
+}
+
 static std::string formatTimestamp(
     std::chrono::system_clock::time_point time_point) {
   auto time = std::chrono::system_clock::to_time_t(time_point);
@@ -1159,7 +1183,8 @@ int main(int argc, char **argv) {
   if (!calibration_results_path.empty()) {
     g_global_tracker.setExternalCalibrationDirectory(calibration_results_path);
   } else {
-    g_global_tracker.setExternalCalibrationDirectory(exe_dir / "build" / "result");
+    auto detected_path = detectCalibrationResultsPath(exe_dir);
+    g_global_tracker.setExternalCalibrationDirectory(detected_path);
   }
   int port = j.value("http", nlohmann::json::object()).value("port", 8080);
 

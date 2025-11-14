@@ -53,7 +53,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "wide_angle_primary",
+      "role": "zoom",
       "show_fps": true
     },
     {
@@ -92,7 +92,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "wide_angle_primary",
+      "role": "zoom",
       "show_fps": true
     },
     {
@@ -131,7 +131,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "wide_angle_primary",
+      "role": "zoom",
       "show_fps": true
     },
     {
@@ -170,11 +170,11 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "wide_angle_primary",
+      "role": "zoom",
       "show_fps": true
     }
   ],
   "manager_debug_enabled": false,
   "scheme_type": "hemisphere_single",
-  "use_grayscale_tracking": true
+  "use_grayscale_tracking": false
 }

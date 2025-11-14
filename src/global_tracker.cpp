@@ -37,6 +37,31 @@ constexpr double kConfidenceDecayOnClamp = 0.05;
 constexpr int kCameraMissCountThreshold = 10; //было 5
 constexpr size_t kResidualSummaryInterval = 50;
 
+std::filesystem::path detectDefaultCalibrationDirectory() {
+    const std::vector<std::filesystem::path> candidates = {
+        std::filesystem::path("calibration") / "results",
+        std::filesystem::path("build") / "calibration" / "results",
+        std::filesystem::path("build") / "result"
+    };
+
+    for (const auto& candidate : candidates) {
+        std::error_code ec;
+        auto json_path = candidate / "calibration_results.json";
+        if (std::filesystem::exists(json_path, ec)) {
+            auto absolute = std::filesystem::absolute(candidate, ec);
+            return ec ? candidate : absolute;
+        }
+        ec.clear();
+        if (std::filesystem::exists(candidate, ec)) {
+            auto absolute = std::filesystem::absolute(candidate, ec);
+            return ec ? candidate : absolute;
+        }
+    }
+
+    std::error_code ec;
+    auto fallback = std::filesystem::absolute(std::filesystem::path("build") / "result", ec);
+    return ec ? std::filesystem::path("build") / "result" : fallback;
+}
 
 class DirectoryCalibrationSource {
 public:
@@ -267,9 +292,7 @@ GlobalTracker::GlobalTracker(CameraSchemeManager* scheme_manager,
         throw std::invalid_argument("scheme_manager cannot be null");
     }
 
-    std::error_code ec;
-    auto default_dir = std::filesystem::absolute("build/result", ec);
-    external_calibration_dir_ = ec ? std::filesystem::path("build/result") : default_dir;
+    external_calibration_dir_ = detectDefaultCalibrationDirectory();
 
     auto config = scheme_manager_->getTrackingConfig();
 
