@@ -504,6 +504,9 @@ private:
     std::vector<CamBuffer> cam_bufs;
     std::thread cam_thread{};
     std::atomic<bool> cam_running{false};
+    enum class CaptureStatus { kOk, kRetry, kFatal };
+    int stream_restart_attempts_ = 0;
+    static constexpr int kMaxStreamRestarts = 5;
     int cam_w=0, cam_h=0, cam_fps=0;
     std::string cam_id_;
 
@@ -1489,24 +1492,68 @@ private:
         }
     }
 
-    bool grabMjpeg(std::vector<uint8_t>& out) {
+    bool restartCaptureStream() {
         if (cam_fd < 0) return false;
+        ++stream_restart_attempts_;
+        v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        if (ioctl(cam_fd, VIDIOC_STREAMOFF, &type) < 0) {
+            perror("VIDIOC_STREAMOFF (recover)");
+            return false;
+        }
+        for (size_t i = 0; i < cam_bufs.size(); ++i) {
+            v4l2_buffer buf{};
+            buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+            buf.memory = V4L2_MEMORY_MMAP;
+            buf.index = i;
+            if (ioctl(cam_fd, VIDIOC_QBUF, &buf) < 0) {
+                perror("VIDIOC_QBUF (recover)");
+                return false;
+            }
+        }
+        if (ioctl(cam_fd, VIDIOC_STREAMON, &type) < 0) {
+            perror("VIDIOC_STREAMON (recover)");
+            return false;
+        }
+        fprintf(stderr,
+                "Camera stream restarted after DQBUF error (%d/%d attempts)\n",
+                stream_restart_attempts_, kMaxStreamRestarts);
+        return true;
+    }
+
+    CaptureStatus grabMjpeg(std::vector<uint8_t>& out) {
+        if (cam_fd < 0) return CaptureStatus::kFatal;
         fd_set fds; FD_ZERO(&fds); FD_SET(cam_fd, &fds);
         timeval tv{0}; tv.tv_sec = 2;
         int r = select(cam_fd + 1, &fds, NULL, NULL, &tv);
-        if (r <= 0) return false;
+        if (r <= 0) return CaptureStatus::kRetry;
 
         v4l2_buffer buf{};
         buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buf.memory = V4L2_MEMORY_MMAP;
-        if (ioctl(cam_fd, VIDIOC_DQBUF, &buf) < 0) return false;
-        if (buf.index >= cam_bufs.size()) return false;
+        if (ioctl(cam_fd, VIDIOC_DQBUF, &buf) < 0) {
+            int err = errno;
+            if (err == EIO || err == EPIPE) {
+                if (stream_restart_attempts_ >= kMaxStreamRestarts ||
+                    !restartCaptureStream()) {
+                    fprintf(stderr,
+                            "Camera: DQBUF failed with %s after %d attempts, giving up\n",
+                            strerror(err), stream_restart_attempts_);
+                    return CaptureStatus::kFatal;
+                }
+                return CaptureStatus::kRetry;
+            }
+            return CaptureStatus::kRetry;
+        }
+        if (buf.index >= cam_bufs.size())
+            return CaptureStatus::kRetry;
+        stream_restart_attempts_ = 0;
 
         auto& b = cam_bufs[buf.index];
         out.assign((uint8_t*)b.start, (uint8_t*)b.start + buf.bytesused);
 
-        if (ioctl(cam_fd, VIDIOC_QBUF, &buf) < 0) return false;
-        return true;
+        if (ioctl(cam_fd, VIDIOC_QBUF, &buf) < 0)
+            return CaptureStatus::kRetry;
+        return CaptureStatus::kOk;
     }
 
     // ---------- JPEG <-> RGB (TurboJPEG) ----------
@@ -1570,7 +1617,13 @@ private:
             // ===== CAPTURE =====
             std::vector<uint8_t> mjpeg;
             TICK(cap);  // DEBUG
-            bool okCap = grabMjpeg(mjpeg);
+            auto cap_status = grabMjpeg(mjpeg);
+            bool okCap = cap_status == CaptureStatus::kOk;
+            if (cap_status == CaptureStatus::kFatal) {
+                fprintf(stderr, "Fatal camera capture error, stopping process\n");
+                raise(SIGTERM);
+                break;
+            }
             if (okCap && !cam_id_.empty()) {
                 uint64_t t_ns = cam_mgr_.nowMonoNs();
                 cam_mgr_.pushFrame(cam_id_, cam_w, cam_h, mjpeg, t_ns);

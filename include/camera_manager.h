@@ -21,6 +21,7 @@
 class CameraManager {
 public:
   CameraManager();
+  ~CameraManager();
   using Clock = std::chrono::steady_clock;
 
   enum class PixelFormat { RGB, GRAY };
@@ -120,6 +121,9 @@ public:
   // Notify monitoring thread to re-check state immediately.
   void notify();
 
+  // Schedule configuration reload from disk (safe to call from signal
+  // handlers).
+  void requestConfigReload();
 
   struct ConfiguredInfo {
     std::string id;
@@ -242,6 +246,9 @@ private:
   std::thread monitor_thread_;
   std::thread config_thread_;
   std::atomic<bool> running_{false};
+  int wake_fd_{-1};
+  int config_reload_event_fd_{-1};
+  std::atomic<bool> config_reload_pending_{false};
 
   Clock::time_point start_time_;
   std::string scheme_type_{"hemisphere_single"};

@@ -897,6 +897,8 @@ static void sigint(int) {
   g_server.stop();
 }
 
+static void sighup(int) { g_mgr.requestConfigReload(); }
+
 static bool formatsEqual(const v4l2_format &a, const v4l2_format &b) {
   if (a.type != b.type)
     return false;
@@ -1251,6 +1253,7 @@ int main(int argc, char **argv) {
       std::filesystem::absolute(readMainConfig().value("calib_root", ".")));
 
   std::signal(SIGINT, sigint);
+  std::signal(SIGHUP, sighup);
   g_mgr.start();
 
   g_scheme_manager.initialize(g_config_path.string());

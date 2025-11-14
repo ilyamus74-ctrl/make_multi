@@ -2,6 +2,8 @@
 window.CameraApp = window.CameraApp || {};
 
 window.CameraApp.API = {
+    _healthCache: new Map(),
+    _healthThrottleMs: 300,
     // Base fetch wrapper with error handling
     async request(url, options = {}) {
         const config = {
@@ -40,17 +42,54 @@ window.CameraApp.API = {
     //    return this.request(`${location.protocol}//${location.hostname}:${detPort}/api/health`);
     //},
     async getCameraHealth(detPort) {
-    try {
-        const response = await fetch(`${location.protocol}//${location.hostname}:${detPort}/api/health`, {
-            cache: 'no-store',
-            mode: 'cors',
-            credentials: 'omit'
-        });
-        return await response.json();
-        } catch (error) {
-        console.warn(`Health check failed for port ${detPort}:`, error.message);
-        return { cap_real_fps: 0 }; // Возвращаем дефолтное значение
+        const now = (typeof performance !== 'undefined' && performance.now)
+            ? performance.now()
+            : Date.now();
+        const cacheEntry = this._healthCache.get(detPort);
+        if (cacheEntry) {
+            if (cacheEntry.promise) {
+                return cacheEntry.promise;
+            }
+            if (cacheEntry.data && now - cacheEntry.timestamp < this._healthThrottleMs) {
+                return cacheEntry.data;
+            }
         }
+
+        const fetchPromise = (async () => {
+            try {
+                const response = await fetch(`${location.protocol}//${location.hostname}:${detPort}/api/health`, {
+                    cache: 'no-store',
+                    mode: 'cors',
+                    credentials: 'omit'
+                });
+                const data = await response.json();
+                this._healthCache.set(detPort, {
+                    timestamp: (typeof performance !== 'undefined' && performance.now)
+                        ? performance.now()
+                        : Date.now(),
+                    data
+                });
+                return data;
+            } catch (error) {
+                console.warn(`Health check failed for port ${detPort}:`, error.message);
+                const fallback = { cap_real_fps: 0 };
+                this._healthCache.set(detPort, {
+                    timestamp: (typeof performance !== 'undefined' && performance.now)
+                        ? performance.now()
+                        : Date.now(),
+                    data: fallback
+                });
+                return fallback;
+            }
+        })();
+
+        this._healthCache.set(detPort, {
+            timestamp: now,
+            promise: fetchPromise,
+            data: cacheEntry && cacheEntry.data ? cacheEntry.data : null
+        });
+
+        return fetchPromise;
     },
     getPreviewMjpgUrl(cameraId) {
         return `/api/preview.mjpg?id=${encodeURIComponent(cameraId)}`;

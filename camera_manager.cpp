@@ -12,6 +12,10 @@
 #include <cerrno>
 #include <vector>
 #include <limits>
+#include <array>
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
+#include <sys/inotify.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -19,7 +23,6 @@
 #include <linux/videodev2.h>
 #include <signal.h>
 #include <opencv2/calib3d.hpp>
-#include <sys/inotify.h>
 
 // Информация о стереопарах теперь хранится внутри CameraManager.
 
@@ -27,7 +30,68 @@ using json = nlohmann::json;
 
 CameraManager g_camera_manager;
 
-CameraManager::CameraManager() { start_time_ = Clock::now(); }
+namespace {
+
+bool writeJsonAtomic(const std::string &path, const json &j) {
+  namespace fs = std::filesystem;
+  try {
+    fs::path target(path);
+    fs::path dir = target.parent_path();
+    if (!dir.empty()) {
+      std::error_code ec;
+      fs::create_directories(dir, ec);
+      if (ec)
+        return false;
+    }
+    fs::path tmp = target;
+    tmp += ".tmp";
+    {
+      std::ofstream out(tmp, std::ios::trunc | std::ios::binary);
+      if (!out.is_open())
+        return false;
+      out << j.dump(2);
+      out.flush();
+      if (!out.good())
+        return false;
+    }
+    std::error_code ec;
+    fs::rename(tmp, target, ec);
+    if (ec) {
+      fs::remove(tmp, ec);
+      return false;
+    }
+    return true;
+  } catch (...) {
+    return false;
+  }
+}
+
+std::string preferredDevicePath(const CameraManager::DiscoveredCamera &dc) {
+  for (const auto &ident : dc.identifiers) {
+    if (ident.type == "by-id")
+      return std::string("/dev/v4l/by-id/") + ident.value;
+  }
+  for (const auto &ident : dc.identifiers) {
+    if (ident.type == "by-path")
+      return std::string("/dev/v4l/by-path/") + ident.value;
+  }
+  return dc.device_path;
+}
+
+} // namespace
+
+CameraManager::CameraManager() {
+  start_time_ = Clock::now();
+  wake_fd_ = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+  config_reload_event_fd_ = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+}
+
+CameraManager::~CameraManager() {
+  if (wake_fd_ >= 0)
+    close(wake_fd_);
+  if (config_reload_event_fd_ >= 0)
+    close(config_reload_event_fd_);
+}
 
 bool CameraManager::loadConfig(const std::string &path) {
   std::lock_guard<std::mutex> lk(mutex_);
@@ -55,13 +119,11 @@ bool CameraManager::loadConfig(const std::string &path) {
     cam["device"] = "";
     cam["role"] = "wide_angle_primary";
     j["cameras"] = json::array({cam});
-    std::ofstream out(path);
-    if (!out.is_open()) {
+    if (!writeJsonAtomic(path, j)) {
       std::cerr << "CameraManager: failed to create config " << path
                 << std::endl;
       return false;
     }
-    out << j.dump(2);
     scheme_type_ = j["scheme_type"].get<std::string>();
     return true;
   } else {
@@ -147,11 +209,10 @@ bool CameraManager::loadConfig(const std::string &path) {
       }
     }
   }
-  if (need_save) {
-    std::ofstream out(path, std::ios::trunc);
-    if (out.is_open())
-      out << j.dump(2);
-  }
+
+  if (need_save)
+    writeJsonAtomic(path, j);
+
   if (j.contains("cameras")) {
     for (auto &c : j["cameras"]) {
       CamConfig cfg;
@@ -282,7 +343,8 @@ void CameraManager::start(bool enable_monitoring) {
 
 void CameraManager::stop() {
   running_ = false;
-  cv_.notify_all();
+  notify();
+  requestConfigReload();
   if (config_thread_.joinable())
     config_thread_.join();
   if (monitor_thread_.joinable())
@@ -303,15 +365,30 @@ void CameraManager::stop() {
   det_pids_.clear();
 }
 
-void CameraManager::notify() { cv_.notify_all(); }
+void CameraManager::notify() {
+  cv_.notify_all();
+  if (wake_fd_ >= 0) {
+    uint64_t one = 1;
+    if (write(wake_fd_, &one, sizeof(one)) < 0 && errno != EAGAIN) {
+    }
+  }
+}
+
+void CameraManager::requestConfigReload() {
+  config_reload_pending_.store(true, std::memory_order_release);
+  if (config_reload_event_fd_ >= 0) {
+    uint64_t one = 1;
+    if (write(config_reload_event_fd_, &one, sizeof(one)) < 0 &&
+        errno != EAGAIN) {
+    }
+  }
+}
 
 void CameraManager::monitorLoop() {
   namespace fs = std::filesystem;
   using namespace std::chrono_literals;
- 
-  while (running_) {
 
-
+  auto perform_scan = [&]()
     {
       std::lock_guard<std::mutex> lk(mutex_);
       for (auto it = active_.begin(); it != active_.end();) {
@@ -324,9 +401,8 @@ void CameraManager::monitorLoop() {
             kill(itp->second, SIGTERM);
             waitpid(itp->second, nullptr, 0);
             det_pids_.erase(itp);
-
           }
-     } else {
+        } else {
           ++it;
         }
       }
@@ -473,8 +549,14 @@ void CameraManager::monitorLoop() {
           }
         }
         if (!matched && !cfg.device_path.empty()) {
-          if (dc.device_path == cfg.device_path)
+          if (dc.device_path == cfg.device_path) {
             matched = true;
+          } else {
+            std::error_code pec;
+            auto canonical_cfg = fs::canonical(cfg.device_path, pec);
+            if (!pec && canonical_cfg == dc.device_path)
+              matched = true;
+          }
         }
         if (matched) {
           if (!cfg.expected_bus_info.empty() && !dc.bus_info.empty() &&
@@ -495,8 +577,9 @@ void CameraManager::monitorLoop() {
         std::lock_guard<std::mutex> lk(mutex_);
         if (present && matched_index < discovered.size()) {
           const auto &dc = discovered[matched_index];
-          active_paths_[id] = dc.device_path;
-          cfg.device_path = dc.device_path;
+          auto symlink_path = preferredDevicePath(dc);
+          active_paths_[id] = symlink_path;
+          cfg.device_path = symlink_path;
           bool identity_updated = false;
           if (cfg.expected_bus_info.empty() && !dc.bus_info.empty()) {
             cfg.expected_bus_info = dc.bus_info;
@@ -544,16 +627,16 @@ void CameraManager::monitorLoop() {
       }
 
 
-     if (!present || cfg.det_port <= 0) {
-         if (pid > 0) {
-             kill(pid, SIGTERM);
-             waitpid(pid, nullptr, 0);
-             {
-                 std::lock_guard<std::mutex> lk(mutex_);
-                 det_pids_.erase(id);
-             }
-         }
-         continue;
+      if (!present || cfg.det_port <= 0) {
+        if (pid > 0) {
+          kill(pid, SIGTERM);
+          waitpid(pid, nullptr, 0);
+          {
+            std::lock_guard<std::mutex> lk(mutex_);
+            det_pids_.erase(id);
+          }
+        }
+        continue;
       }
 
       if (pid > 0) {
@@ -579,7 +662,8 @@ void CameraManager::monitorLoop() {
         if (child == 0) {
           std::string port = std::to_string(cfg.det_port);
           std::vector<std::string> args;
-          args.push_back(cfg.mode == CamConfig::Mode::Calibration || cfg.mode == CamConfig::Mode::Preview
+          args.push_back(cfg.mode == CamConfig::Mode::Calibration ||
+                             cfg.mode == CamConfig::Mode::Preview
                              ? "yolov8_web_server_calibration"
                              : "yolov8_web_server");
           args.push_back(cfg.model_path);
@@ -592,7 +676,8 @@ void CameraManager::monitorLoop() {
           args.push_back("--port");
           args.push_back(port);
           args.push_back("--size");
-          args.push_back(std::to_string(cfg.preferred.w) + "x" + std::to_string(cfg.preferred.h));
+          args.push_back(std::to_string(cfg.preferred.w) + "x" +
+                         std::to_string(cfg.preferred.h));
           if (!cfg.labels_path.empty()) {
             args.push_back("--labels");
             args.push_back(cfg.labels_path);
@@ -613,15 +698,10 @@ void CameraManager::monitorLoop() {
             args.push_back("--log-file");
             args.push_back(cfg.log_file);
           }
-          // *** ДОБАВЬТЕ ЭТИ СТРОКИ ***
-          // Для режима Preview отключаем детекцию
-          if (cfg.mode == CamConfig::Mode::Preview) {
-          args.push_back("--no-draw");
+          if (cfg.mode == CamConfig::Mode::Preview ||
+              cfg.mode == CamConfig::Mode::Calibration) {
+            args.push_back("--no-draw");
           }
-          if (cfg.mode == CamConfig::Mode::Calibration) {
-          args.push_back("--no-draw");
-          }
-          // *** КОНЕЦ ДОБАВЛЕНИЯ ***
           for (const auto &a : cfg.det_args)
             args.push_back(a);
           if (!config_path_.empty()) {
@@ -632,7 +712,8 @@ void CameraManager::monitorLoop() {
           for (auto &a : args)
             argv.push_back(const_cast<char *>(a.c_str()));
           argv.push_back(nullptr);
-          execv((cfg.mode == CamConfig::Mode::Calibration || cfg.mode == CamConfig::Mode::Preview)
+          execv((cfg.mode == CamConfig::Mode::Calibration ||
+                 cfg.mode == CamConfig::Mode::Preview)
                     ? "./yolov8_web_server_calibration"
                     : "./yolov8_web_server",
                 argv.data());
@@ -643,7 +724,6 @@ void CameraManager::monitorLoop() {
           {
             std::lock_guard<std::mutex> lk(mutex_);
             det_pids_[id] = child;
-
           }
           std::cout << "CameraManager: forked detection pid " << child
                     << " for device " << cfg.device_path << " port "
@@ -665,63 +745,181 @@ void CameraManager::monitorLoop() {
       std::lock_guard<std::mutex> lk(mutex_);
       unconfigured_ = std::move(new_unconfigured);
     }
+  };
 
-    {
-      std::unique_lock<std::mutex> lk(mutex_);
-      cv_.wait_for(lk, 1s);
-    }
+  int epoll_fd = epoll_create1(EPOLL_CLOEXEC);
+  if (epoll_fd < 0) {
+    std::cerr << "CameraManager: epoll_create1 failed: "
+              << std::strerror(errno) << std::endl;
+    return;
   }
 
+  int inotify_fd = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
+  int watch_fd = -1;
+  const uint32_t watch_mask = IN_CREATE | IN_DELETE | IN_ATTRIB |
+                              IN_MOVED_FROM | IN_MOVED_TO | IN_DELETE_SELF |
+                              IN_MOVE_SELF;
+  auto next_watch_retry = Clock::now();
 
+  auto install_watch = [&]() {
+    if (inotify_fd < 0 || watch_fd >= 0)
+      return;
+    int wd = inotify_add_watch(inotify_fd, "/dev/v4l/by-id", watch_mask);
+    if (wd < 0) {
+      next_watch_retry = Clock::now() + 2s;
+      return;
+    }
+    watch_fd = wd;
+  };
+  install_watch();
+
+  auto add_fd = [&](int fd) {
+    if (fd < 0)
+      return;
+    epoll_event ev{};
+    ev.events = EPOLLIN;
+    ev.data.fd = fd;
+    if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &ev) < 0) {
+      std::cerr << "CameraManager: epoll_ctl failed for fd " << fd << ": "
+                << std::strerror(errno) << std::endl;
+    }
+  };
+
+  add_fd(wake_fd_);
+  add_fd(inotify_fd);
+
+  std::array<epoll_event, 4> events{};
+  std::vector<char> inotify_buf(4096);
+  bool need_scan = true;
+  const auto periodic_interval = 2s;
+  auto next_periodic = Clock::now();
+
+  while (running_) {
+    if (need_scan) {
+      perform_scan();
+      need_scan = false;
+      next_periodic = Clock::now() + periodic_interval;
+    }
+    if (!running_)
+      break;
+
+    auto now = Clock::now();
+    if (now >= next_periodic)
+      need_scan = true;
+
+    if (!running_)
+      break;
+
+    int timeout_ms = 500;
+    if (!need_scan) {
+      auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(
+          next_periodic - now);
+      timeout_ms = std::max<int>(100, static_cast<int>(remaining.count()));
+    }
+
+    int ready = epoll_wait(epoll_fd, events.data(), events.size(), timeout_ms);
+    if (ready < 0) {
+      if (errno == EINTR)
+        continue;
+      std::cerr << "CameraManager: epoll_wait failed: "
+                << std::strerror(errno) << std::endl;
+      break;
+    }
+    if (ready == 0)
+      continue;
+    for (int i = 0; i < ready; ++i) {
+      int fd = events[i].data.fd;
+      if (fd == wake_fd_) {
+        uint64_t value;
+        while (read(wake_fd_, &value, sizeof(value)) > 0) {
+        }
+        need_scan = true;
+      } else if (fd == inotify_fd) {
+        ssize_t len;
+        while ((len = read(inotify_fd, inotify_buf.data(),
+                           inotify_buf.size())) > 0) {
+          for (char *ptr = inotify_buf.data();
+               ptr < inotify_buf.data() + len;
+               ptr += sizeof(inotify_event) +
+                      reinterpret_cast<inotify_event *>(ptr)->len) {
+            auto *ev = reinterpret_cast<inotify_event *>(ptr);
+            if (ev->mask & (IN_CREATE | IN_DELETE | IN_ATTRIB |
+                            IN_MOVED_FROM | IN_MOVED_TO))
+              need_scan = true;
+            if (ev->mask & (IN_DELETE_SELF | IN_IGNORED)) {
+              watch_fd = -1;
+              next_watch_retry = Clock::now();
+            }
+          }
+        }
+        if (len < 0 && errno != EAGAIN && errno != EINTR)
+          std::cerr << "CameraManager: inotify read failed: "
+                    << std::strerror(errno) << std::endl;
+      }
+    }
+
+    if (watch_fd < 0 && inotify_fd >= 0 && Clock::now() >= next_watch_retry)
+      install_watch();
+  }
+
+  if (watch_fd >= 0)
+    inotify_rm_watch(inotify_fd, watch_fd);
+  if (inotify_fd >= 0)
+    close(inotify_fd);
+  close(epoll_fd);
 }
 
 
 void CameraManager::configWatchLoop() {
   if (config_path_.empty())
     return;
-  int fd = inotify_init1(IN_NONBLOCK);
-  if (fd < 0) {
-    std::cerr << "CameraManager: inotify_init failed: "
-              << std::strerror(errno) << std::endl;
-    return;
-  }
-  int wd = inotify_add_watch(fd, config_path_.c_str(), IN_MODIFY);
-  if (wd < 0) {
-    std::cerr << "CameraManager: inotify_add_watch failed for "
-              << config_path_ << ": " << std::strerror(errno) << std::endl;
-    close(fd);
-    return;
-  }
-  std::vector<char> buf(sizeof(struct inotify_event) + 512);
+  using namespace std::chrono_literals;
+  const auto debounce = 300ms;
+  auto last_reload = Clock::now() - debounce;
+
+
   while (running_) {
-    ssize_t len = read(fd, buf.data(), buf.size());
-    if (len <= 0) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    if (!config_reload_pending_.load(std::memory_order_acquire)) {
+      if (config_reload_event_fd_ < 0) {
+        std::this_thread::sleep_for(debounce);
+        continue;
+      }
+      uint64_t value;
+      if (read(config_reload_event_fd_, &value, sizeof(value)) < 0) {
+        if (errno == EINTR)
+          continue;
+        if (errno == EAGAIN) {
+          std::this_thread::sleep_for(debounce);
+          continue;
+        }
+        break;
+      }
       continue;
     }
-    for (char *ptr = buf.data(); ptr < buf.data() + len;
-         ptr += sizeof(struct inotify_event) +
-                ((struct inotify_event *)ptr)->len) {
-      auto *ev = reinterpret_cast<struct inotify_event *>(ptr);
-      if (ev->mask & IN_MODIFY) {
-        if (loadConfig(config_path_)) {
-          std::lock_guard<std::mutex> lk(mutex_);
-          for (auto it = det_pids_.begin(); it != det_pids_.end();) {
-            if (!configs_.count(it->first)) {
-              kill(it->second, SIGTERM);
-              waitpid(it->second, nullptr, 0);
-              it = det_pids_.erase(it);
-            } else {
-              kill(it->second, SIGHUP);
-              ++it;
-            }
-          }
+
+    auto now = Clock::now();
+    auto elapsed = now - last_reload;
+    if (elapsed < debounce) {
+      std::this_thread::sleep_for(debounce - elapsed);
+      continue;
+    }
+
+    config_reload_pending_.store(false, std::memory_order_release);
+    if (loadConfig(config_path_)) {
+      std::lock_guard<std::mutex> lk(mutex_);
+      for (auto it = det_pids_.begin(); it != det_pids_.end();) {
+        if (!configs_.count(it->first)) {
+          kill(it->second, SIGTERM);
+          waitpid(it->second, nullptr, 0);
+          it = det_pids_.erase(it);
+        } else {
+          kill(it->second, SIGHUP);
+          ++it;
         }
       }
     }
+    last_reload = Clock::now();
   }
-  inotify_rm_watch(fd, wd);
-  close(fd);
 }
 
 bool CameraManager::removeCamera(const std::string &id) {
@@ -753,10 +951,9 @@ bool CameraManager::removeCamera(const std::string &id) {
   }
   if (!j.contains("scheme_type"))
     j["scheme_type"] = scheme_type_;
-  std::ofstream out(config_path_, std::ios::trunc);
-  if (!out.is_open())
+  if (!writeJsonAtomic(config_path_, j))
     return false;
-  out << j.dump(2);
+  notify();
   return true;
 }
 
@@ -869,10 +1066,7 @@ void CameraManager::persistMatchMetadata(const CamConfig &cfg) {
   if (!modified)
     return;
 
-  std::ofstream out(config_path_, std::ios::trunc);
-  if (!out.is_open())
-    return;
-  out << j.dump(2);
+  writeJsonAtomic(config_path_, j);
 }
 
 std::vector<CameraManager::ConfiguredInfo> CameraManager::configuredCameras() {
@@ -1112,11 +1306,9 @@ bool CameraManager::addCamera(const std::string &id,
   cam["log_file"] = cfg.log_file;
   cam["role"] = cfg.role;
   j["cameras"].push_back(cam);
-  std::ofstream out(config_path_, std::ios::trunc);
-  if (!out.is_open())
+  if (!writeJsonAtomic(config_path_, j))
     return false;
-  out << j.dump(2);
-  cv_.notify_all();
+  notify();
   return true;
 }
 
@@ -1297,11 +1489,9 @@ bool CameraManager::reassignCamera(const std::string &id,
       break;
     }
   }
-  std::ofstream out(config_path_, std::ios::trunc);
-  if (!out.is_open())
+  if (!writeJsonAtomic(config_path_, j))
     return false;
-  out << j.dump(2);
-  cv_.notify_all();
+  notify();
   return true;
 }
 
@@ -1344,13 +1534,11 @@ std::lock_guard<std::mutex> lk(mutex_);
           c["device"] = it->second.device_path;
       }
     }
-    std::ofstream out(config_path_, std::ios::trunc);
-    if (!out.is_open())
+    if (!writeJsonAtomic(config_path_, j))
       return false;
-    out << j.dump(2);
   }
   if (changed)
-    cv_.notify_all();
+    notify();
   return true;
 }
 
@@ -1444,10 +1632,8 @@ bool CameraManager::updateSettings(const std::string &id,
         c["device"] = it->second.device_path;
     }
   }
-  std::ofstream out(config_path_, std::ios::trunc);
-  if (!out.is_open())
+  if (!writeJsonAtomic(config_path_, j))
     return false;
-  out << j.dump(2);
   return true;
 }
 
@@ -1517,10 +1703,8 @@ bool CameraManager::resetSettings(const std::string &id) {
         c["device"] = cfg.device_path;
     }
   }
-  std::ofstream out(config_path_, std::ios::trunc);
-  if (!out.is_open())
+  if (!writeJsonAtomic(config_path_, j))
     return false;
-  out << j.dump(2);
   return true;
 }
 
@@ -1654,9 +1838,7 @@ bool CameraManager::saveConfig(const std::string &scheme_type,
     }
   }
 
-  std::ofstream out(config_path_, std::ios::trunc);
-  if (!out.is_open())
+  if (!writeJsonAtomic(config_path_, j))
     return false;
-  out << j.dump(2);
   return true;
 }
