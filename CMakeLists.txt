@@ -336,10 +336,31 @@ target_link_libraries(calibration_cli
 install(TARGETS calibration_cli DESTINATION .)
 
 # ---------- simple synthetic tracking server ----------
+set(SIMPLE_TRACKING_WEB_SRC ${CMAKE_CURRENT_SOURCE_DIR}/web)
+set(SIMPLE_TRACKING_WEB_DST ${CMAKE_CURRENT_BINARY_DIR}/web)
+set(SIMPLE_TRACKING_WEB_STAMP ${SIMPLE_TRACKING_WEB_DST}/.assets_stamp)
+
+file(GLOB_RECURSE SIMPLE_TRACKING_WEB_FILES
+  LIST_DIRECTORIES FALSE
+  ${SIMPLE_TRACKING_WEB_SRC}/*)
+
+add_custom_command(
+  OUTPUT ${SIMPLE_TRACKING_WEB_STAMP}
+  COMMAND ${CMAKE_COMMAND} -E make_directory ${SIMPLE_TRACKING_WEB_DST}
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${SIMPLE_TRACKING_WEB_SRC} ${SIMPLE_TRACKING_WEB_DST}
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/frame.jpg ${SIMPLE_TRACKING_WEB_DST}/frame.jpg
+  COMMAND ${CMAKE_COMMAND} -E touch ${SIMPLE_TRACKING_WEB_STAMP}
+  DEPENDS ${SIMPLE_TRACKING_WEB_FILES} ${CMAKE_CURRENT_SOURCE_DIR}/frame.jpg
+  COMMENT "Preparing simple tracking demo assets"
+)
+
+add_custom_target(simple_tracking_assets ALL DEPENDS ${SIMPLE_TRACKING_WEB_STAMP})
+
 add_executable(simple_tracking_server
   simple_tracking_server.cc
 )
 
+add_dependencies(simple_tracking_server simple_tracking_assets)
 target_include_directories(simple_tracking_server PRIVATE
   ${PROJ}
   ${PROJ}/include
