@@ -87,6 +87,8 @@ using Clock = std::chrono::high_resolution_clock;
 
 static std::filesystem::path g_exe_dir;
 static std::filesystem::path g_config_path;
+static std::mutex g_global_map_mx;
+static std::unordered_map<int, int> g_local_to_global;
 static bool fileExists(const std::string& p){ struct stat st{}; return stat(p.c_str(), &st)==0; }
 static bool dirExists(const std::string& p){ struct stat st{}; return stat(p.c_str(), &st)==0 && S_ISDIR(st.st_mode); }
 static int lookupGlobalIdForLocal(int local_id) {
@@ -97,8 +99,6 @@ static int lookupGlobalIdForLocal(int local_id) {
     }
     return it->second;
 }
-static std::mutex g_global_map_mx;
-static std::unordered_map<int, int> g_local_to_global;
 static std::string g_this_camera_id;
 static std::atomic<int> g_applied_global_cnt{0};
 static json readMainConfig(){

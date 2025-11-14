@@ -175,6 +175,7 @@ private:
     std::unordered_map<int, PendingReidEntry> pending_reid_;
     uint64_t pending_reid_retention_ms_ = 0;
     double pending_reid_descriptor_threshold_ = 0.0;
+    struct GlobalAssignment;
     std::vector<GlobalAssignment> last_assignments_;
     mutable std::vector<GlobalAssignment> last_assignments_snapshot_;
 
