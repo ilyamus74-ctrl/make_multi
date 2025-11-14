@@ -337,6 +337,20 @@ GlobalTracker::~GlobalTracker() {
     pending_reid_.clear();
 }
 
+void GlobalTracker::assignStereoMap(
+    std::map<std::string, std::map<std::string, StereoPairCalibration>> stereo_pairs) {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    for (auto& [first, partners] : stereo_calibrations_) {
+        for (auto& [second, params] : partners) {
+            params.R.release();
+            params.T.release();
+            params.Q.release();
+        }
+    }
+    stereo_calibrations_.clear();
+    stereo_calibrations_ = std::move(stereo_pairs);
+}
+
 void GlobalTracker::setDebugLogPath(const std::string& path) {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
 
@@ -3462,7 +3476,7 @@ bool GlobalTracker::loadCalibrationFromProvider(
 
     for (const auto& cam : cameras) {
         if (cam.status != CameraStatus::ACTIVE) {
-            continue
+            continue;
         }
 
         auto it = loaded.find(cam.id);

@@ -313,6 +313,8 @@ private:
         const std::function<bool(const std::string&, cv::Mat&, cv::Mat&, cv::Mat&)>& get_stereo_params,
         const std::vector<CameraConfig>& cameras,
         std::map<std::string, CameraCalibration>& calibrations);
+    void assignStereoMap(
+        std::map<std::string, std::map<std::string, StereoPairCalibration>> stereo_pairs);
     bool applyFallbackExtrinsics(const CameraConfig& cam, SchemeType scheme, CameraCalibration& calib);
     bool calibrateSphereFallback();
     bool calibrateHemisphereFallback();

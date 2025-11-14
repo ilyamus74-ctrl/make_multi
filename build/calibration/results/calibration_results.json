@@ -2,35 +2,46 @@
   "mono_calibrations": [
     {
       "calibration_file": "cam_1_calibration.yml",
-      "calibration_time": "2025-11-05 20:45:36",
+      "calibration_time": "2025-11-14 09:59:45",
       "camera_id": "1",
       "frames_used": 50,
       "image_height": 600,
       "image_width": 800,
       "mode": "",
-      "reprojection_error": 0.364708,
+      "reprojection_error": 0.462995,
       "success": true
     },
     {
       "calibration_file": "cam_3_calibration.yml",
-      "calibration_time": "2025-11-05 20:45:36",
+      "calibration_time": "2025-11-14 10:05:46",
       "camera_id": "3",
       "frames_used": 50,
       "image_height": 600,
       "image_width": 800,
       "mode": "",
-      "reprojection_error": 0.366483,
+      "reprojection_error": 0.328853,
       "success": true
     },
     {
       "calibration_file": "cam_5_calibration.yml",
-      "calibration_time": "2025-11-05 20:36:50",
+      "calibration_time": "2025-11-14 10:05:46",
       "camera_id": "5",
       "frames_used": 50,
       "image_height": 600,
       "image_width": 800,
       "mode": "",
-      "reprojection_error": 0.42306,
+      "reprojection_error": 0.325091,
+      "success": true
+    },
+    {
+      "calibration_file": "cam_7_calibration.yml",
+      "calibration_time": "2025-11-14 09:59:45",
+      "camera_id": "7",
+      "frames_used": 50,
+      "image_height": 600,
+      "image_width": 800,
+      "mode": "",
+      "reprojection_error": 0.44238,
       "success": true
     }
   ],
