@@ -68,12 +68,12 @@ bool writeJsonAtomic(const std::string &path, const json &j) {
 
 std::string preferredDevicePath(const CameraManager::DiscoveredCamera &dc) {
   for (const auto &ident : dc.identifiers) {
-    if (ident.type == "by-id")
-      return std::string("/dev/v4l/by-id/") + ident.value;
-  }
-  for (const auto &ident : dc.identifiers) {
     if (ident.type == "by-path")
       return std::string("/dev/v4l/by-path/") + ident.value;
+  }
+  for (const auto &ident : dc.identifiers) {
+    if (ident.type == "by-id")
+      return std::string("/dev/v4l/by-id/") + ident.value;
   }
   return dc.device_path;
 }
@@ -530,19 +530,19 @@ void CameraManager::monitorLoop() {
       for (size_t i = 0; i < discovered.size(); ++i) {
         const auto &dc = discovered[i];
         bool matched = false;
-        if (!cfg.match_substr.empty()) {
+        if (!cfg.match_path_substr.empty()) {
           for (const auto &ident : dc.identifiers) {
-            if (ident.type == "by-id" &&
-                ident.value.find(cfg.match_substr) != std::string::npos) {
+            if (ident.type == "by-path" &&
+                ident.value.find(cfg.match_path_substr) != std::string::npos) {
               matched = true;
               break;
             }
           }
         }
-        if (!matched && !cfg.match_path_substr.empty()) {
+        if (!matched && !cfg.match_substr.empty()) {
           for (const auto &ident : dc.identifiers) {
-            if (ident.type == "by-path" &&
-                ident.value.find(cfg.match_path_substr) != std::string::npos) {
+            if (ident.type == "by-id" &&
+                ident.value.find(cfg.match_substr) != std::string::npos) {
               matched = true;
               break;
             }
@@ -581,6 +581,15 @@ void CameraManager::monitorLoop() {
           active_paths_[id] = symlink_path;
           cfg.device_path = symlink_path;
           bool identity_updated = false;
+          if (cfg.match_path_substr.empty()) {
+            for (const auto &ident : dc.identifiers) {
+              if (ident.type == "by-path") {
+                cfg.match_path_substr = ident.value;
+                identity_updated = true;
+                break;
+              }
+            }
+          }
           if (cfg.expected_bus_info.empty() && !dc.bus_info.empty()) {
             cfg.expected_bus_info = dc.bus_info;
             identity_updated = true;
@@ -1049,6 +1058,8 @@ void CameraManager::persistMatchMetadata(const CamConfig &cfg) {
 
     apply_value("bus_info", cfg.expected_bus_info);
     apply_value("card", cfg.expected_card);
+    apply_value("by_path_contains", cfg.match_path_substr);
+    apply_value("by_id_contains", cfg.match_substr);
     if (!cfg.device_path.empty()) {
       auto it = match.find("device_path");
       if (it == match.end()) {
