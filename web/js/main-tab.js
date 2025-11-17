@@ -269,18 +269,23 @@ window.CameraApp.MainTab = {
         await window.CameraApp.API.enablePreview(true);
         window.CameraApp.State.previewEnabled = true;
         await this.loadCameras();
+
+        if (window.CameraApp.State.globalTrackingEnabled) {
+            window.CameraApp.GlobalTracker.show();
+            this.startDetectionLoop();
+        }
     },
 
     deactivate() {
         this.stopDetectionLoop();
         window.CameraApp.GlobalTracker.hide();
-        
+
         // Reset global tracking state
-        window.CameraApp.State.globalTrackingEnabled = false;
-        window.CameraApp.State.selectedObjectId = -1;
-        window.CameraApp.State.lastGlobalObjects = [];
-        
-        const globalToggle = document.getElementById('global-tracking-toggle');
-        globalToggle.checked = false;
+//        window.CameraApp.State.globalTrackingEnabled = false;
+//        window.CameraApp.State.selectedObjectId = -1;
+//        window.CameraApp.State.lastGlobalObjects = [];
+
+//        const globalToggle = document.getElementById('global-tracking-toggle');
+//        globalToggle.checked = false;
     }
 };
