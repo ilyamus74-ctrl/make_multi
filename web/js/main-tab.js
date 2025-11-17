@@ -183,7 +183,7 @@ window.CameraApp.MainTab = {
             ].join('');
 
             const content = camera
-                ? `<img src="${window.CameraApp.API.getCameraStreamUrl(camera.det_port)}" alt="Camera ${camera.id}" width="50%">
+                ? `<img class="camera-stream" src="${window.CameraApp.API.getCameraStreamUrl(camera.det_port)}" alt="Camera ${camera.id}">
                    <div class="camera-feed-label">DETECT</div>`
                 : `<div class="camera-placeholder">EMPTY</div>`;
 
