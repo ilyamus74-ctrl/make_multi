@@ -371,22 +371,6 @@ target_link_libraries(simple_tracking_server
   ${OpenCV_LIBS}
   Threads::Threads
 )
-
-# ---------- global diagnostics tool ----------
-add_executable(global_diag
-  tools/global_diag.cc
-)
-
-target_include_directories(global_diag PRIVATE
-  ${PROJ}
-  ${PROJ}/include
-)
-
-target_link_libraries(global_diag
-  Threads::Threads
-  ${NLOHMANN_JSON_LIBRARIES}
-)
-
 # ---------- global diagnostics tool ----------
 add_executable(global_diag
   tools/global_diag.cc

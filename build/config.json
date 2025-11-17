@@ -37,8 +37,8 @@
         "card": "Full HD webcam: Full HD webcam",
         "device_path": "/dev/v4l/by-path/platform-xhci-hcd.11.auto-usb-0:1:1.0-video-index0"
       },
-      "mode": "calibration",
-      "model_path": "model_rknn/yolov8.rknn",
+      "mode": "detect",
+      "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
       "npu_core": "auto",
       "npu_worker": 0,
       "position": {
@@ -53,7 +53,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "zoom",
+      "role": "zoom_variable",
       "show_fps": true
     },
     {
@@ -76,8 +76,8 @@
         "card": "HD 720P webcam: HD 720P webcam",
         "device_path": "/dev/v4l/by-path/platform-fc800000.usb-usb-0:1.2:1.0-video-index0"
       },
-      "mode": "calibration",
-      "model_path": "model_rknn/yolov8.rknn",
+      "mode": "detect",
+      "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
       "npu_core": "auto",
       "npu_worker": 0,
       "position": {
@@ -92,7 +92,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "zoom",
+      "role": "zoom_variable",
       "show_fps": true
     },
     {
@@ -115,8 +115,8 @@
         "card": "HD 720P webcam: HD 720P webcam",
         "device_path": "/dev/v4l/by-path/platform-fc880000.usb-usb-0:1:1.0-video-index0"
       },
-      "mode": "calibration",
-      "model_path": "model_rknn/yolov8.rknn",
+      "mode": "detect",
+      "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
       "npu_core": "auto",
       "npu_worker": 0,
       "position": {
@@ -131,7 +131,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "wide_angle_primary",
+      "role": "zoom_variable",
       "show_fps": false
     },
     {
@@ -154,8 +154,8 @@
         "card": "HD 720P webcam: HD 720P webcam",
         "device_path": "/dev/v4l/by-path/platform-fc800000.usb-usb-0:1.1:1.0-video-index0"
       },
-      "mode": "calibration",
-      "model_path": "model_rknn/yolov8.rknn",
+      "mode": "detect",
+      "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
       "npu_core": "auto",
       "npu_worker": 0,
       "position": {
@@ -170,9 +170,11 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "wide_angle_primary",
+      "role": "zoom_variable",
       "show_fps": false
     }
   ],
-  "scheme_type": "hemisphere_single"
+  "manager_debug_enabled": false,
+  "scheme_type": "hemisphere_single",
+  "use_grayscale_tracking": true
 }
