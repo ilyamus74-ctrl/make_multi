@@ -86,7 +86,7 @@ window.CameraApp.App = {
             const globalToggle = document.getElementById('global-tracking-toggle');
             const grayscaleToggle = document.getElementById('grayscale-tracking-toggle');
 
-            const savedGlobal = !!config.global_tracking;
+            const savedGlobal = !!(config.global_tracking ?? config.use_global_tracking);
             const savedGrayscale = !!config.grayscale_tracking;
 
             window.CameraApp.State.globalTrackingEnabled = savedGlobal;

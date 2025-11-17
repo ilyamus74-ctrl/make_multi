@@ -89,7 +89,7 @@ window.CameraApp.MainTab = {
         try {
             const config = await window.CameraApp.API.getConfig();
             const globalToggle = document.getElementById('global-tracking-toggle');
-            const savedGlobal = !!config.global_tracking;
+            const savedGlobal = !!(config.global_tracking ?? config.use_global_tracking);
             window.CameraApp.State.globalTrackingEnabled = savedGlobal;
             if (globalToggle) {
                 globalToggle.checked = savedGlobal;
