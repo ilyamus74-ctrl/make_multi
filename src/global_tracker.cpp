@@ -38,7 +38,17 @@ constexpr int kCameraMissCountThreshold = 10; //было 5
 constexpr size_t kResidualSummaryInterval = 50;
 
 std::filesystem::path detectDefaultCalibrationDirectory() {
+    std::error_code ec;
+    std::filesystem::path exe_path = std::filesystem::read_symlink("/proc/self/exe", ec);
+    std::filesystem::path exe_dir;
+    if (!ec) {
+        exe_dir = exe_path.parent_path();
+    }
+
     const std::vector<std::filesystem::path> candidates = {
+        exe_dir / "calibration" / "results",
+        exe_dir / "build" / "calibration" / "results",
+        exe_dir / "build" / "result",
         std::filesystem::path("calibration") / "results",
         std::filesystem::path("build") / "calibration" / "results",
         std::filesystem::path("build") / "result"
