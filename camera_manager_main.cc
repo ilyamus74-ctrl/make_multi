@@ -1270,9 +1270,11 @@ int main(int argc, char **argv) {
   std::signal(SIGHUP, sighup);
   g_mgr.start();
 
-  g_scheme_manager.initialize(g_config_path.string());
-  ensureCalibrationWatcher();
-  g_global_tracker.initialize();
+  if (g_use_global_tracking) {
+    g_scheme_manager.initialize(g_config_path.string());
+    ensureCalibrationWatcher();
+    g_global_tracker.initialize();
+  }
 
 
   // Initialize camera roles from current manager configuration
