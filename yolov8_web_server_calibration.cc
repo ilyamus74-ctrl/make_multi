@@ -2531,12 +2531,10 @@ server.Get("/api/calibration_new/video", [this](const Request&, Response& res) {
                         int w = d->box.right - d->box.left;
                         int h = d->box.bottom - d->box.top;
                         draw_rectangle(&frame, x, y, w, h, COLOR_BLUE, 3);
-                        if (show_fps) {
-                            char text[96];
-                            snprintf(text, sizeof(text), "#%d %s %.1f%%", d->track_id,
-                                     coco_cls_to_name(d->cls_id), d->prop * 100.f);
-                            draw_text(&frame, text, x, std::max(0, y - 18), COLOR_RED, 10);
-                        }
+                        char text[96];
+                        snprintf(text, sizeof(text), "#%d %s %.1f%%", d->track_id,
+                                 coco_cls_to_name(d->cls_id), d->prop * 100.f);
+                        draw_text(&frame, text, x, std::max(0, y - 18), COLOR_RED, 10);
                     }
                     TOCK(draw, acc.draw);  // DEBUG
 

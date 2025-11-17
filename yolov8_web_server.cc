@@ -1728,7 +1728,7 @@ private:
                        int x = d->box.left, y = d->box.top;
                        int w = d->box.right - d->box.left;
                        int h = d->box.bottom - d->box.top;
-                       
+  
                        // ИСПРАВЛЕНО: правильная подкраска объектов
                        if (d->track_id == highlight_id) {
                            draw_rectangle(&frame, x, y, w, h, COLOR_RED, 5);
@@ -1736,44 +1736,41 @@ private:
                            draw_rectangle(&frame, x, y, w, h, COLOR_BLUE, 3);
                        }
 
-                       if (show_fps) {
-                           int mapped_global = lookupGlobalIdForLocal(d->track_id);
-                           std::string id_text;
-                           if (mapped_global >= 0) {
-                               id_text = "G#" + std::to_string(mapped_global);
-                           } else if (d->track_id >= 0) {
-                               id_text = "L#" + std::to_string(d->track_id);
-                           } else {
-                               id_text = "L#?";
+                       int mapped_global = lookupGlobalIdForLocal(d->track_id);
+                       std::string id_text;
+                       if (mapped_global >= 0) {
+                           id_text = "G#" + std::to_string(mapped_global);
+                       } else if (d->track_id >= 0) {
+                           id_text = "L#" + std::to_string(d->track_id);
+                       } else {
+                           id_text = "L#?";
+                       }
+                       auto map_it = global_labels.find(d->track_id);
+                       if (map_it != global_labels.end()) {
+                           const auto& info = map_it->second;
+                           int total_cams = info.active_cameras;
+                           if (total_cams <= 0) {
+                               total_cams = std::max(info.active_cameras, info.visible_cameras);
                            }
-                           auto map_it = global_labels.find(d->track_id);
-                           if (map_it != global_labels.end()) {
-                               const auto& info = map_it->second;
-                               int total_cams = info.active_cameras;
-                               if (total_cams <= 0) {
-                                   total_cams = std::max(info.active_cameras, info.visible_cameras);
-                               }
-                               if (total_cams > 0 || info.visible_cameras > 0) {
-                                   id_text += " (" + std::to_string(info.visible_cameras) + "/" +
-                                              std::to_string(std::max(total_cams, 1)) + ")";
-                               }
-                               if (info.distance_m && std::isfinite(*info.distance_m)) {
-                                   char dist_buf[32];
-                                   snprintf(dist_buf, sizeof(dist_buf), " %.1fm", *info.distance_m);
-                                   id_text += dist_buf;
-                               }
+                           if (total_cams > 0 || info.visible_cameras > 0) {
+                               id_text += " (" + std::to_string(info.visible_cameras) + "/" +
+                                          std::to_string(std::max(total_cams, 1)) + ")";
                            }
+                           if (info.distance_m && std::isfinite(*info.distance_m)) {
+                               char dist_buf[32];
+                               snprintf(dist_buf, sizeof(dist_buf), " %.1fm", *info.distance_m);
+                               id_text += dist_buf;
+                           }
+                        }
 
-                           char text[160];
-                           snprintf(text, sizeof(text), "%s %s %.1f%%", id_text.c_str(),
-                               coco_cls_to_name(d->cls_id), d->prop * 100.f);
-
-                           // ИСПРАВЛЕНО: цвет текста тоже зависит от выделения
-                           if (d->track_id == highlight_id) {
-                               draw_text(&frame, text, x, std::max(0, y - 18), COLOR_RED, 10);
-                           } else {
-                               draw_text(&frame, text, x, std::max(0, y - 18), COLOR_WHITE, 10);
-                           }
+                       char text[160];
+                       snprintf(text, sizeof(text), "%s %s %.1f%%", id_text.c_str(),
+                           coco_cls_to_name(d->cls_id), d->prop * 100.f);
+                       // ИСПРАВЛЕНО: цвет текста тоже зависит от выделения
+                       if (d->track_id == highlight_id) {
+                           draw_text(&frame, text, x, std::max(0, y - 18), COLOR_RED, 10);
+                       } else {
+                           draw_text(&frame, text, x, std::max(0, y - 18), COLOR_WHITE, 10);
                        }
                 }
                 TOCK(draw, acc.draw);  // DEBUG

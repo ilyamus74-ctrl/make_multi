@@ -53,7 +53,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "zoom_variable",
+      "role": "zoom",
       "show_fps": true
     },
     {
@@ -92,7 +92,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "zoom_variable",
+      "role": "zoom",
       "show_fps": true
     },
     {
@@ -131,8 +131,8 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "zoom_variable",
-      "show_fps": false
+      "role": "zoom",
+      "show_fps": true
     },
     {
       "auto_profiles": true,
@@ -170,7 +170,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "zoom_variable",
+      "role": "zoom",
       "show_fps": false
     }
   ],
