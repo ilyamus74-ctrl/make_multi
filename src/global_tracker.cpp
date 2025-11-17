@@ -55,7 +55,7 @@ std::filesystem::path detectDefaultCalibrationDirectory() {
     };
 
     for (const auto& candidate : candidates) {
-        std::error_code ec;
+        ec.clear();
         auto json_path = candidate / "calibration_results.json";
         if (std::filesystem::exists(json_path, ec)) {
             auto absolute = std::filesystem::absolute(candidate, ec);
@@ -68,7 +68,7 @@ std::filesystem::path detectDefaultCalibrationDirectory() {
         }
     }
 
-    std::error_code ec;
+    ec.clear();
     auto fallback = std::filesystem::absolute(std::filesystem::path("build") / "result", ec);
     return ec ? std::filesystem::path("build") / "result" : fallback;
 }
