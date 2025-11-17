@@ -15,7 +15,9 @@ window.CameraApp.App = {
         await window.CameraApp.MainTab.init();
         await window.CameraApp.SettingsTab.init();
         await window.CameraApp.CalibrationTab.init();
-        
+
+        window.CameraApp.GlobalTracker.init();
+
         // Load initial configuration
         await this.loadInitialConfig();
         
