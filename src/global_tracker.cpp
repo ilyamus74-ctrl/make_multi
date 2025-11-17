@@ -971,9 +971,15 @@ bool GlobalTracker::initialize() {
     }
 
     if (calibration_watcher_) {
-        calibration_watcher_->loadResults();
-        updateCalibrationTimestamp(*calibration_watcher_);
-
+        auto results_file = calibration_watcher_->getResultsPath() / "calibration_results.json";
+        if (calibration_watcher_->loadResults()) {
+            std::cout << "Загружены данные калибровки при старте из "
+                      << results_file << std::endl;
+            updateCalibrationTimestamp(*calibration_watcher_);
+        } else {
+            std::cerr << "Не удалось загрузить калибровку из " << results_file
+                      << " при инициализации" << std::endl;
+        }
     }
 
 
@@ -3619,6 +3625,8 @@ bool GlobalTracker::loadExternalCalibration(SchemeType scheme) {
     std::error_code ec;
     auto json_path = external_calibration_dir_ / "calibration_results.json";
     if (!std::filesystem::exists(json_path, ec) || ec) {
+        std::cerr << "Файл " << json_path
+                  << " не найден или недоступен, используем резервную калибровку" << std::endl;
         return false;
     }
 
