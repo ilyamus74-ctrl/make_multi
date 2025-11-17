@@ -1233,6 +1233,13 @@ int main(int argc, char **argv) {
   g_preview_enabled = j.value("preview_enabled", true);
   g_use_global_tracking = j.value("use_global_tracking", false);
   g_use_grayscale_tracking = j.value("use_grayscale_tracking", false);
+    if (g_use_global_tracking) {
+        g_scheme_manager.initialize(g_config_path.string());
+        ensureCalibrationWatcher();
+        g_global_tracker.initialize();
+        printf("✓ Global tracking enabled from config\n");
+    }
+
   bool manager_debug = j.value("manager_debug_enabled", false);
   setManagerDebugEnabled(manager_debug);
   std::string calibration_results_path = j.value("calibration_results_path", std::string());
@@ -1308,11 +1315,9 @@ int main(int argc, char **argv) {
   auto config = readMainConfig();
   config["preview_enabled"] = g_preview_enabled;
   config["global_tracking"] = g_use_global_tracking;
-  config["grayscale_tracking"] =
-      g_use_grayscale_tracking; // Include current grayscale mode
-  config["manager_debug_enabled"] =
-        g_manager_debug_enabled.load(std::memory_order_acquire);
-    res.set_content(config.dump(), "application/json");
+  config["grayscale_tracking"] = g_use_grayscale_tracking; // Include current grayscale mode
+  config["manager_debug_enabled"] = g_manager_debug_enabled.load(std::memory_order_acquire);
+  res.set_content(config.dump(), "application/json");
   });
 
 
