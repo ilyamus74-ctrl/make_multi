@@ -354,8 +354,9 @@ private:
                 }
                 oss << "<tr>";
                 oss << "<td>" << escapeHtml(cs.info.id) << "</td>";
-                oss << "<td class='" << (cs.up ? "status-up" : "status-down")
-                    << "'>" << (cs.up ? "UP" : "DOWN") << "</td>";
+                const char* status_class = cs.up ? "status-up" : "status-down";
+                const char* status_text = cs.up ? "UP" : "DOWN";
+                oss << "<td class='" << status_class << "'>" << status_text << "</td>";
                 oss << "<td>" << tracks.size() << "</td>";
                 oss << "<td>" << with_global << "</td>";
                 oss << "<td>" << (tracks.size() - with_global) << "</td>";
