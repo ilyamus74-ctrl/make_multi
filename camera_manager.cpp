@@ -32,6 +32,23 @@ CameraManager g_camera_manager;
 
 namespace {
 
+std::string resolvePathRelativeToConfig(const std::string &path,
+                                        const std::string &config_path) {
+  namespace fs = std::filesystem;
+  if (path.empty() || config_path.empty())
+    return path;
+
+  fs::path p(path);
+  if (p.is_absolute())
+    return path;
+
+  fs::path base = fs::path(config_path).parent_path();
+  if (base.empty())
+    return path;
+
+  return (base / p).lexically_normal().string();
+}
+
 bool writeJsonAtomic(const std::string &path, const json &j) {
   namespace fs = std::filesystem;
   try {
@@ -669,13 +686,29 @@ void CameraManager::monitorLoop() {
       if (pid == 0) {
         pid_t child = fork();
         if (child == 0) {
+          std::string resolved_model =
+              resolvePathRelativeToConfig(cfg.model_path, config_path_);
+          std::string resolved_labels =
+              resolvePathRelativeToConfig(cfg.labels_path, config_path_);
+          if (!cfg.model_path.empty() && cfg.model_path != resolved_model)
+            std::cout << "CameraManager: resolved model path for camera " << id
+                      << " -> " << resolved_model << std::endl;
+          if (!cfg.labels_path.empty() && cfg.labels_path != resolved_labels)
+            std::cout << "CameraManager: resolved labels path for camera "
+                      << id << " -> " << resolved_labels << std::endl;
+
+          std::cout << "CameraManager: starting detection for camera " << id
+                    << " (" << cfg.device_path << ") model=" << resolved_model
+                    << " size=" << cfg.preferred.w << "x" << cfg.preferred.h
+                    << " port=" << cfg.det_port << std::endl;
+
           std::string port = std::to_string(cfg.det_port);
           std::vector<std::string> args;
           args.push_back(cfg.mode == CamConfig::Mode::Calibration ||
                              cfg.mode == CamConfig::Mode::Preview
                              ? "yolov8_web_server_calibration"
                              : "yolov8_web_server");
-          args.push_back(cfg.model_path);
+          args.push_back(resolved_model);
           if (!id.empty()) {
             args.push_back("--cam-id");
             args.push_back(id);
@@ -687,9 +720,9 @@ void CameraManager::monitorLoop() {
           args.push_back("--size");
           args.push_back(std::to_string(cfg.preferred.w) + "x" +
                          std::to_string(cfg.preferred.h));
-          if (!cfg.labels_path.empty()) {
+          if (!resolved_labels.empty()) {
             args.push_back("--labels");
-            args.push_back(cfg.labels_path);
+            args.push_back(resolved_labels);
           }
           args.push_back("--cap-fps");
           args.push_back(std::to_string(cfg.cap_fps));
