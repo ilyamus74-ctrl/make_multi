@@ -127,6 +127,7 @@ window.CameraApp.State = {
     mainCameras: [],
     configuredCameras: [],
     newCameras: [],
+    mosaicSelections: [null, null, null, null],
     cameraRoles: [],
     isCalibrating: false,
     advancedSettingsVisible: false,

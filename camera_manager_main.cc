@@ -1231,6 +1231,7 @@ int main(int argc, char **argv) {
   if (!j.is_object())
     j = nlohmann::json::object();
   g_preview_enabled = j.value("preview_enabled", true);
+  g_use_global_tracking = j.value("use_global_tracking", false);
   g_use_grayscale_tracking = j.value("use_grayscale_tracking", false);
   bool manager_debug = j.value("manager_debug_enabled", false);
   setManagerDebugEnabled(manager_debug);
@@ -1298,11 +1299,12 @@ int main(int argc, char **argv) {
                });
 
   g_server.Get("/api/config", [](const httplib::Request &, httplib::Response &res) {
-    auto config = readMainConfig();
-    config["preview_enabled"] = g_preview_enabled;
-    config["grayscale_tracking"] =
-        g_use_grayscale_tracking; // Include current grayscale mode
-    config["manager_debug_enabled"] =
+  auto config = readMainConfig();
+  config["preview_enabled"] = g_preview_enabled;
+  config["global_tracking"] = g_use_global_tracking;
+  config["grayscale_tracking"] =
+      g_use_grayscale_tracking; // Include current grayscale mode
+  config["manager_debug_enabled"] =
         g_manager_debug_enabled.load(std::memory_order_acquire);
     res.set_content(config.dump(), "application/json");
   });
@@ -1310,9 +1312,9 @@ int main(int argc, char **argv) {
 
   g_server.Post("/api/config", [](const httplib::Request &req,
                                    httplib::Response &res) {
-    try {
-      auto body = nlohmann::json::parse(req.body);
-      auto config = readMainConfig();
+  try {
+    auto body = nlohmann::json::parse(req.body);
+    auto config = readMainConfig();
 
       bool current = g_manager_debug_enabled.load(std::memory_order_acquire);
       bool desired = body.value("manager_debug_enabled", current);
@@ -1321,6 +1323,14 @@ int main(int argc, char **argv) {
         setManagerDebugEnabled(desired);
 
       config["manager_debug_enabled"] = desired;
+      if (body.contains("use_global_tracking")) {
+        g_use_global_tracking = body.value("use_global_tracking", false);
+        config["use_global_tracking"] = g_use_global_tracking;
+      }
+      if (body.contains("use_grayscale_tracking")) {
+        g_use_grayscale_tracking = body.value("use_grayscale_tracking", false);
+        config["use_grayscale_tracking"] = g_use_grayscale_tracking;
+      }
       if (!writeMainConfig(config)) {
         if (current != desired)
           setManagerDebugEnabled(current);
@@ -3269,7 +3279,12 @@ g_server.Post("/api/tracking/mode", [](const httplib::Request& req, httplib::Res
             ensureCalibrationWatcher();
             g_global_tracker.initialize();
         }
-        
+
+        // Persist preference
+        auto config = readMainConfig();
+        config["use_global_tracking"] = g_use_global_tracking;
+        writeMainConfig(config);
+
         resp["status"] = "ok";
         resp["global_tracking"] = g_use_global_tracking;
         

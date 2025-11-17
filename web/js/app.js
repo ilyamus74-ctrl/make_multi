@@ -81,8 +81,27 @@ window.CameraApp.App = {
 
             window.CameraApp.State.previewEnabled = config.preview_enabled;
 
+            const globalToggle = document.getElementById('global-tracking-toggle');
+            const grayscaleToggle = document.getElementById('grayscale-tracking-toggle');
+
+            const savedGlobal = !!config.global_tracking;
+            const savedGrayscale = !!config.grayscale_tracking;
+
+            window.CameraApp.State.globalTrackingEnabled = savedGlobal;
+            if (globalToggle) {
+                globalToggle.checked = savedGlobal;
+            }
+            if (grayscaleToggle) {
+                grayscaleToggle.checked = savedGrayscale;
+            }
+
             window.CameraApp.State.managerDebugEnabled =
                 !!config.manager_debug_enabled;
+
+            if (window.CameraApp.State.globalTrackingEnabled) {
+                window.CameraApp.GlobalTracker.show();
+                window.CameraApp.MainTab.startDetectionLoop();
+            }
 
             window.CameraApp.UI.updateStatusIndicator('online', 'Connected');
 

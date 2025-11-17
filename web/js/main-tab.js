@@ -87,11 +87,25 @@ window.CameraApp.MainTab = {
 
     async loadTrackingModes() {
         try {
+            const config = await window.CameraApp.API.getConfig();
+            const globalToggle = document.getElementById('global-tracking-toggle');
+            const savedGlobal = !!config.global_tracking;
+            window.CameraApp.State.globalTrackingEnabled = savedGlobal;
+            if (globalToggle) {
+                globalToggle.checked = savedGlobal;
+            }
+            if (savedGlobal) {
+                window.CameraApp.GlobalTracker.show();
+                this.startDetectionLoop();
+            }
             // Load grayscale tracking mode state
             const grayscaleState = await window.CameraApp.API.getGrayscaleTrackingMode();
             const grayscaleToggle = document.getElementById('grayscale-tracking-toggle');
-            if (grayscaleToggle && grayscaleState.status === 'ok') {
-                grayscaleToggle.checked = grayscaleState.grayscale_tracking || false;
+            const grayscaleEnabled = grayscaleState.status === 'ok'
+                ? grayscaleState.grayscale_tracking
+                : config.grayscale_tracking;
+            if (grayscaleToggle) {
+                grayscaleToggle.checked = !!grayscaleEnabled;
             }
         } catch (error) {
             console.error('Failed to load tracking modes:', error);
@@ -102,12 +116,12 @@ window.CameraApp.MainTab = {
     async loadCameras() {
         try {
             const cameras = await window.CameraApp.API.getConfiguredCameras();
-            window.CameraApp.State.mainCameras = cameras.filter(c => 
+            window.CameraApp.State.mainCameras = cameras.filter(c =>
                 c.mode === 'detect' && c.det_running
             );
-            
+
             this.renderVideoGrid();
-            
+
             if (window.CameraApp.State.globalTrackingEnabled) {
                 this.startDetectionLoop();
             }
@@ -122,6 +136,35 @@ window.CameraApp.MainTab = {
         const noCameras = document.getElementById('no-cameras');
         const cameras = window.CameraApp.State.mainCameras;
 
+        const selections = window.CameraApp.State.mosaicSelections || [null, null, null, null];
+
+        const availableIds = cameras.map(c => c.id);
+        const assigned = new Set();
+        selections.forEach((sel, idx) => {
+            if (sel && !availableIds.includes(sel)) {
+                selections[idx] = null;
+            }
+            if (selections[idx]) {
+                assigned.add(selections[idx]);
+            }
+        });
+
+        let cursor = 0;
+        selections.forEach((sel, idx) => {
+            if (!sel && cameras[cursor]) {
+                while (cursor < cameras.length && assigned.has(cameras[cursor].id)) {
+                    cursor++;
+                }
+                if (cameras[cursor]) {
+                    selections[idx] = cameras[cursor].id;
+                    assigned.add(cameras[cursor].id);
+                    cursor++;
+                }
+            }
+        });
+
+        window.CameraApp.State.mosaicSelections = selections;
+
         if (cameras.length === 0) {
             mosaic.style.display = 'none';
             noCameras.style.display = 'block';
@@ -131,26 +174,46 @@ window.CameraApp.MainTab = {
         mosaic.style.display = 'block';
         noCameras.style.display = 'none';
 
-        // Create grid layout
-        mosaic.innerHTML = cameras.map(camera => `
-            <div class="col-md-6 col-lg-4 col-xl-3">
-                <div class="card h-100">
-                    <div class="card-body p-2">
-                        <h6 class="card-title text-center mb-2">
-                            <i class="bi bi-camera-video me-1"></i>
-                            ${camera.id}
-                        </h6>
-                        <div class="camera-feed">
-                            <img src="${window.CameraApp.API.getCameraStreamUrl(camera.det_port)}" 
-                                 class="w-100 rounded" 
-                                 alt="Camera ${camera.id}"
-                                 style="height: 200px; object-fit: contain;">
-                            <div class="camera-feed-label">DETECT</div>
+        const slotTemplate = (slotIndex) => {
+            const selectedId = selections[slotIndex];
+            const camera = cameras.find(c => c.id === selectedId);
+            const options = [
+                `<option value="">Select camera</option>`,
+                ...cameras.map(c => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${c.id}</option>`)
+            ].join('');
+
+            const content = camera
+                ? `<img src="${window.CameraApp.API.getCameraStreamUrl(camera.det_port)}" alt="Camera ${camera.id}" width="50%">
+                   <div class="camera-feed-label">DETECT</div>`
+                : `<div class="camera-placeholder">EMPTY</div>`;
+
+            return `
+                <div class="card mosaic-card">
+                    <div class="card-body d-flex flex-column gap-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-grid-3x3-gap"></i>
+                                <span class="fw-semibold">${slotIndex + 1}</span>
+                            </div>
+                            <select class="form-select form-select-sm mosaic-select" data-slot="${slotIndex}">
+                                ${options}
+                            </select>
                         </div>
+                        <div class="camera-feed flex-grow-1">${content}</div>
                     </div>
-                </div>
-            </div>
-        `).join('');
+                </div>`;
+        };
+
+        mosaic.innerHTML = [0, 1, 2, 3].map(slotTemplate).join('');
+
+        mosaic.querySelectorAll('.mosaic-select').forEach(select => {
+            select.addEventListener('change', (event) => {
+                const slot = parseInt(event.target.dataset.slot, 10);
+                const value = event.target.value || null;
+                window.CameraApp.State.mosaicSelections[slot] = value;
+                this.renderVideoGrid();
+            });
+        });
     },
 
     startDetectionLoop() {
