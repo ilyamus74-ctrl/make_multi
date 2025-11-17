@@ -1246,6 +1246,12 @@ int main(int argc, char **argv) {
   } else {
     auto detected_path = detectCalibrationResultsPath(exe_dir);
     g_global_tracker.setExternalCalibrationDirectory(detected_path);
+     if (g_use_global_tracking) {
+        g_scheme_manager.initialize(g_config_path.string());
+        ensureCalibrationWatcher();
+        g_global_tracker.initialize();
+        printf("Global tracking enabled from config\n");
+        }
   }
   int port = j.value("http", nlohmann::json::object()).value("port", 8080);
 
@@ -3336,7 +3342,16 @@ g_server.Get("/api/detections/update", [](const httplib::Request& req, httplib::
         res.set_content("{\"error\":\"Global tracking disabled\"}", "application/json");
         return;
     }
-    
+        // ДОБАВИТЬ: защита от множественных одновременных запросов
+    static std::atomic<bool> update_in_progress{false};
+    if (update_in_progress.load()) {
+        // Возвращаем кешированный ответ если уже идет обновление
+        static nlohmann::json cached_response;
+        res.set_content(cached_response.dump(), "application/json");
+        return;
+    }
+    update_in_progress.store(true);
+
     // Ограничиваем частоту обращений
     static auto last_update = std::chrono::steady_clock::now();
     static nlohmann::json cached_response;
