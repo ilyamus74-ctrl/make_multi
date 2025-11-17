@@ -1738,13 +1738,14 @@ private:
 
                        int mapped_global = lookupGlobalIdForLocal(d->track_id);
                        std::string id_text;
+
                        if (mapped_global >= 0) {
                            id_text = "G#" + std::to_string(mapped_global);
-                       } else if (d->track_id >= 0) {
-                           id_text = "L#" + std::to_string(d->track_id);
                        } else {
-                           id_text = "L#?";
+                           // Пропускаем объекты без глобального ID
+                           continue;  // ← ДОБАВИТЬ это
                        }
+
                        auto map_it = global_labels.find(d->track_id);
                        if (map_it != global_labels.end()) {
                            const auto& info = map_it->second;
