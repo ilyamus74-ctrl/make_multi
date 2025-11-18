@@ -3262,15 +3262,16 @@ std::vector<GlobalObject> GlobalTracker::getActiveObjects() {
 }
 
 std::vector<GlobalTracker::TrackGlobalMapping> GlobalTracker::getTrackToGlobalMapForCamera(
-    const std::string& camera_id) {
+    const std::string& camera_id,
+    const std::unordered_set<std::string>& active_camera_ids_input) {
     std::vector<TrackGlobalMapping> mapping;
     if (camera_id.empty()) {
         return mapping;
     }
 
 
-    std::unordered_set<std::string> active_camera_ids;
-    if (scheme_manager_) {
+    std::unordered_set<std::string> active_camera_ids = active_camera_ids_input;
+    if (active_camera_ids.empty() && scheme_manager_) {
         auto active_ptrs = scheme_manager_->getActiveCameras();
         for (const auto* cam : active_ptrs) {
             if (cam) {
@@ -3313,14 +3314,24 @@ std::vector<GlobalTracker::TrackGlobalMapping> GlobalTracker::getTrackToGlobalMa
             }
             info.visible_camera_count = visible_cameras;
             info.total_active_cameras = total_active_cameras;
+            std::optional<cv::Point3f> stereo_world;
+            if (camera_position && !obj.world_position_from_stereo) {
+                const auto& box = det_it->second.box;
+                cv::Point2f feet_point(box.x + box.width * 0.5f,
+                                       box.y + box.height);
+                cv::Point2f center_point(box.x + box.width * 0.5f,
+                                         box.y + box.height * 0.5f);
+                stereo_world = tryStereoTriangulation(obj,
+                                                      camera_id,
+                                                      feet_point,
+                                                      center_point,
+                                                      obj.last_seen_timestamp);
+            }
             if (camera_position) {
-                if (obj.world_position_from_stereo) {
-                    info.distance_m = calculateDistance(obj.world_position, *camera_position);
-                } else {
-                    info.distance_m = calculateDistance(obj.world_position, *camera_position);
-                }
+                const auto distance_point = stereo_world.value_or(obj.world_position);
+                info.distance_m = calculateDistance(distance_point, *camera_position);
     // ДОБАВИТЬ для отладки:
-    //cout << "[DEBUG] Cam=" << camera_id 
+    //cout << "[DEBUG] Cam=" << camera_id
     //     << " GID=" << global_id
     //     << " obj_pos=[" << obj.world_position.x << "," << obj.world_position.y << "," << obj.world_position.z << "]"
     //     << " cam_pos=[" << camera_position->x << "," << camera_position->y << "," << camera_position->z << "]"

@@ -18,6 +18,10 @@ window.CameraApp.MainTab = {
         const globalToggle = document.getElementById('global-tracking-toggle');
         globalToggle.addEventListener('change', this.handleGlobalTrackingToggle.bind(this));
 
+        // Local labels toggle
+        const localLabelsToggle = document.getElementById('local-labels-toggle');
+        localLabelsToggle.addEventListener('change', this.handleLocalLabelsToggle.bind(this));
+
         // Grayscale tracking toggle
         const grayscaleToggle = document.getElementById('grayscale-tracking-toggle');
         grayscaleToggle.addEventListener('change', this.handleGrayscaleTrackingToggle.bind(this));
@@ -78,7 +82,21 @@ window.CameraApp.MainTab = {
         }
     },
 
-
+    async handleLocalLabelsToggle(event) {
+        const enabled = event.target.checked;
+        try {
+            const response = await window.CameraApp.API.setLocalLabelsMode(enabled);
+            window.CameraApp.State.showLocalLabels = response.show_local_labels ?? enabled;
+            window.CameraApp.UI.showToast(
+                `Local labels ${enabled ? 'enabled' : 'disabled'}`,
+                'success'
+            );
+        } catch (error) {
+            console.error('Failed to toggle local labels:', error);
+            window.CameraApp.UI.showToast('Failed to toggle local labels', 'danger');
+            event.target.checked = !enabled;
+        }
+    },
 
     handleClearMemory() {
         window.CameraApp.State.selectedObjectId = -1;
@@ -101,6 +119,12 @@ window.CameraApp.MainTab = {
             window.CameraApp.State.globalTrackingEnabled = savedGlobal;
             if (globalToggle) {
                 globalToggle.checked = savedGlobal;
+            }
+            const localLabelsToggle = document.getElementById('local-labels-toggle');
+            const savedLocalLabels = config.show_local_labels !== false;
+            window.CameraApp.State.showLocalLabels = savedLocalLabels;
+            if (localLabelsToggle) {
+                localLabelsToggle.checked = savedLocalLabels;
             }
             if (savedGlobal) {
                 window.CameraApp.GlobalTracker.show();

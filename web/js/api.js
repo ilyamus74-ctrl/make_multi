@@ -277,6 +277,17 @@ window.CameraApp.API = {
         });
     },
 
+    async setLocalLabelsMode(show_local_labels = true) {
+        return await this.request(window.CameraApp.Config.API.TRACKING.LOCAL_LABELS, {
+            method: 'POST',
+            body: JSON.stringify({ show_local_labels })
+        });
+    },
+
+    async getLocalLabelsMode() {
+        return await this.request(window.CameraApp.Config.API.TRACKING.LOCAL_LABELS);
+    },
+
     async getGrayscaleTrackingMode() {
         return await this.request(window.CameraApp.Config.API.TRACKING.GRAYSCALE_MODE);
     },

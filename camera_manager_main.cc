@@ -47,7 +47,7 @@ static CameraManager g_mgr;
 static CameraSchemeManager g_scheme_manager;
 static GlobalTracker g_global_tracker(&g_scheme_manager, &g_mgr);
 static bool g_use_global_tracking = false;
-
+static bool g_show_local_labels = true;
 
 static constexpr const char *kManagerDebugLogPath =
     "/tmp/camera_manager_debug.log";
@@ -782,7 +782,8 @@ static void fetchAndUpdateDetections(std::string cam_id, int det_port) {
       }
 
 
-      auto mapping = g_global_tracker.getTrackToGlobalMapForCamera(cam_id);
+      auto mapping = g_global_tracker.getTrackToGlobalMapForCamera(
+          cam_id, active_detection_cameras);
       nlohmann::json labels_json = nlohmann::json::array();
       for (const auto &assoc : mapping) {
         nlohmann::json entry;
@@ -792,7 +793,7 @@ static void fetchAndUpdateDetections(std::string cam_id, int det_port) {
           entry["distance_m"] = *assoc.distance_m;
         }
         entry["visible_cameras"] = assoc.visible_camera_count;
-        entry["active_cameras"] = assoc.total_active_cameras;
+        entry["active_cameras"] = static_cast<int>(active_detection_cameras.size());
         labels_json.push_back(entry);
       }
       nlohmann::json payload;
@@ -899,6 +900,7 @@ static nlohmann::json readMainConfig() {
   if (!cfg.is_object())
     cfg = nlohmann::json::object();
   cfg["manager_debug_enabled"] = cfg.value("manager_debug_enabled", false);
+  cfg["show_local_labels"] = cfg.value("show_local_labels", true);
   return cfg;
 }
 
@@ -916,8 +918,37 @@ static bool writeMainConfig(const nlohmann::json &j) {
     normalized = nlohmann::json::object();
   normalized["manager_debug_enabled"] =
       normalized.value("manager_debug_enabled", false);
+  normalized["show_local_labels"] = normalized.value("show_local_labels", true);
   f << normalized.dump(2);
   return f.good();
+}
+
+static void pushLocalLabelPreference(bool enabled) {
+  auto cameras = g_mgr.configuredCameras();
+  for (const auto &cam : cameras) {
+    if (cam.mode != CameraManager::CamConfig::Mode::Detect || !cam.det_running ||
+        cam.det_port <= 0) {
+      continue;
+    }
+
+    httplib::Client client("localhost", cam.det_port);
+    client.set_connection_timeout(0, 200000);
+    client.set_read_timeout(0, 500000);
+
+    nlohmann::json payload;
+    payload["show_local_labels"] = enabled;
+
+    auto res = client.Post("/api/labels-mode", payload.dump(), "application/json");
+    std::ostringstream marker;
+    marker << "local label push cam=" << cam.id << " -> "
+           << (enabled ? "ON" : "OFF") << " status=";
+    if (res) {
+      marker << res->status;
+    } else {
+      marker << "error(" << httplib::to_string(res.error()) << ")";
+    }
+    logGlobalTrackingMarker(marker.str());
+  }
 }
 
 
@@ -1265,6 +1296,7 @@ int main(int argc, char **argv) {
   g_preview_enabled = j.value("preview_enabled", true);
   g_use_global_tracking = j.value("use_global_tracking", false);
   g_use_grayscale_tracking = j.value("use_grayscale_tracking", false);
+  g_show_local_labels = j.value("show_local_labels", true);
     if (g_use_global_tracking) {
         g_scheme_manager.initialize(g_config_path.string());
         ensureCalibrationWatcher();
@@ -1301,6 +1333,8 @@ int main(int argc, char **argv) {
   std::signal(SIGINT, sigint);
   std::signal(SIGHUP, sighup);
   g_mgr.start();
+
+  pushLocalLabelPreference(g_show_local_labels);
 
    if (g_use_global_tracking) {
      g_scheme_manager.initialize(g_config_path.string());
@@ -1349,6 +1383,7 @@ int main(int argc, char **argv) {
   config["preview_enabled"] = g_preview_enabled;
   config["global_tracking"] = g_use_global_tracking;
   config["grayscale_tracking"] = g_use_grayscale_tracking; // Include current grayscale mode
+  config["show_local_labels"] = g_show_local_labels;
   config["manager_debug_enabled"] = g_manager_debug_enabled.load(std::memory_order_acquire);
   res.set_content(config.dump(), "application/json");
   });
@@ -1375,6 +1410,10 @@ int main(int argc, char **argv) {
         g_use_grayscale_tracking = body.value("use_grayscale_tracking", false);
         config["use_grayscale_tracking"] = g_use_grayscale_tracking;
       }
+      if (body.contains("show_local_labels")) {
+        g_show_local_labels = body.value("show_local_labels", true);
+        config["show_local_labels"] = g_show_local_labels;
+      }
       if (!writeMainConfig(config)) {
         if (current != desired)
           setManagerDebugEnabled(current);
@@ -1387,6 +1426,7 @@ int main(int argc, char **argv) {
       config["preview_enabled"] = g_preview_enabled;
       config["grayscale_tracking"] =
           g_use_grayscale_tracking; // Include current grayscale mode
+      config["show_local_labels"] = g_show_local_labels;
       config["manager_debug_enabled"] =
           g_manager_debug_enabled.load(std::memory_order_acquire);
       res.set_content(config.dump(), "application/json");
@@ -3338,6 +3378,28 @@ g_server.Post("/api/tracking/mode", [](const httplib::Request& req, httplib::Res
 
         logGlobalTrackingMarker("toggle completed -> " +
                                 std::string(g_use_global_tracking ? "ON" : "OFF"));
+    } catch (const std::exception& e) {
+        resp["status"] = "error";
+        resp["error"] = e.what();
+        logGlobalTrackingMarker(std::string("toggle failed: ") + e.what());
+    }
+    res.set_content(resp.dump(), "application/json");
+});
+
+g_server.Post("/api/tracking/local-labels", [](const httplib::Request& req, httplib::Response& res){
+    nlohmann::json resp;
+    try {
+        auto j = nlohmann::json::parse(req.body);
+        g_show_local_labels = j.value("show_local_labels", true);
+
+        auto config = readMainConfig();
+        config["show_local_labels"] = g_show_local_labels;
+        writeMainConfig(config);
+
+        resp["status"] = "ok";
+        resp["show_local_labels"] = g_show_local_labels;
+
+        pushLocalLabelPreference(g_show_local_labels);
 
     } catch (const std::exception& e) {
         resp["status"] = "error";
@@ -3347,6 +3409,12 @@ g_server.Post("/api/tracking/mode", [](const httplib::Request& req, httplib::Res
     res.set_content(resp.dump(), "application/json");
 });
 
+g_server.Get("/api/tracking/local-labels", [](const httplib::Request&, httplib::Response& res){
+    nlohmann::json resp;
+    resp["status"] = "ok";
+    resp["show_local_labels"] = g_show_local_labels;
+    res.set_content(resp.dump(), "application/json");
+});
 
 g_server.Post("/api/tracking/grayscale-mode", [](const httplib::Request& req, httplib::Response& res){
     nlohmann::json resp;
@@ -3424,10 +3492,12 @@ g_server.Get("/api/detections/update", [](const httplib::Request& req, httplib::
     
     // Собираем детекции только с активных камер, но с таймаутом
     auto cams = g_mgr.configuredCameras();
+    std::unordered_set<std::string> active_detection_cameras;
     std::vector<std::future<void>> futures;
     
     for (const auto& cam : cams) {
         if (cam.mode == CameraManager::CamConfig::Mode::Detect && cam.det_running) {
+            active_detection_cameras.insert(cam.id);
             futures.emplace_back(std::async(std::launch::async,
                                             [cam_id = cam.id, det_port = cam.det_port]() {
                                                 fetchAndUpdateDetections(cam_id, det_port);

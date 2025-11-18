@@ -89,18 +89,23 @@ window.CameraApp.App = {
 
             const globalToggle = document.getElementById('global-tracking-toggle');
             const grayscaleToggle = document.getElementById('grayscale-tracking-toggle');
+            const localLabelsToggle = document.getElementById('local-labels-toggle');
 
             const savedGlobal = !!(config.global_tracking ?? config.use_global_tracking);
             const savedGrayscale = !!config.grayscale_tracking;
+            const showLocalLabels = config.show_local_labels !== false;
 
             window.CameraApp.State.globalTrackingEnabled = savedGlobal;
+            window.CameraApp.State.showLocalLabels = showLocalLabels;
             if (globalToggle) {
                 globalToggle.checked = savedGlobal;
             }
             if (grayscaleToggle) {
                 grayscaleToggle.checked = savedGrayscale;
             }
-
+            if (localLabelsToggle) {
+                localLabelsToggle.checked = showLocalLabels;
+            }
             window.CameraApp.State.managerDebugEnabled =
                 !!config.manager_debug_enabled;
 

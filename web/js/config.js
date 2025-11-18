@@ -34,6 +34,7 @@ window.CameraApp.Config = {
         TRACKING: {
             GLOBAL: '/api/tracking/global',
             MODE: '/api/tracking/mode',
+            LOCAL_LABELS: '/api/tracking/local-labels',
             GRAYSCALE_MODE: '/api/tracking/grayscale-mode',
             UPDATE: '/api/detections/update'
         }
@@ -121,6 +122,7 @@ window.CameraApp.State = {
     currentTab: 'main',
     previewEnabled: false,
     globalTrackingEnabled: false,
+    showLocalLabels: true,
     managerDebugEnabled: false,
     selectedObjectId: -1,
     lastGlobalObjects: [],

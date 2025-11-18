@@ -97,6 +97,7 @@ static std::filesystem::path g_exe_dir;
 static std::filesystem::path g_config_path;
 static std::mutex g_global_map_mx;
 static std::unordered_map<int, int> g_local_to_global;
+static std::atomic<bool> g_show_local_labels{true};
 static bool fileExists(const std::string& p){ struct stat st{}; return stat(p.c_str(), &st)==0; }
 static bool dirExists(const std::string& p){ struct stat st{}; return stat(p.c_str(), &st)==0 && S_ISDIR(st.st_mode); }
 static int lookupGlobalIdForLocal(int local_id) {
@@ -115,6 +116,8 @@ static json readMainConfig(){
     printf("readMainConfig path: %s\n",p.c_str());
     std::ifstream f(p);
     if(f){ try{f>>cfg;}catch(...){} }
+    if (!cfg.is_object()) cfg = json::object();
+    cfg["show_local_labels"] = cfg.value("show_local_labels", true);
     return cfg;
 }
 static bool writeMainConfig(const json& j){
@@ -959,6 +962,31 @@ private:
             }
         });
 
+        server.Post("/api/labels-mode", [](const Request& req, Response& res) {
+            json resp;
+            try {
+                auto j = json::parse(req.body);
+                g_show_local_labels.store(j.value("show_local_labels", true));
+                auto cfg = readMainConfig();
+                cfg["show_local_labels"] = g_show_local_labels.load();
+                writeMainConfig(cfg);
+                resp["status"] = "ok";
+                resp["show_local_labels"] = g_show_local_labels.load();
+            } catch (...) {
+                resp["status"] = "error";
+                resp["error"] = "invalid json";
+                res.status = 400;
+            }
+            res.set_content(resp.dump(), "application/json");
+        });
+
+        server.Get("/api/labels-mode", [](const Request&, Response& res) {
+            json resp;
+            resp["status"] = "ok";
+            resp["show_local_labels"] = g_show_local_labels.load();
+            res.set_content(resp.dump(), "application/json");
+        });
+
         server.Post("/apply_global", [this](const Request& req, Response& res) {
             try {
                 auto body = json::parse(req.body);
@@ -1736,12 +1764,14 @@ private:
                            draw_rectangle(&frame, x, y, w, h, COLOR_BLUE, 3);
                        }
 
-                       // Отображаем локальный ID всегда, а глобальный добавляем при наличии
-                       std::string id_text = "L#" + std::to_string(d->track_id);
+                       std::vector<std::string> id_parts;
+                       if (g_show_local_labels.load()) {
+                           id_parts.push_back("L#" + std::to_string(d->track_id));
+                       }
                        int mapped_global = lookupGlobalIdForLocal(d->track_id);
 
                        if (mapped_global >= 0) {
-                           id_text += " G#" + std::to_string(mapped_global);
+                           id_parts.push_back("G#" + std::to_string(mapped_global));
                        }
 
                        auto map_it = global_labels.find(d->track_id);
@@ -1752,16 +1782,23 @@ private:
                                total_cams = std::max(info.active_cameras, info.visible_cameras);
                            }
                            if (total_cams > 0 || info.visible_cameras > 0) {
-                               id_text += " (" + std::to_string(info.visible_cameras) + "/" +
-                                          std::to_string(std::max(total_cams, 1)) + ")";
+                               id_parts.push_back("(" + std::to_string(info.visible_cameras) + "/" +
+                                                  std::to_string(std::max(total_cams, 1)) + ")");
                            }
                            if (info.distance_m && std::isfinite(*info.distance_m)) {
                                char dist_buf[32];
-                               snprintf(dist_buf, sizeof(dist_buf), " %.1fm", *info.distance_m);
-                               id_text += dist_buf;
+                               snprintf(dist_buf, sizeof(dist_buf), "%.1fm", *info.distance_m);
+                               id_parts.push_back(dist_buf);
                            }
-                        }
+                       }
 
+                       std::string id_text;
+                       for (size_t idx = 0; idx < id_parts.size(); ++idx) {
+                           if (idx > 0) {
+                               id_text += ' ';
+                           }
+                           id_text += id_parts[idx];
+                       }
                        char text[160];
                        snprintf(text, sizeof(text), "%s %s %.1f%%", id_text.c_str(),
                            coco_cls_to_name(d->cls_id), d->prop * 100.f);
@@ -1964,6 +2001,9 @@ int main(int argc, char** argv) {
     } else {
         g_this_camera_id = camIdForDevice(a.dev);
     }
+
+    auto startup_cfg = readMainConfig();
+    g_show_local_labels.store(startup_cfg.value("show_local_labels", true));
 
     mkdir("./web", 0755);
     std::signal(SIGINT,  signalHandler);
