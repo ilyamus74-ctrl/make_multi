@@ -1728,7 +1728,7 @@ private:
                        int x = d->box.left, y = d->box.top;
                        int w = d->box.right - d->box.left;
                        int h = d->box.bottom - d->box.top;
-
+  
                        // ИСПРАВЛЕНО: правильная подкраска объектов
                        if (d->track_id == highlight_id) {
                            draw_rectangle(&frame, x, y, w, h, COLOR_RED, 5);
@@ -1736,12 +1736,14 @@ private:
                            draw_rectangle(&frame, x, y, w, h, COLOR_BLUE, 3);
                        }
 
-                       // Отображаем локальный ID всегда, а глобальный добавляем при наличии
-                       std::string id_text = "L#" + std::to_string(d->track_id);
                        int mapped_global = lookupGlobalIdForLocal(d->track_id);
+                       std::string id_text;
 
                        if (mapped_global >= 0) {
-                           id_text += " G#" + std::to_string(mapped_global);
+                           id_text = "G#" + std::to_string(mapped_global);
+                       } else {
+                           // Пропускаем объекты без глобального ID
+                           continue;  // ← ДОБАВИТЬ это
                        }
 
                        auto map_it = global_labels.find(d->track_id);
