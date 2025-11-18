@@ -241,6 +241,9 @@ private:
   std::map<std::string, std::string> active_paths_; // id -> /dev/videoX
   std::vector<DiscoveredCamera> unconfigured_;
   std::map<std::string, pid_t> det_pids_;
+  // Snapshot of arguments used to launch each detection process to detect
+  // configuration drift and restart processes when settings change.
+  std::map<std::string, CamConfig> last_det_configs_;
   std::mutex mutex_;
   std::condition_variable cv_;
   std::thread monitor_thread_;

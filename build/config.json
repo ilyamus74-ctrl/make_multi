@@ -54,7 +54,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "zoom",
+      "role": "zoom_variable",
       "show_fps": true
     },
     {
@@ -93,7 +93,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "zoom",
+      "role": "zoom_variable",
       "show_fps": true
     },
     {
@@ -116,7 +116,7 @@
         "card": "HD 720P webcam: HD 720P webcam",
         "device_path": "/dev/v4l/by-path/platform-fc880000.usb-usb-0:1:1.0-video-index0"
       },
-      "mode": "detect",
+      "mode": "calibration",
       "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
       "npu_core": "auto",
       "npu_worker": 0,
@@ -132,7 +132,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "zoom",
+      "role": "zoom_variable",
       "show_fps": true
     },
     {

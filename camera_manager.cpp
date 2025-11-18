@@ -13,6 +13,7 @@
 #include <vector>
 #include <limits>
 #include <array>
+#include <tuple>
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <sys/inotify.h>
@@ -93,6 +94,18 @@ std::string preferredDevicePath(const CameraManager::DiscoveredCamera &dc) {
       return std::string("/dev/v4l/by-id/") + ident.value;
   }
   return dc.device_path;
+}
+
+bool detectionArgsDiffer(const CameraManager::CamConfig &a,
+                         const CameraManager::CamConfig &b) {
+  auto tie_cfg = [](const CameraManager::CamConfig &cfg) {
+    return std::tie(cfg.mode, cfg.device_path, cfg.det_port, cfg.preferred.w,
+                    cfg.preferred.h, cfg.preferred.pixfmt, cfg.preferred.fps,
+                    cfg.model_path, cfg.labels_path, cfg.cap_fps, cfg.buffers,
+                    cfg.jpeg_quality, cfg.http_fps_limit, cfg.show_det_fps,
+                    cfg.npu_core, cfg.log_file, cfg.det_args);
+  };
+  return tie_cfg(a) != tie_cfg(b);
 }
 
 } // namespace
@@ -380,6 +393,7 @@ void CameraManager::stop() {
     waitpid(pid, nullptr, 0);
   }
   det_pids_.clear();
+  last_det_configs_.clear();
 }
 
 void CameraManager::notify() {
@@ -418,6 +432,7 @@ void CameraManager::monitorLoop() {
             kill(itp->second, SIGTERM);
             waitpid(itp->second, nullptr, 0);
             det_pids_.erase(itp);
+            last_det_configs_.erase(id);
           }
         } else {
           ++it;
@@ -636,6 +651,7 @@ void CameraManager::monitorLoop() {
             kill(itp->second, SIGTERM);
             waitpid(itp->second, nullptr, 0);
             det_pids_.erase(itp);
+            last_det_configs_.erase(id);
           }
         }
       }
@@ -660,6 +676,7 @@ void CameraManager::monitorLoop() {
           {
             std::lock_guard<std::mutex> lk(mutex_);
             det_pids_.erase(id);
+            last_det_configs_.erase(id);
           }
         }
         continue;
@@ -680,6 +697,7 @@ void CameraManager::monitorLoop() {
           }
           std::lock_guard<std::mutex> lk(mutex_);
           det_pids_.erase(id);
+          last_det_configs_.erase(id);
           pid = 0;
         }
       }
@@ -766,6 +784,7 @@ void CameraManager::monitorLoop() {
           {
             std::lock_guard<std::mutex> lk(mutex_);
             det_pids_[id] = child;
+            last_det_configs_[id] = cfg;
           }
           std::cout << "CameraManager: forked detection pid " << child
                     << " for device " << cfg.device_path << " port "
@@ -950,13 +969,26 @@ void CameraManager::configWatchLoop() {
     if (loadConfig(config_path_)) {
       std::lock_guard<std::mutex> lk(mutex_);
       for (auto it = det_pids_.begin(); it != det_pids_.end();) {
-        if (!configs_.count(it->first)) {
+        auto cfg_it = configs_.find(it->first);
+        if (cfg_it == configs_.end()) {
           kill(it->second, SIGTERM);
           waitpid(it->second, nullptr, 0);
+          last_det_configs_.erase(it->first);
           it = det_pids_.erase(it);
         } else {
-          kill(it->second, SIGHUP);
-          ++it;
+          auto started_it = last_det_configs_.find(it->first);
+          bool needs_restart =
+              started_it == last_det_configs_.end() ||
+              detectionArgsDiffer(cfg_it->second, started_it->second);
+          if (needs_restart) {
+            kill(it->second, SIGTERM);
+            waitpid(it->second, nullptr, 0);
+            last_det_configs_.erase(it->first);
+            it = det_pids_.erase(it);
+          } else {
+            kill(it->second, SIGHUP);
+            ++it;
+          }
         }
       }
     }
@@ -1487,6 +1519,7 @@ bool CameraManager::reassignCamera(const std::string &id,
     if (itp != det_pids_.end()) {
       pid_to_kill = itp->second;
       det_pids_.erase(itp);
+      last_det_configs_.erase(id);
     }
     active_.erase(id);
   }
@@ -1581,8 +1614,10 @@ std::lock_guard<std::mutex> lk(mutex_);
     if (!writeJsonAtomic(config_path_, j))
       return false;
   }
-  if (changed)
+  if (changed) {
+    requestConfigReload();
     notify();
+  }
   return true;
 }
 
@@ -1678,6 +1713,9 @@ bool CameraManager::updateSettings(const std::string &id,
   }
   if (!writeJsonAtomic(config_path_, j))
     return false;
+
+  requestConfigReload();
+  notify();
   return true;
 }
 
