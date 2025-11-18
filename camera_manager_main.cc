@@ -3491,6 +3491,11 @@ g_server.Get("/api/detections/update", [](const httplib::Request& req, httplib::
         last_update = now;
         }
 
+    auto clear_update_flag = [&]() {
+        std::lock_guard<std::mutex> lock(update_mutex);
+        update_in_progress = false;
+        update_cv.notify_all();
+    };
 
 
 
