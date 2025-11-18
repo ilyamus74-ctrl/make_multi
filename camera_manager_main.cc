@@ -1228,17 +1228,20 @@ int main(int argc, char **argv) {
       j = nlohmann::json::object();
     }
   }
-
   if (!j.is_object())
     j = nlohmann::json::object();
   g_preview_enabled = j.value("preview_enabled", true);
   g_use_global_tracking = j.value("use_global_tracking", false);
   g_use_grayscale_tracking = j.value("use_grayscale_tracking", false);
+    if (g_use_global_tracking) {
+        g_scheme_manager.initialize(g_config_path.string());
+        ensureCalibrationWatcher();
+        g_global_tracker.initialize();
+        printf("✓ Global tracking enabled from config\n");
+    }
 
   bool manager_debug = j.value("manager_debug_enabled", false);
   setManagerDebugEnabled(manager_debug);
-
-  // ✅ СНАЧАЛА устанавливаем путь к калибровке
   std::string calibration_results_path = j.value("calibration_results_path", std::string());
   if (calibration_results_path.empty()) {
     if (const char *env_path = std::getenv("CALIBRATION_RESULTS_PATH")) {
@@ -1250,16 +1253,13 @@ int main(int argc, char **argv) {
   } else {
     auto detected_path = detectCalibrationResultsPath(exe_dir);
     g_global_tracker.setExternalCalibrationDirectory(detected_path);
+     if (g_use_global_tracking) {
+        g_scheme_manager.initialize(g_config_path.string());
+        ensureCalibrationWatcher();
+        g_global_tracker.initialize();
+        printf("Global tracking enabled from config\n");
+        }
   }
-
-  // ✅ ПОТОМ инициализируем (только ОДИН раз!)
-  if (g_use_global_tracking) {
-    g_scheme_manager.initialize(g_config_path.string());
-    ensureCalibrationWatcher();
-    g_global_tracker.initialize();
-    printf("✓ Global tracking enabled from config\n");
-  }
-
   int port = j.value("http", nlohmann::json::object()).value("port", 8080);
 
   g_calib = std::make_unique<CalibrationSession>(
@@ -1269,6 +1269,12 @@ int main(int argc, char **argv) {
   std::signal(SIGINT, sigint);
   std::signal(SIGHUP, sighup);
   g_mgr.start();
+
+   if (g_use_global_tracking) {
+     g_scheme_manager.initialize(g_config_path.string());
+     ensureCalibrationWatcher();
+     g_global_tracker.initialize();
+   }
 
   // Initialize camera roles from current manager configuration
   for (const auto &c : g_mgr.configuredCameras()) {

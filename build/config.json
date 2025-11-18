@@ -1,4 +1,5 @@
 {
+  "calib_root": ".",
   "cameras": [
     {
       "buffer_type": "auto",
