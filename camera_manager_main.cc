@@ -21,6 +21,7 @@
 #include <unordered_map>
 #include <map>
 #include <mutex>
+#include <condition_variable>
 #include <cmath>
 #include <algorithm>
 #include <sstream>
@@ -953,9 +954,9 @@ static void pushLocalLabelPreference(bool enabled) {
 
 static void sigint(int) {
   g_mgr.stop();
-  ensureCalibrationWatcher();
-  g_global_tracker.initialize();
-  printf("Global tracker initialized\n");
+//  ensureCalibrationWatcher();
+//  g_global_tracker.initialize();
+//  printf("Global tracker initialized\n");
   g_server.stop();
 }
 
@@ -1360,6 +1361,24 @@ int main(int argc, char **argv) {
   // Отдельный поток обработки стереопар.
   std::thread stereo_thread(stereo_loop);
 
+// ✅ ДОБАВИТЬ: Запуск потоков для поллинга детекций
+if (g_use_global_tracking) {
+  logGlobalTrackingMarker("Starting global tracking detection threads");
+  for (const auto &c : g_mgr.configuredCameras()) {
+    if (c.mode == CameraManager::CamConfig::Mode::Detect && c.det_port > 0) {
+      std::thread([cam_id = c.id, det_port = c.det_port]() {
+        logGlobalTrackingMarker("Thread started for camera " + cam_id + " port=" + std::to_string(det_port));
+        
+        while (g_server.is_running()) {
+          fetchAndUpdateDetections(cam_id, det_port);
+          std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 10 FPS поллинг
+        }
+        
+        logGlobalTrackingMarker("Thread stopped for camera " + cam_id);
+      }).detach();
+    }
+  }
+}
 
   g_server.set_mount_point("/", "./web");
 
@@ -3457,43 +3476,52 @@ g_server.Get("/api/detections/update", [](const httplib::Request& req, httplib::
     }
 
     logGlobalTrackingMarker("/api/detections/update requested");
-        // ДОБАВИТЬ: защита от множественных одновременных запросов
-    static std::atomic<bool> update_in_progress{false};
-    if (update_in_progress.load()) {
-        // Возвращаем кешированный ответ если уже идет обновление
-        static nlohmann::json cached_response;
-        res.set_content(cached_response.dump(), "application/json");
-        logGlobalTrackingMarker("update skipped - in progress, served cached response");
-        return;
-    }
-    update_in_progress.store(true);
-    bool cleared = false;
+
+    // Жестко ограничиваем частоту и параллелизм: только одно обновление каждые 2 секунды
+    static std::mutex update_mutex;
+    static std::condition_variable update_cv;
+    static bool update_in_progress = false;
+    static auto last_update = std::chrono::steady_clock::time_point::min();
+    static nlohmann::json cached_response;
+
+    auto now = std::chrono::steady_clock::now();
+    {
+        std::unique_lock<std::mutex> lock(update_mutex);
+        if (cached_response.is_null()) {
+            cached_response = serializeGlobalObjects(g_global_tracker.getActiveObjects());
+        }
+
+        if (update_in_progress) {
+            if (!update_cv.wait_for(lock, std::chrono::milliseconds(500), [&] { return !update_in_progress; })) {
+                logGlobalTrackingMarker("update skipped - wait for in-progress update timed out");
+            }
+            res.set_content(cached_response.dump(), "application/json");
+            return;
+        }
+
+        if (now - last_update < std::chrono::seconds(2)) {
+            res.set_content(cached_response.dump(), "application/json");
+            logGlobalTrackingMarker("update throttled - served cached response");
+            return;
+        }
+
+        update_in_progress = true;
+        last_update = now;
+        }
+
     auto clear_update_flag = [&]() {
-      if (!cleared) {
-        update_in_progress.store(false);
-        cleared = true;
-      }
+        std::lock_guard<std::mutex> lock(update_mutex);
+        update_in_progress = false;
+        update_cv.notify_all();
     };
 
 
-    // Ограничиваем частоту обращений
-    static auto last_update = std::chrono::steady_clock::now();
-    static nlohmann::json cached_response;
-    auto now = std::chrono::steady_clock::now();
 
-    if (now - last_update < std::chrono::milliseconds(2000)) { // 2 секунды вместо постоянных запросов
-        res.set_content(cached_response.dump(), "application/json");
-        logGlobalTrackingMarker("update throttled - served cached response");
-        clear_update_flag();
-        return;
-    }
-    last_update = now;
-    
     // Собираем детекции только с активных камер, но с таймаутом
     auto cams = g_mgr.configuredCameras();
     std::unordered_set<std::string> active_detection_cameras;
     std::vector<std::future<void>> futures;
-    
+
     for (const auto& cam : cams) {
         if (cam.mode == CameraManager::CamConfig::Mode::Detect && cam.det_running) {
             active_detection_cameras.insert(cam.id);
@@ -3503,19 +3531,23 @@ g_server.Get("/api/detections/update", [](const httplib::Request& req, httplib::
                                             }));
         }
     }
-    
+
     // Ждем завершения всех запросов с таймаутом
     for (auto& future : futures) {
         if (future.wait_for(std::chrono::milliseconds(600)) == std::future_status::timeout) {
-            // Таймаут - продолжаем без этой камеры
+            logGlobalTrackingMarker("detection update timed out for a camera");
         }
     }
 
     const auto objects = g_global_tracker.getActiveObjects();
     logGlobalObjectsSnapshot(objects, "update completed");
 
-    cached_response = serializeGlobalObjects(objects);
-    res.set_content(cached_response.dump(), "application/json");
+    {
+        std::lock_guard<std::mutex> lock(update_mutex);
+        cached_response = serializeGlobalObjects(objects);
+        res.set_content(cached_response.dump(), "application/json");
+    }
+
     clear_update_flag();
 });
 
