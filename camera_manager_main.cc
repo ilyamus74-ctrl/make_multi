@@ -782,8 +782,7 @@ static void fetchAndUpdateDetections(std::string cam_id, int det_port) {
       }
 
 
-      auto mapping = g_global_tracker.getTrackToGlobalMapForCamera(
-          cam_id, active_detection_cameras);
+      auto mapping = g_global_tracker.getTrackToGlobalMapForCamera(cam_id);
       nlohmann::json labels_json = nlohmann::json::array();
       for (const auto &assoc : mapping) {
         nlohmann::json entry;
@@ -793,7 +792,7 @@ static void fetchAndUpdateDetections(std::string cam_id, int det_port) {
           entry["distance_m"] = *assoc.distance_m;
         }
         entry["visible_cameras"] = assoc.visible_camera_count;
-        entry["active_cameras"] = static_cast<int>(active_detection_cameras.size());
+        entry["active_cameras"] = assoc.total_active_cameras;
         labels_json.push_back(entry);
       }
       nlohmann::json payload;

@@ -9,6 +9,7 @@
 #include <array>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <filesystem>
 #include <functional>
 #include <mutex>
@@ -237,7 +238,7 @@ public:
     std::vector<GlobalObject> getActiveObjects();
     std::vector<TrackGlobalMapping> getTrackToGlobalMapForCamera(
         const std::string& camera_id,
-        const std::unordered_set<std::string>& active_camera_ids);
+        const std::unordered_set<std::string>& active_camera_ids = {});
 
     const std::vector<GlobalAssignment>& get_last_assignments() const;
 
