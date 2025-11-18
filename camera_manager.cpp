@@ -715,10 +715,21 @@ void CameraManager::monitorLoop() {
             std::cout << "CameraManager: resolved labels path for camera "
                       << id << " -> " << resolved_labels << std::endl;
 
+          std::string cam_arg = id;
+          if (cam_arg.empty()) {
+            if (!cfg.match_substr.empty())
+              cam_arg = cfg.match_substr;
+            else
+              cam_arg = std::filesystem::path(cfg.device_path).filename().string();
+          }
+          if (cam_arg.empty())
+            cam_arg = "camera";
+
           std::cout << "CameraManager: starting detection for camera " << id
                     << " (" << cfg.device_path << ") model=" << resolved_model
                     << " size=" << cfg.preferred.w << "x" << cfg.preferred.h
-                    << " port=" << cfg.det_port << std::endl;
+                    << " port=" << cfg.det_port << " cam_id=" << cam_arg
+                    << std::endl;
 
           std::string port = std::to_string(cfg.det_port);
           std::vector<std::string> args;
@@ -727,10 +738,8 @@ void CameraManager::monitorLoop() {
                              ? "yolov8_web_server_calibration"
                              : "yolov8_web_server");
           args.push_back(resolved_model);
-          if (!id.empty()) {
-            args.push_back("--cam-id");
-            args.push_back(id);
-          }
+          args.push_back("--cam-id");
+          args.push_back(cam_arg);
           args.push_back("--dev");
           args.push_back(cfg.device_path);
           args.push_back("--port");
