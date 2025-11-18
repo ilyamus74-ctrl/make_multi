@@ -56,6 +56,7 @@ static std::mutex g_manager_debug_mutex;
 static std::atomic<bool> g_manager_debug_enabled{false};
 static std::unordered_map<std::string, std::chrono::steady_clock::time_point>
     g_last_poll_time;
+static std::mutex g_global_tracking_log_mutex;
 
 static std::filesystem::path detectCalibrationResultsPath(
     const std::filesystem::path &exe_dir) {
@@ -98,6 +99,17 @@ static std::string formatTimestamp(
       << std::setw(3) << std::setfill('0') << ms.count();
   oss << std::setfill(' ');
   return oss.str();
+}
+
+static void logGlobalTrackingMarker(const std::string &message) {
+  const auto stamp = formatTimestamp(std::chrono::system_clock::now());
+  std::lock_guard<std::mutex> lk(g_global_tracking_log_mutex);
+  std::cout << "[G#] " << stamp << " | " << message << std::endl;
+  if (g_manager_debug_enabled.load(std::memory_order_acquire) &&
+      g_manager_debug.is_open()) {
+    g_manager_debug << "[G#] " << stamp << " | " << message << std::endl;
+    g_manager_debug.flush();
+  }
 }
 
 static void setManagerDebugEnabled(bool enabled) {
@@ -552,6 +564,26 @@ static nlohmann::json serializeGlobalObjects(const std::vector<GlobalObject>& ob
     result.push_back(item);
   }
   return result;
+}
+
+static void logGlobalObjectsSnapshot(const std::vector<GlobalObject>& objects,
+                                     const std::string& context) {
+  std::ostringstream oss;
+  oss << context << " | objects=" << objects.size();
+
+  for (const auto& obj : objects) {
+    oss << " | id=" << obj.global_id << " cams:";
+    bool first = true;
+    for (const auto& [cam_id, detection] : obj.camera_detections) {
+      if (!first) {
+        oss << ',';
+      }
+      first = false;
+      oss << cam_id << "#" << detection.track_id;
+    }
+  }
+
+  logGlobalTrackingMarker(oss.str());
 }
 
 static void fetchAndUpdateDetections(std::string cam_id, int det_port) {
@@ -3285,11 +3317,15 @@ g_server.Post("/api/tracking/mode", [](const httplib::Request& req, httplib::Res
     try {
         auto j = nlohmann::json::parse(req.body);
         g_use_global_tracking = j.value("global", false);
-        
+
+        logGlobalTrackingMarker(std::string("toggle requested -> ") +
+                                (g_use_global_tracking ? "ON" : "OFF"));
+
         if (g_use_global_tracking) {
             g_scheme_manager.initialize(g_config_path.string());
             ensureCalibrationWatcher();
             g_global_tracker.initialize();
+            logGlobalTrackingMarker("initialized global tracker after toggle ON");
         }
 
         // Persist preference
@@ -3299,10 +3335,14 @@ g_server.Post("/api/tracking/mode", [](const httplib::Request& req, httplib::Res
 
         resp["status"] = "ok";
         resp["global_tracking"] = g_use_global_tracking;
-        
+
+        logGlobalTrackingMarker("toggle completed -> " +
+                                std::string(g_use_global_tracking ? "ON" : "OFF"));
+
     } catch (const std::exception& e) {
         resp["status"] = "error";
         resp["error"] = e.what();
+        logGlobalTrackingMarker(std::string("toggle failed: ") + e.what());
     }
     res.set_content(resp.dump(), "application/json");
 });
@@ -3348,23 +3388,36 @@ g_server.Get("/api/detections/update", [](const httplib::Request& req, httplib::
         res.set_content("{\"error\":\"Global tracking disabled\"}", "application/json");
         return;
     }
+
+    logGlobalTrackingMarker("/api/detections/update requested");
         // ДОБАВИТЬ: защита от множественных одновременных запросов
     static std::atomic<bool> update_in_progress{false};
     if (update_in_progress.load()) {
         // Возвращаем кешированный ответ если уже идет обновление
         static nlohmann::json cached_response;
         res.set_content(cached_response.dump(), "application/json");
+        logGlobalTrackingMarker("update skipped - in progress, served cached response");
         return;
     }
     update_in_progress.store(true);
+    bool cleared = false;
+    auto clear_update_flag = [&]() {
+      if (!cleared) {
+        update_in_progress.store(false);
+        cleared = true;
+      }
+    };
+
 
     // Ограничиваем частоту обращений
     static auto last_update = std::chrono::steady_clock::now();
     static nlohmann::json cached_response;
     auto now = std::chrono::steady_clock::now();
-    
+
     if (now - last_update < std::chrono::milliseconds(2000)) { // 2 секунды вместо постоянных запросов
         res.set_content(cached_response.dump(), "application/json");
+        logGlobalTrackingMarker("update throttled - served cached response");
+        clear_update_flag();
         return;
     }
     last_update = now;
@@ -3388,9 +3441,13 @@ g_server.Get("/api/detections/update", [](const httplib::Request& req, httplib::
             // Таймаут - продолжаем без этой камеры
         }
     }
-    
-    cached_response = serializeGlobalObjects(g_global_tracker.getActiveObjects());
+
+    const auto objects = g_global_tracker.getActiveObjects();
+    logGlobalObjectsSnapshot(objects, "update completed");
+
+    cached_response = serializeGlobalObjects(objects);
     res.set_content(cached_response.dump(), "application/json");
+    clear_update_flag();
 });
 
 
