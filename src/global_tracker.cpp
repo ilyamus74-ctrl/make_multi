@@ -56,7 +56,8 @@ std::filesystem::path detectDefaultCalibrationDirectory() {
 
     for (const auto& candidate : candidates) {
         ec.clear();
-        auto json_path = candidate / "calibration_results.json";
+        auto json_path =  "calibration_results.json";
+//        auto json_path = exe_dir / "calibration/results/calibration_results.json";
         if (std::filesystem::exists(json_path, ec)) {
             auto absolute = std::filesystem::absolute(candidate, ec);
             return ec ? candidate : absolute;
@@ -85,6 +86,7 @@ public:
         stereo_params_.clear();
 
         std::filesystem::path json_path = results_dir_ / "calibration_results.json";
+//        std::filesystem::path json_path = exe_dir / "calibration/results/calibration_results.json";
         std::ifstream json_file(json_path);
         if (!json_file.is_open()) {
             return false;
@@ -982,6 +984,7 @@ bool GlobalTracker::initialize() {
 
     if (calibration_watcher_) {
         auto results_file = calibration_watcher_->getResultsPath() / "calibration_results.json";
+//        auto results_file = exe_dir / "calibration/results/calibration_results.json";
         if (calibration_watcher_->loadResults()) {
             std::cout << "Загружены данные калибровки при старте из "
                       << results_file << std::endl;
@@ -1366,6 +1369,7 @@ bool GlobalTracker::updateCalibrationTimestamp(const CalibrationWatcher& watcher
     std::error_code ec;
 
     auto results_file = watcher.getResultsPath() / "calibration_results.json";
+//    auto results_file = exe_dir / "calibration/results/calibration_results.json";
     auto ts = std::filesystem::last_write_time(results_file, ec);
     if (ec) {
         return false;
@@ -1384,6 +1388,7 @@ bool GlobalTracker::checkAndUpdateCalibration() {
     }
     std::error_code ec;
     auto results_file = calibration_watcher_->getResultsPath() / "calibration_results.json";
+//    auto results_file = exe_dir / "calibration/results/calibration_results.json";
     auto current_time = std::filesystem::last_write_time(results_file, ec);
     if (ec) {
         return false;
@@ -3634,6 +3639,7 @@ bool GlobalTracker::loadExternalCalibration(SchemeType scheme) {
 
     std::error_code ec;
     auto json_path = external_calibration_dir_ / "calibration_results.json";
+//    auto json_path = exe_dir / "calibration/results/calibration_results.json";
     if (!std::filesystem::exists(json_path, ec) || ec) {
         std::cerr << "Файл " << json_path
                   << " не найден или недоступен, используем резервную калибровку" << std::endl;
