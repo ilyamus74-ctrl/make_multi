@@ -3,30 +3,34 @@ window.CameraApp = window.CameraApp || {};
 
 window.CameraApp.App = {
     currentTab: 'main-pane',
-    
+
     async init() {
         console.log('Initializing Camera Manager Pro...');
-        
+
         // Initialize UI components
         this.setupTabHandling();
         this.setupGlobalEventListeners();
-        
+
+
+        // Initialize shared modules that other tabs depend on
+        // (e.g. MainTab calls GlobalTracker methods during startup)
+        window.CameraApp.GlobalTracker.init();
+
         // Initialize tab modules
         await window.CameraApp.MainTab.init();
         await window.CameraApp.SettingsTab.init();
         await window.CameraApp.CalibrationTab.init();
 
-        window.CameraApp.GlobalTracker.init();
 
         // Load initial configuration
         await this.loadInitialConfig();
-        
+
         // Setup periodic status updates
         this.startStatusUpdates();
-        
+
         // Initialize based on URL parameters
         this.handleInitialTab();
-        
+
         console.log('Camera Manager Pro initialized successfully');
     },
 
