@@ -54,7 +54,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "zoom_variable",
+      "role": "zoom",
       "show_fps": true
     },
     {
@@ -93,46 +93,7 @@
         "w": 800
       },
       "profile": "auto",
-      "role": "zoom_variable",
-      "show_fps": true
-    },
-    {
-      "auto_profiles": true,
-      "buffer_type": "single",
-      "buffers": 3,
-      "cap_fps": 30,
-      "det_args": [],
-      "det_port": 8001,
-      "device": "/dev/v4l/by-path/platform-fc880000.usb-usb-0:1:1.0-video-index0",
-      "http_fps_limit": 20,
-      "id": "2",
-      "jpeg_quality": 60,
-      "labels_path": "model/coco_80_labels_list.txt",
-      "log_file": "",
-      "match": {
-        "bus_info": "usb-fc880000.usb-1",
-        "by_id_contains": "usb-Sunplus_IT_Co_HD_720P_webcam_AN20200706001-video-index0",
-        "by_path_contains": "platform-fc880000.usb-usb-0:1:1.0-video-index0",
-        "card": "HD 720P webcam: HD 720P webcam",
-        "device_path": "/dev/v4l/by-path/platform-fc880000.usb-usb-0:1:1.0-video-index0"
-      },
-      "mode": "calibration",
-      "model_path": "model_rknn/yolov8n_800x800_9out_fp32.rknn",
-      "npu_core": "auto",
-      "npu_worker": 0,
-      "position": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": 0.0
-      },
-      "preferred": {
-        "fps": 30,
-        "h": 600,
-        "pixfmt": "MJPG",
-        "w": 800
-      },
-      "profile": "auto",
-      "role": "zoom_variable",
+      "role": "zoom",
       "show_fps": true
     },
     {
@@ -172,6 +133,45 @@
       },
       "profile": "auto",
       "role": "zoom",
+      "show_fps": false
+    },
+    {
+      "auto_profiles": true,
+      "buffer_type": "single",
+      "buffers": 3,
+      "cap_fps": 30,
+      "det_args": [],
+      "det_port": 8001,
+      "device": "/dev/v4l/by-path/platform-fc880000.usb-usb-0:1:1.0-video-index0",
+      "http_fps_limit": 20,
+      "id": "2",
+      "jpeg_quality": 60,
+      "labels_path": "model/coco_80_labels_list.txt",
+      "log_file": "",
+      "match": {
+        "bus_info": "usb-fc880000.usb-1",
+        "by_id_contains": "usb-Sunplus_IT_Co_HD_720P_webcam_AN20200706001-video-index0",
+        "by_path_contains": "platform-fc880000.usb-usb-0:1:1.0-video-index0",
+        "card": "HD 720P webcam: HD 720P webcam",
+        "device_path": "/dev/v4l/by-path/platform-fc880000.usb-usb-0:1:1.0-video-index0"
+      },
+      "mode": "detect",
+      "model_path": "model_rknn/yolov8.rknn",
+      "npu_core": "auto",
+      "npu_worker": 0,
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "preferred": {
+        "fps": 30,
+        "h": 720,
+        "pixfmt": "MJPG",
+        "w": 1280
+      },
+      "profile": "auto",
+      "role": "wide_angle_primary",
       "show_fps": false
     }
   ],
