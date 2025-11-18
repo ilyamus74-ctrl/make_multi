@@ -101,6 +101,7 @@ window.CameraApp.App = {
                 !!config.manager_debug_enabled;
 
             if (window.CameraApp.State.globalTrackingEnabled) {
+                window.CameraApp.State.lastGlobalFetch = 0;
                 window.CameraApp.GlobalTracker.show();
                 window.CameraApp.MainTab.startDetectionLoop();
             }

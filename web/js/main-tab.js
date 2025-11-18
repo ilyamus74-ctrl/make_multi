@@ -33,8 +33,16 @@ window.CameraApp.MainTab = {
 
         try {
             await window.CameraApp.API.setTrackingMode(enabled);
-            
+
+            if (!enabled) {
+                window.CameraApp.State.selectedObjectId = -1;
+                window.CameraApp.State.lastGlobalObjects = [];
+                await window.CameraApp.GlobalTracker.highlightObjectOnStreams(-1);
+                window.CameraApp.GlobalTracker.showMessage('Global tracking disabled');
+            }
+
             if (enabled) {
+                window.CameraApp.State.lastGlobalFetch = 0;
                 window.CameraApp.GlobalTracker.show();
                 this.startDetectionLoop();
             } else {
