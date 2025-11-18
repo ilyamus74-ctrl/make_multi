@@ -21,6 +21,7 @@
 #include <unordered_map>
 #include <map>
 #include <mutex>
+#include <condition_variable>
 #include <cmath>
 #include <algorithm>
 #include <sstream>
@@ -3460,16 +3461,23 @@ g_server.Get("/api/detections/update", [](const httplib::Request& req, httplib::
 
     // Жестко ограничиваем частоту и параллелизм: только одно обновление каждые 2 секунды
     static std::mutex update_mutex;
+    static std::condition_variable update_cv;
     static bool update_in_progress = false;
     static auto last_update = std::chrono::steady_clock::time_point::min();
     static nlohmann::json cached_response;
 
     auto now = std::chrono::steady_clock::now();
     {
-        std::lock_guard<std::mutex> lock(update_mutex);
+        std::unique_lock<std::mutex> lock(update_mutex);
+        if (cached_response.is_null()) {
+            cached_response = serializeGlobalObjects(g_global_tracker.getActiveObjects());
+        }
+
         if (update_in_progress) {
+            if (!update_cv.wait_for(lock, std::chrono::milliseconds(500), [&] { return !update_in_progress; })) {
+                logGlobalTrackingMarker("update skipped - wait for in-progress update timed out");
+            }
             res.set_content(cached_response.dump(), "application/json");
-            logGlobalTrackingMarker("update skipped - still in progress, served cached response");
             return;
         }
 
@@ -3481,12 +3489,11 @@ g_server.Get("/api/detections/update", [](const httplib::Request& req, httplib::
 
         update_in_progress = true;
         last_update = now;
-    }
+        }
 
-    auto clear_update_flag = [&]() {
-        std::lock_guard<std::mutex> lock(update_mutex);
-        update_in_progress = false;
-    };
+
+
+
     // Собираем детекции только с активных камер, но с таймаутом
     auto cams = g_mgr.configuredCameras();
     std::unordered_set<std::string> active_detection_cameras;
