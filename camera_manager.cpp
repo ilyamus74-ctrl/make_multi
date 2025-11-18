@@ -126,6 +126,12 @@ CameraManager::~CameraManager() {
 bool CameraManager::loadConfig(const std::string &path) {
   std::lock_guard<std::mutex> lk(mutex_);
   config_path_ = path;
+  // Reset cached configuration to ensure removed cameras and stereo pairs do
+  // not accumulate across reloads. Without clearing, repeated reloads would
+  // keep stale entries around and gradually grow the manager state even if the
+  // underlying JSON removed those cameras.
+  configs_.clear();
+  active_pairs_.clear();
   std::ifstream f(path);
   json j;
   if (!f.is_open()) {
