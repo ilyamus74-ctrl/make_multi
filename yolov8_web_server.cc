@@ -1749,6 +1749,11 @@ private:
 
                // ===== DRAW =====
                TICK(draw);  // DEBUG
+               int configured_cam_count = 0;
+               {
+                   auto configured = cam_mgr_.configuredCameras();
+                   configured_cam_count = static_cast<int>(configured.size());
+               }
                auto global_labels = getGlobalLabelsSnapshot();
                int highlight_id = highlighted_track_id.load();
                for (int i = 0; i < od.count; ++i) {
@@ -1779,7 +1784,11 @@ private:
                            const auto& info = map_it->second;
                            int total_cams = info.active_cameras;
                            if (total_cams <= 0) {
-                               total_cams = std::max(info.active_cameras, info.visible_cameras);
+                               total_cams = info.visible_cameras;
+                           }
+                           total_cams = std::max(total_cams, info.visible_cameras);
+                           if (configured_cam_count > 0) {
+                               total_cams = std::min(total_cams, configured_cam_count);
                            }
                            if (total_cams > 0 || info.visible_cameras > 0) {
                                id_parts.push_back("(" + std::to_string(info.visible_cameras) + "/" +

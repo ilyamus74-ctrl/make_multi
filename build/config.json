@@ -177,6 +177,7 @@
   ],
   "manager_debug_enabled": false,
   "scheme_type": "hemisphere_single",
-  "use_global_tracking": false,
+  "show_local_labels": false,
+  "use_global_tracking": true,
   "use_grayscale_tracking": true
 }
