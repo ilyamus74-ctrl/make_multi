@@ -244,6 +244,7 @@ private:
   // Snapshot of arguments used to launch each detection process to detect
   // configuration drift and restart processes when settings change.
   std::map<std::string, CamConfig> last_det_configs_;
+  std::map<std::string, Clock::time_point> last_det_restart_;
   std::mutex mutex_;
   std::condition_variable cv_;
   std::thread monitor_thread_;

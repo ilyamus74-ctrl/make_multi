@@ -400,6 +400,7 @@ void CameraManager::stop() {
   }
   det_pids_.clear();
   last_det_configs_.clear();
+  last_det_restart_.clear();
 }
 
 void CameraManager::notify() {
@@ -683,6 +684,7 @@ void CameraManager::monitorLoop() {
             std::lock_guard<std::mutex> lk(mutex_);
             det_pids_.erase(id);
             last_det_configs_.erase(id);
+            last_det_restart_.erase(id);
           }
         }
         continue;
@@ -704,10 +706,19 @@ void CameraManager::monitorLoop() {
           std::lock_guard<std::mutex> lk(mutex_);
           det_pids_.erase(id);
           last_det_configs_.erase(id);
+          last_det_restart_.erase(id);
           pid = 0;
         }
       }
       if (pid == 0) {
+        auto now = Clock::now();
+        auto it_restart = last_det_restart_.find(id);
+        if (it_restart != last_det_restart_.end()) {
+          constexpr auto kRestartBackoff = std::chrono::seconds(2);
+          if (now - it_restart->second < kRestartBackoff) {
+            continue;
+          }
+        }
         pid_t child = fork();
         if (child == 0) {
           std::string resolved_model =
@@ -800,6 +811,7 @@ void CameraManager::monitorLoop() {
             std::lock_guard<std::mutex> lk(mutex_);
             det_pids_[id] = child;
             last_det_configs_[id] = cfg;
+            last_det_restart_[id] = Clock::now();
           }
           std::cout << "CameraManager: forked detection pid " << child
                     << " for device " << cfg.device_path << " port "
