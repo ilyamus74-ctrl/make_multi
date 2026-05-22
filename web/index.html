@@ -189,10 +189,10 @@
         <span id="streamStateChip" class="stream-chip reconnecting">RECONNECTING</span>
         <span id="controlModeChip" class="mode-chip">MODE: MANUAL</span>
         <span class="mode-switch">
-          <button id="modeManualBtn" class="mode-btn active">Manual</button>
-          <button id="modeAssistBtn" class="mode-btn">Assist</button>
-          <button id="modeAutoBtn" class="mode-btn">Auto</button>
+          <button id="modeManualBtn" class="mode-btn active">MANUAL</button>
           <button id="modePtzBtn" class="mode-btn">PTZ</button>
+          <button id="modeAssistBtn" class="mode-btn hidden">Assist</button>
+          <button id="modeAutoBtn" class="mode-btn hidden">Auto</button>
         </span>
         <span>lost:</span>
         <code id="streamLostFor" class="stream-lost-time">0.0s</code>
@@ -246,16 +246,16 @@
         <span style="opacity:.55">|</span>
         <b>PTZ:</b>
         <button id="ptzPrecheckBtn" class="small-btn">PRECHECK</button>
-        <button id="ptzSelectFirstBtn" class="small-btn">SELECT FIRST TARGET</button>
+        <button id="ptzSelectFirstBtn" class="small-btn">SELECT FIRST</button>
         <button id="ptzStartBtn" class="small-btn">START PTZ</button>
         <button id="ptzStopBtn" class="small-btn">STOP PTZ</button>
-        <button id="ptzRoiPersonBtn" class="small-btn">ROI PERSON</button>
-        <button id="ptzRoiVehicleBtn" class="small-btn">ROI VEHICLE</button>
+        <button id="ptzRoiPersonBtn" class="small-btn">PERSON</button>
+        <button id="ptzRoiVehicleBtn" class="small-btn">VEHICLE</button>
         <button id="ptzRoiFullBtn" class="small-btn">FULL FRAME</button>
         <code id="ptzStateLine">idle</code>
       </div>
       <div class="row">
-        <textarea id="ptzDebugLog" style="width:100%;height:48px;font-family:monospace;font-size:12px"></textarea>
+        <details><summary>PTZ log</summary><textarea id="ptzDebugLog" style="width:100%;height:48px;font-family:monospace;font-size:12px"></textarea></details>
       </div>
 
       <details id="controlsSpoiler" class="controls-spoiler" open>
@@ -1238,9 +1238,13 @@ async function ptzStart() {
   }
   async function refreshPtzTelemetry() {
     try {
+      const det = await apiGetJson('/api/detections');
       const ap = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`);
       const tr = await apiGetJson('/api/tracker/state');
-      $('ptzStateLine').textContent = `ptz=${ap.enabled}/${ap.mode} cmd=${ap.cmd_pan},${ap.cmd_tilt} err=${Number(ap.err_x || 0).toFixed(2)},${Number(ap.err_y || 0).toFixed(2)} tracker=${tr.mode} id=${tr.selected_track_id} valid=${tr.selected_box_valid} ${ap.last_error || ''}`;
+      const conf = await apiGetJson('/api/tracking/confidence');
+      const detCount = Array.isArray(det.items) ? det.items.length : 0;
+      const fused = Number(conf?.fused ?? 0);
+      $('ptzStateLine').textContent = `DET=${detCount} | TRACK=${tr.mode} id=${tr.selected_track_id} valid=${tr.selected_box_valid} | PTZ=${ap.enabled}/${ap.mode} cmd=${ap.cmd_pan},${ap.cmd_tilt} | CONF=${fused.toFixed(2)}`;
       $('pidCmd').textContent = `PTZ ${ap.cmd_pan},${ap.cmd_tilt}`;
       $('pidTarget').textContent = `PTZ id=${tr.selected_track_id} ${tr.mode}`;
     } catch (e) {
@@ -1453,6 +1457,12 @@ async function ptzStart() {
   function setControlMode(mode) {
     if (mode !== 'manual' && mode !== 'assist' && mode !== 'auto' && mode !== 'ptz') return;
     if ($('controlMode').value === mode) return;
+    if (mode === 'ptz') {
+      if ($('auto')) $('auto').checked = false;
+      disconnectWs();
+    } else if (mode === 'manual') {
+      fetch(`${autopilotBaseUrl()}/api/autopilot/stop`, { method: 'POST' }).catch(() => {});
+    }
     $('controlMode').value = mode;
     syncControlModeUi();
     saveSettings();
