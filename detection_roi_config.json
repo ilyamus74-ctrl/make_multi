@@ -1,1 +1,1 @@
-{"ok":true,"detection_mode":"roi","rois":[{"id":"person_test","enabled":true,"x":0,"y":0,"w":1920,"h":1080,"every_n_frames":1,"classes":[0]}]}
+{"ok":true,"detection_mode":"full_frame","rois":[]}

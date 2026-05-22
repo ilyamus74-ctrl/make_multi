@@ -217,7 +217,7 @@
         <code id="streamState" style="display:none">idle</code>
       </div>
       <div class="overlay-legend">
-        Boxes: <code>DET=yellow TRACK=cyan SEL=green</code>
+        Boxes: <code>DET=yellow TRACK=cyan SEL=red</code>
       </div>
       <div style="position:absolute;right:10px;top:64px;z-index:5;">
         <button id="emergencyStop" class="danger-btn">EMERGENCY STOP</button>
@@ -1183,22 +1183,26 @@ ctx.fillText(lbl, tx + 4, ty - 4);
     await new Promise(resolve => setTimeout(resolve, 400));
     await ptzPrecheck();
   }
-  async function ptzStart() {
-    $('controlMode').value = 'manual';
-    if ($('auto')) $('auto').checked = false;
-    syncControlModeUi();
-    saveSettings();
-    disconnectWs();
-    const tr = await apiGetJson('/api/tracker/state');
-    if (tr.mode !== 'TRACKING' || tr.selected_box_valid !== true) {
-      ptzLog('START blocked: tracker not ready', tr);
-      $('ptzStateLine').textContent = `START blocked: tracker=${tr.mode} valid=${tr.selected_box_valid}`;
-      return;
-    }
-    const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/start`, {});
-    ptzLog('PTZ START', res);
-    await ptzPrecheck();
+
+async function ptzStart() {
+  $('controlMode').value = 'ptz';
+  if ($('auto')) $('auto').checked = false;
+  syncControlModeUi();
+  saveSettings();
+  disconnectWs();
+
+  const tr = await apiGetJson('/api/tracker/state');
+  if (tr.mode !== 'TRACKING' || tr.selected_box_valid !== true) {
+    ptzLog('START blocked: tracker not ready', tr);
+    $('ptzStateLine').textContent = `START blocked: tracker=${tr.mode} valid=${tr.selected_box_valid}`;
+    return;
   }
+
+  const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/start`, {});
+  ptzLog('PTZ START', res);
+  await ptzPrecheck();
+}
+
   async function ptzStop() {
     const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/stop`, {});
     ptzLog('PTZ STOP', res);
@@ -1429,7 +1433,7 @@ ctx.fillText(lbl, tx + 4, ty - 4);
     $('modeAssistBtn').classList.toggle('active', selectedMode === 'assist');
     $('modeAutoBtn').classList.toggle('active', isAuto);
     $('modePtzBtn').classList.toggle('active', isPtz);
-    $('touchControls').classList.toggle('disabled', isAuto);
+    $('touchControls').classList.toggle('disabled', isAuto || isPtz);
     $('controlModeChip').textContent = `MODE: ${mode} | ${activeProfile.toUpperCase()}`;
   }
   function setControlMode(mode) {
