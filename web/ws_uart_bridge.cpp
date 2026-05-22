@@ -292,6 +292,7 @@ void Session::run() {
             if (is_joystick_line(line)) {
               last_joy_line = line;   // keep only the latest J command
             } else {
+              std::cerr << "UART_TX " << line << "\n";
               bridge_->send_uart_line(line);  // priority: send immediately
             }
           }
@@ -301,6 +302,7 @@ void Session::run() {
 
         // Send the single latest joystick command (if any)
         if (!last_joy_line.empty()) {
+          std::cerr << "UART_TX " << last_joy_line << "\n";
           bridge_->send_uart_line(last_joy_line);
         }
       }
