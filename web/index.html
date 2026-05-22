@@ -47,7 +47,7 @@
     code{background:#eee;padding:2px 6px;border-radius:6px}
     input{width:90px}
     input, select, textarea{color:#000;background:#fff}
-    .floating-row{display:flex;gap:8px;align-items:center}
+    .floating-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .stream-chip{
       display:inline-flex;
       align-items:center;
@@ -183,7 +183,7 @@
         <img id="mjpegImg" class="hidden" alt="MJPEG stream" />
       </div>
       <canvas id="detOverlay" class="det-overlay"></canvas>
-      <div class="floating-row" style="position:absolute;left:10px;bottom:10px;z-index:4;background:var(--controls-bg);border:1px solid var(--controls-border);border-radius:8px;padding:6px 10px;">
+      <div class="floating-row" style="position:absolute;left:10px;bottom:10px;z-index:4;background:var(--controls-bg);border:1px solid var(--controls-border);border-radius:8px;padding:6px 10px;flex-wrap:wrap;max-height:96px;overflow:auto;align-items:center;">
         <button id="settingsToggleBtn" class="small-btn gear-btn" title="Управление и настройки" aria-label="Управление и настройки" aria-controls="controlsSpoiler" aria-expanded="false">⚙️</button>
         Stream:
         <span id="streamStateChip" class="stream-chip reconnecting">RECONNECTING</span>
@@ -238,6 +238,12 @@
     <div class="panel controls-panel">
 
       <div class="row" id="ptzPanel">
+        <b>MODE:</b>
+        <button id="ptzModeManualBtn" class="small-btn">Manual</button>
+        <button id="ptzModeAssistBtn" class="small-btn">Assist</button>
+        <button id="ptzModeAutoBtn" class="small-btn">Auto</button>
+        <button id="ptzModePtzBtn" class="small-btn">PTZ</button>
+        <span style="opacity:.55">|</span>
         <b>PTZ:</b>
         <button id="ptzPrecheckBtn" class="small-btn">PRECHECK</button>
         <button id="ptzSelectFirstBtn" class="small-btn">SELECT FIRST TARGET</button>
@@ -1301,14 +1307,8 @@ async function ptzStart() {
   $('modeManualBtn').onclick = () => setControlMode('manual');
   $('modeAssistBtn').onclick = () => setControlMode('assist');
   $('modeAutoBtn').onclick = () => setControlMode('auto');
-  $('ptzPrecheckBtn').onclick = () => ptzPrecheck().catch(e => ptzLog('PRECHECK error', { error: String(e.message || e) }));
-  $('ptzSelectFirstBtn').onclick = () => ptzSelectFirstTarget().catch(e => ptzLog('SELECT error', { error: String(e.message || e) }));
-  $('ptzStartBtn').onclick = () => ptzStart().catch(e => ptzLog('START error', { error: String(e.message || e) }));
-  $('ptzStopBtn').onclick = () => ptzStop().catch(e => ptzLog('STOP error', { error: String(e.message || e) }));
-  $('ptzRoiPersonBtn').onclick = () => ptzSetRoiPerson().catch(e => ptzLog('ROI PERSON error', { error: String(e.message || e) }));
-  $('ptzRoiVehicleBtn').onclick = () => ptzSetRoiVehicle().catch(e => ptzLog('ROI VEHICLE error', { error: String(e.message || e) }));
-  $('ptzRoiFullBtn').onclick = () => ptzSetFullFrame().catch(e => ptzLog('ROI FULL error', { error: String(e.message || e) }));
-  $('modePtzBtn').onclick = async () => {
+
+  const enterPtzMode = async () => {
     $('controlMode').value = 'ptz';
     if ($('auto')) $('auto').checked = false;
     syncControlModeUi();
@@ -1316,6 +1316,20 @@ async function ptzStart() {
     disconnectWs();
     await ptzPrecheck();
   };
+
+  if ($('ptzModeManualBtn')) $('ptzModeManualBtn').onclick = () => setControlMode('manual');
+  if ($('ptzModeAssistBtn')) $('ptzModeAssistBtn').onclick = () => setControlMode('assist');
+  if ($('ptzModeAutoBtn')) $('ptzModeAutoBtn').onclick = () => setControlMode('auto');
+  if ($('ptzModePtzBtn')) $('ptzModePtzBtn').onclick = enterPtzMode;
+
+  $('ptzPrecheckBtn').onclick = () => ptzPrecheck().catch(e => ptzLog('PRECHECK error', { error: String(e.message || e) }));
+  $('ptzSelectFirstBtn').onclick = () => ptzSelectFirstTarget().catch(e => ptzLog('SELECT error', { error: String(e.message || e) }));
+  $('ptzStartBtn').onclick = () => ptzStart().catch(e => ptzLog('START error', { error: String(e.message || e) }));
+  $('ptzStopBtn').onclick = () => ptzStop().catch(e => ptzLog('STOP error', { error: String(e.message || e) }));
+  $('ptzRoiPersonBtn').onclick = () => ptzSetRoiPerson().catch(e => ptzLog('ROI PERSON error', { error: String(e.message || e) }));
+  $('ptzRoiVehicleBtn').onclick = () => ptzSetRoiVehicle().catch(e => ptzLog('ROI VEHICLE error', { error: String(e.message || e) }));
+  $('ptzRoiFullBtn').onclick = () => ptzSetFullFrame().catch(e => ptzLog('ROI FULL error', { error: String(e.message || e) }));
+  $('modePtzBtn').onclick = enterPtzMode;
   $('controlProfile').onchange = () => {
     applyProfile($('controlProfile').value);
     saveSettings();
