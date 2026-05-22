@@ -1,0 +1,12 @@
+# Copy this file to launcher.cfg and tune limits/ports as needed.
+# Values here are loaded by launcher.sh before defaults are applied.
+
+# Camera command limits (degrees / steps)
+CMD_MAX_PAN=20
+CMD_MAX_TILT=20
+CMD_MAX_ZOOM=25
+
+# Optional transport settings
+# UART_DEV=/dev/ttyUSB0
+# UART_BAUD=115200
+# WS_PORT=8765

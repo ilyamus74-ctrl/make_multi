@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+BUILD_DIR="$ROOT_DIR/new_yolo8/.build"
+mkdir -p "$BUILD_DIR"
+
+cd "$ROOT_DIR"
+
+CFLAGS="-O2 -I. -Iinclude -Iinclude/utils -Iinclude/3rdparty/rknpu2/include -Iinclude/3rdparty/librga/include"
+CXXFLAGS="-O2 -std=c++17 $CFLAGS"
+
+# C-файлы компилируем gcc (иначе g++ валится на строгости C++)
+gcc $CFLAGS -c include/utils/image_utils.c -o "$BUILD_DIR/image_utils.o"
+gcc $CFLAGS -c include/utils/file_utils.c -o "$BUILD_DIR/file_utils.o"
+
+# C++ часть + линковка
+# shellcheck disable=SC2046
+g++ $CXXFLAGS \
+  new_yolo8/mjpeg_gst_http.cpp \
+  postprocess.cc \
+  rknpu2/yolov8.cc \
+  "$BUILD_DIR/image_utils.o" \
+  "$BUILD_DIR/file_utils.o" \
+  -o new_yolo8/mjpeg_rknn_http \
+  $(pkg-config --cflags --libs gstreamer-1.0 gstreamer-app-1.0 opencv4) \
+  -Llib -lrknnrt -lpthread -ldl
+
+echo "Built: $ROOT_DIR/new_yolo8/mjpeg_rknn_http"

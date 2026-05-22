@@ -1,0 +1,1 @@
+./ws_uart_bridge /dev/ttyUSB0 115200 8765

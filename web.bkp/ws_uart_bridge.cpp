@@ -1,0 +1,276 @@
+
+// WS<->UART bridge with UART readback (ACK/telemetry)
+// Build example (Linux):
+//   g++ -O2 -std=c++17 ws_uart_bridge.cpp -o ws_uart_bridge -lboost_system -lpthread
+// Run:
+//   ./ws_uart_bridge /dev/ttyUSB0 115200 8765
+//
+// CHANGES vs original:
+//   - Only the LAST "J ..." joystick line per WS message is forwarded to UART.
+//     Priority/urgent commands (HOME, STOP, SCENTER, etc.) are always forwarded immediately.
+//     This prevents UART buffer overflow when the browser sends bursts faster than STM32 processes.
+
+#include <boost/asio.hpp>
+#include <boost/beast.hpp>
+#include <boost/beast/websocket.hpp>
+#include <boost/beast/http.hpp>
+
+#include <atomic>
+#include <chrono>
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
+
+#include <fcntl.h>
+#include <termios.h>
+#include <unistd.h>
+
+namespace asio  = boost::asio;
+namespace beast = boost::beast;
+namespace ws    = beast::websocket;
+namespace http  = beast::http;
+using tcp = asio::ip::tcp;
+
+static speed_t baud_to_flag(int baud) {
+  switch (baud) {
+    case 9600:   return B9600;
+    case 19200:  return B19200;
+    case 38400:  return B38400;
+    case 57600:  return B57600;
+    case 115200: return B115200;
+    case 230400: return B230400;
+    default:     return B115200;
+  }
+}
+
+static int open_uart(const std::string& dev, int baud) {
+  int fd = ::open(dev.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
+  if (fd < 0) {
+    std::perror("open_uart");
+    return -1;
+  }
+
+  termios tty{};
+  if (tcgetattr(fd, &tty) != 0) {
+    std::perror("tcgetattr");
+    ::close(fd);
+    return -1;
+  }
+
+  cfmakeraw(&tty);
+
+  const speed_t sp = baud_to_flag(baud);
+  cfsetispeed(&tty, sp);
+  cfsetospeed(&tty, sp);
+
+  tty.c_cflag |= (CLOCAL | CREAD);
+  tty.c_cflag &= ~CRTSCTS;
+
+  tty.c_cc[VTIME] = 0;
+  tty.c_cc[VMIN]  = 0;
+
+  if (tcsetattr(fd, TCSANOW, &tty) != 0) {
+    std::perror("tcsetattr");
+    ::close(fd);
+    return -1;
+  }
+
+  tcflush(fd, TCIOFLUSH);
+  return fd;
+}
+
+static void write_uart_line(int fd, const std::string& line) {
+  std::string out = line;
+  if (out.empty() || out.back() != '\n') out.push_back('\n');
+
+  const char* p = out.data();
+  size_t left = out.size();
+  while (left) {
+    ssize_t n = ::write(fd, p, left);
+    if (n > 0) {
+      p += n;
+      left -= (size_t)n;
+      continue;
+    }
+    if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+      continue;
+    }
+    break;
+  }
+}
+
+// Returns true if this line is a joystick command ("J " prefix).
+// All other commands (HOME, STOP, SCENTER, SET, etc.) are "priority" and must not be dropped.
+static bool is_joystick_line(const std::string& line) {
+  return line.size() >= 2 && line[0] == 'J' && line[1] == ' ';
+}
+
+struct Session {
+  ws::stream<tcp::socket> ws_;
+  int uart_fd;
+  std::atomic<bool> running{true};
+  std::mutex ws_write_mtx;
+
+  explicit Session(tcp::socket sock, int fd) : ws_(std::move(sock)), uart_fd(fd) {}
+
+  void ws_write_line(const std::string& line) {
+    std::lock_guard<std::mutex> lk(ws_write_mtx);
+    if (!running.load()) return;
+    std::string msg = line;
+    if (msg.empty() || msg.back() != '\n') msg.push_back('\n');
+    ws_.text(true);
+    ws_.write(asio::buffer(msg));
+  }
+
+  void uart_rx_loop() {
+    std::string buf;
+    buf.reserve(1024);
+    char tmp[256];
+
+    while (running.load()) {
+      ssize_t n = ::read(uart_fd, tmp, sizeof(tmp));
+      if (n > 0) {
+        buf.append(tmp, tmp + n);
+
+        for (;;) {
+          auto pos = buf.find('\n');
+          if (pos == std::string::npos) break;
+          std::string line = buf.substr(0, pos);
+          if (!line.empty() && line.back() == '\r') line.pop_back();
+          buf.erase(0, pos + 1);
+
+          if (!line.empty()) {
+            try {
+              ws_write_line(line);
+            } catch (...) {
+              running.store(false);
+              break;
+            }
+          }
+        }
+        continue;
+      }
+
+      if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        continue;
+      }
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+  }
+
+  void run() {
+    ws_.set_option(ws::stream_base::timeout::suggested(beast::role_type::server));
+    ws_.set_option(ws::stream_base::decorator([](ws::response_type& res) {
+      res.set(http::field::server, std::string("ws-uart-bridge"));
+    }));
+
+    beast::flat_buffer rbuf;
+    http::request<http::string_body> req;
+    http::read(ws_.next_layer(), rbuf, req);
+
+    if (!ws::is_upgrade(req) || req.target() != "/ws") {
+      http::response<http::string_body> res{http::status::not_found, req.version()};
+      res.set(http::field::content_type, "text/plain");
+      res.body() = "Not Found\n";
+      res.prepare_payload();
+      http::write(ws_.next_layer(), res);
+      return;
+    }
+
+    ws_.accept(req);
+
+    std::thread rx(&Session::uart_rx_loop, this);
+
+    try {
+      while (running.load()) {
+        beast::flat_buffer b;
+        ws_.read(b);
+        std::string msg = beast::buffers_to_string(b.data());
+
+        // Split into lines.
+        // Priority commands (HOME, STOP, etc.) are sent immediately in order.
+        // J lines: only the LAST one in this message batch is sent.
+        // This prevents UART RX buffer overflow on STM32 (64-byte hardware buffer).
+
+        std::string last_joy_line;
+
+        size_t start = 0;
+        while (start < msg.size()) {
+          size_t end = msg.find('\n', start);
+          if (end == std::string::npos) end = msg.size();
+
+          std::string line = msg.substr(start, end - start);
+          if (!line.empty() && line.back() == '\r') line.pop_back();
+
+          if (!line.empty()) {
+            if (is_joystick_line(line)) {
+              last_joy_line = line;   // keep only the latest J command
+            } else {
+              write_uart_line(uart_fd, line);  // priority: send immediately
+            }
+          }
+
+          start = end + 1;
+        }
+
+        // Send the single latest joystick command (if any)
+        if (!last_joy_line.empty()) {
+          write_uart_line(uart_fd, last_joy_line);
+        }
+      }
+    } catch (const std::exception& e) {
+      (void)e;
+    }
+
+    running.store(false);
+    try { ws_.close(ws::close_code::normal); } catch (...) {}
+
+    if (rx.joinable()) rx.join();
+  }
+};
+
+int main(int argc, char** argv) {
+  if (argc < 2) {
+    std::cerr << "Usage: " << argv[0] << " <tty> [baud=115200] [port=8765]\n";
+    return 1;
+  }
+
+  const std::string tty  = argv[1];
+  const int baud = (argc >= 3) ? std::atoi(argv[2]) : 115200;
+  const int port = (argc >= 4) ? std::atoi(argv[3]) : 8765;
+
+  int uart_fd = open_uart(tty, baud);
+  if (uart_fd < 0) return 2;
+
+  try {
+    asio::io_context ioc{1};
+    tcp::acceptor acc{ioc, {tcp::v4(), (unsigned short)port}};
+
+    std::cerr << "WS listening on 0.0.0.0:" << port << " (path /ws)\n";
+    std::cerr << "UART: " << tty << " @ " << baud << "\n";
+
+    for (;;) {
+      tcp::socket sock{ioc};
+      acc.accept(sock);
+      sock.set_option(tcp::no_delay(true));
+
+      Session s(std::move(sock), uart_fd);
+      s.run();
+
+      tcflush(uart_fd, TCIOFLUSH);
+    }
+
+  } catch (const std::exception& e) {
+    std::cerr << "Fatal: " << e.what() << "\n";
+  }
+
+  ::close(uart_fd);
+  return 0;
+}
