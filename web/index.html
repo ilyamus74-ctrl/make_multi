@@ -192,6 +192,7 @@
           <button id="modeManualBtn" class="mode-btn active">Manual</button>
           <button id="modeAssistBtn" class="mode-btn">Assist</button>
           <button id="modeAutoBtn" class="mode-btn">Auto</button>
+          <button id="modePtzBtn" class="mode-btn">PTZ</button>
         </span>
         <span>lost:</span>
         <code id="streamLostFor" class="stream-lost-time">0.0s</code>
@@ -236,6 +237,21 @@
 
     <div class="panel controls-panel">
 
+      <div class="row" id="ptzPanel">
+        <b>PTZ:</b>
+        <button id="ptzPrecheckBtn" class="small-btn">PRECHECK</button>
+        <button id="ptzSelectFirstBtn" class="small-btn">SELECT FIRST TARGET</button>
+        <button id="ptzStartBtn" class="small-btn">START PTZ</button>
+        <button id="ptzStopBtn" class="small-btn">STOP PTZ</button>
+        <button id="ptzRoiPersonBtn" class="small-btn">ROI PERSON</button>
+        <button id="ptzRoiVehicleBtn" class="small-btn">ROI VEHICLE</button>
+        <button id="ptzRoiFullBtn" class="small-btn">FULL FRAME</button>
+        <code id="ptzStateLine">idle</code>
+      </div>
+      <div class="row">
+        <textarea id="ptzDebugLog" style="width:100%;height:110px;font-family:monospace;font-size:12px"></textarea>
+      </div>
+
       <details id="controlsSpoiler" class="controls-spoiler">
         <summary class="visually-hidden">Управление и настройки</summary>
         <div class="row">
@@ -263,6 +279,7 @@
             <option value="manual">MANUAL</option>
             <option value="assist">ASSIST</option>
             <option value="auto">AUTO</option>
+            <option value="ptz">PTZ</option>
           </select>
           Auto-connect: <input id="auto" type="checkbox" checked>
           WS port: <input id="port" type="number" value="8765">
@@ -586,10 +603,41 @@
     ws.send(line + "\n");
     $('tx').textContent = line;
   }
+
+  function autopilotBaseUrl() {
+    return `${location.protocol}//${location.hostname}:8090`;
+  }
+
+  async function apiGetJson(url) {
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`${r.status} ${url}`);
+    return await r.json();
+  }
+
+  async function apiPostJson(url, payload = {}) {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error(`${r.status} ${url}`);
+    return await r.json();
+  }
+
+  function ptzLog(msg, obj = null) {
+    const el = $('ptzDebugLog');
+    if (!el) return;
+    const ts = new Date().toLocaleTimeString();
+    const line = obj ? `${ts} ${msg} ${JSON.stringify(obj)}` : `${ts} ${msg}`;
+    el.value = `${line}\n${el.value}`.slice(0, 12000);
+  }
   function panicStop(reason = 'manual') {
     $('emergencyStop').classList.add('active');
     $('streamState').textContent = `EMERGENCY STOP (${reason})`;
     sendLine('STOP');
+    try {
+      fetch(`${autopilotBaseUrl()}/api/autopilot/stop`, { method: 'POST' });
+    } catch (_) {}
     manualDrive(0, 0, 0);
     setTimeout(() => {
       $('emergencyStop').classList.remove('active');
@@ -718,6 +766,10 @@
     if (mode === 'assist') {
       telemetryState.reacquireMode = 'off';
       sendAssistTick();
+      return;
+    }
+    if (mode === 'ptz') {
+      telemetryState.reacquireMode = 'off';
       return;
     }
     sendAutoTick();
@@ -1094,6 +1146,98 @@ ctx.fillText(lbl, tx + 4, ty - 4);
     return { active: false, pan: 0, tilt: 0, name: '-' };
   }
 
+  async function ptzPrecheck() {
+    const det = await apiGetJson('/api/detections');
+    const tr = await apiGetJson('/api/tracker/state');
+    const ap = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`);
+    const roi = await apiGetJson('/api/detection/roi_config');
+    const items = Array.isArray(det.items) ? det.items : [];
+    const ok = {
+      detect: det.detect === true,
+      items: items.length,
+      tracker_mode: tr.mode,
+      tracker_id: tr.selected_track_id,
+      tracker_valid: tr.selected_box_valid,
+      autopilot_enabled: ap.enabled,
+      autopilot_mode: ap.mode,
+      autopilot_error: ap.last_error,
+      roi_mode: roi.detection_mode,
+    };
+    $('ptzStateLine').textContent = `det=${ok.items} tracker=${ok.tracker_mode} id=${ok.tracker_id} valid=${ok.tracker_valid} ptz=${ok.autopilot_enabled}/${ok.autopilot_mode} err=${ok.autopilot_error || '-'}`;
+    ptzLog('PRECHECK', ok);
+    return { det, tr, ap, roi };
+  }
+  async function ptzSelectFirstTarget() {
+    const det = await apiGetJson('/api/detections');
+    const items = Array.isArray(det.items) ? det.items : [];
+    if (!items.length) {
+      ptzLog('SELECT failed: no detections');
+      $('ptzStateLine').textContent = 'SELECT failed: no detections';
+      return;
+    }
+    const target = [...items].sort((a, b) => Number(b.prop || 0) - Number(a.prop || 0))[0];
+    await apiPostJson('/api/tracker/clear', {});
+    const res = await apiPostJson('/api/tracker/select', { track_id: Number(target.id) });
+    selectedTargetId = Number(target.id);
+    ptzLog('SELECT', { id: target.id, cls: target.cls, prop: target.prop, res });
+    await new Promise(resolve => setTimeout(resolve, 400));
+    await ptzPrecheck();
+  }
+  async function ptzStart() {
+    $('controlMode').value = 'manual';
+    if ($('auto')) $('auto').checked = false;
+    syncControlModeUi();
+    saveSettings();
+    disconnectWs();
+    const tr = await apiGetJson('/api/tracker/state');
+    if (tr.mode !== 'TRACKING' || tr.selected_box_valid !== true) {
+      ptzLog('START blocked: tracker not ready', tr);
+      $('ptzStateLine').textContent = `START blocked: tracker=${tr.mode} valid=${tr.selected_box_valid}`;
+      return;
+    }
+    const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/start`, {});
+    ptzLog('PTZ START', res);
+    await ptzPrecheck();
+  }
+  async function ptzStop() {
+    const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/stop`, {});
+    ptzLog('PTZ STOP', res);
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await ptzPrecheck();
+  }
+  async function ptzSetRoiPerson() {
+    const payload = { detection_mode: 'roi', rois: [{ id: 'person_test', enabled: true, x: 0, y: 0, w: 1920, h: 1080, every_n_frames: 1, classes: [0] }] };
+    const res = await apiPostJson('/api/detection/roi_config', payload);
+    ptzLog('ROI PERSON', res);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await ptzPrecheck();
+  }
+  async function ptzSetRoiVehicle() {
+    const payload = { detection_mode: 'roi', rois: [{ id: 'vehicle_test', enabled: true, x: 500, y: 220, w: 900, h: 500, every_n_frames: 1, classes: [2, 5, 7] }] };
+    const res = await apiPostJson('/api/detection/roi_config', payload);
+    ptzLog('ROI VEHICLE', res);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await ptzPrecheck();
+  }
+  async function ptzSetFullFrame() {
+    const payload = { detection_mode: 'full_frame', rois: [] };
+    const res = await apiPostJson('/api/detection/roi_config', payload);
+    ptzLog('ROI FULL FRAME', res);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await ptzPrecheck();
+  }
+  async function refreshPtzTelemetry() {
+    try {
+      const ap = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`);
+      const tr = await apiGetJson('/api/tracker/state');
+      $('ptzStateLine').textContent = `ptz=${ap.enabled}/${ap.mode} cmd=${ap.cmd_pan},${ap.cmd_tilt} err=${Number(ap.err_x || 0).toFixed(2)},${Number(ap.err_y || 0).toFixed(2)} tracker=${tr.mode} id=${tr.selected_track_id} valid=${tr.selected_box_valid} ${ap.last_error || ''}`;
+      $('pidCmd').textContent = `PTZ ${ap.cmd_pan},${ap.cmd_tilt}`;
+      $('pidTarget').textContent = `PTZ id=${tr.selected_track_id} ${tr.mode}`;
+    } catch (e) {
+      $('ptzStateLine').textContent = `PTZ offline: ${String(e.message || e)}`;
+    }
+  }
+
   function startTimer() {
     if (timer) clearInterval(timer);
     const hz = Math.max(5, Math.min(60, parseInt($('hz').value || '50', 10)));
@@ -1153,6 +1297,21 @@ ctx.fillText(lbl, tx + 4, ty - 4);
   $('modeManualBtn').onclick = () => setControlMode('manual');
   $('modeAssistBtn').onclick = () => setControlMode('assist');
   $('modeAutoBtn').onclick = () => setControlMode('auto');
+  $('ptzPrecheckBtn').onclick = () => ptzPrecheck().catch(e => ptzLog('PRECHECK error', { error: String(e.message || e) }));
+  $('ptzSelectFirstBtn').onclick = () => ptzSelectFirstTarget().catch(e => ptzLog('SELECT error', { error: String(e.message || e) }));
+  $('ptzStartBtn').onclick = () => ptzStart().catch(e => ptzLog('START error', { error: String(e.message || e) }));
+  $('ptzStopBtn').onclick = () => ptzStop().catch(e => ptzLog('STOP error', { error: String(e.message || e) }));
+  $('ptzRoiPersonBtn').onclick = () => ptzSetRoiPerson().catch(e => ptzLog('ROI PERSON error', { error: String(e.message || e) }));
+  $('ptzRoiVehicleBtn').onclick = () => ptzSetRoiVehicle().catch(e => ptzLog('ROI VEHICLE error', { error: String(e.message || e) }));
+  $('ptzRoiFullBtn').onclick = () => ptzSetFullFrame().catch(e => ptzLog('ROI FULL error', { error: String(e.message || e) }));
+  $('modePtzBtn').onclick = async () => {
+    $('controlMode').value = 'ptz';
+    if ($('auto')) $('auto').checked = false;
+    syncControlModeUi();
+    saveSettings();
+    disconnectWs();
+    await ptzPrecheck();
+  };
   $('controlProfile').onchange = () => {
     applyProfile($('controlProfile').value);
     saveSettings();
@@ -1248,6 +1407,7 @@ ctx.fillText(lbl, tx + 4, ty - 4);
   window.addEventListener('gamepadconnected', () => {});
   startTelemetry();
   startTimer();
+  setInterval(refreshPtzTelemetry, 500);
   function defaultMjpegUrl() {
 
     return `http://${location.hostname}:8080/stream`;
@@ -1264,14 +1424,16 @@ ctx.fillText(lbl, tx + 4, ty - 4);
     const selectedMode = $('controlMode').value;
     const mode = selectedMode.toUpperCase();
     const isAuto = selectedMode === 'auto';
+    const isPtz = selectedMode === 'ptz';
     $('modeManualBtn').classList.toggle('active', selectedMode === 'manual');
     $('modeAssistBtn').classList.toggle('active', selectedMode === 'assist');
     $('modeAutoBtn').classList.toggle('active', isAuto);
+    $('modePtzBtn').classList.toggle('active', isPtz);
     $('touchControls').classList.toggle('disabled', isAuto);
     $('controlModeChip').textContent = `MODE: ${mode} | ${activeProfile.toUpperCase()}`;
   }
   function setControlMode(mode) {
-    if (mode !== 'manual' && mode !== 'assist' && mode !== 'auto') return;
+    if (mode !== 'manual' && mode !== 'assist' && mode !== 'auto' && mode !== 'ptz') return;
     if ($('controlMode').value === mode) return;
     $('controlMode').value = mode;
     syncControlModeUi();
