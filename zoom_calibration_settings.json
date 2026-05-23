@@ -3,7 +3,7 @@
   "near_distance_mm": 1000,
   "far_distance_mm": 10000,
   "samples": 20,
-  "impulse_ms": 350,
+  "impulse_ms": 550,
   "settle_ms": 250,
   "cmd_abs": 34,
   "wide_cmd_sign": 1,
