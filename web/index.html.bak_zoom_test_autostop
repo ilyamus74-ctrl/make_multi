@@ -1535,56 +1535,6 @@ async function ptzStart() {
     saveSettings();
     await postOpsEvent('zoom_mark_tele', { zoom_state: zoomState });
   };
-
-  let zoomTestStopTimer = null;
-
-  async function zoomTest(cmd, holdMs) {
-    cmd = Math.round(Number(cmd || 0));
-    holdMs = Math.max(0, Math.min(8000, Math.round(Number(holdMs || 0))));
-
-    if (document.activeElement && typeof document.activeElement.blur === 'function') {
-      document.activeElement.blur();
-    }
-
-    if (zoomTestStopTimer) {
-      clearTimeout(zoomTestStopTimer);
-      zoomTestStopTimer = null;
-    }
-
-    $('zoomAprilTagCalibStatus').textContent = `test cmd=${cmd} hold=${holdMs}`;
-
-    // Safety stop from browser side.
-    if (cmd !== 0 && holdMs > 0) {
-      zoomTestStopTimer = setTimeout(() => {
-        apiPostJson('/api/zoom_test', { cmd: 0, hold_ms: 0 })
-          .then(res => {
-            $('zoomAprilTagCalibStatus').textContent = `stopped after ${holdMs}ms`;
-            ptzLog('ZOOM TEST autostop', res);
-          })
-          .catch(e => ptzLog('ZOOM TEST autostop error', { error: String(e.message || e) }));
-      }, holdMs + 150);
-    }
-
-    const res = await apiPostJson('/api/zoom_test', { cmd, hold_ms: holdMs });
-    ptzLog('ZOOM TEST', res);
-    return res;
-  }
-
-  async function zoomStopNow() {
-    if (zoomTestStopTimer) {
-      clearTimeout(zoomTestStopTimer);
-      zoomTestStopTimer = null;
-    }
-    if (document.activeElement && typeof document.activeElement.blur === 'function') {
-      document.activeElement.blur();
-    }
-    const res = await apiPostJson('/api/zoom_test', { cmd: 0, hold_ms: 0 });
-    $('zoomAprilTagCalibStatus').textContent = 'stopped';
-    ptzLog('ZOOM STOP', res);
-    return res;
-  }
-
-
   $('zoomRunCalibrationBtn').onclick = async () => {
     await runZoomCalibrationFromUi();
   };
@@ -1602,7 +1552,8 @@ async function ptzStart() {
     zoomTest(cmd, hold).catch(e => ptzLog('ZOOM TEST error', { error: String(e.message || e) }));
   };
   $('zoomStopBtn').onclick = () => {
-    zoomStopNow().catch(e => ptzLog('ZOOM STOP error', { error: String(e.message || e) }));
+    apiPostJson('/api/zoom_test', { cmd: 0, hold_ms: 0 })
+      .catch(e => ptzLog('ZOOM STOP error', { error: String(e.message || e) }));
   };
   ['pidKp','pidKi','pidKd','pidDeadzone','pidMaxSpeed','pidMaxAccel','pidPanHold','pidPanRelease','reacquirePanStep','reacquireTiltStep','reacquirePanCadence','reacquireTiltCadence','reacquireMaxLostSec'].forEach(id => {
     $(id).onchange = () => saveSettings();
