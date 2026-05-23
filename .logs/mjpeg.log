@@ -152626,4 +152626,2195 @@ scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top
 rknn_run
 scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
 rknn_run
-scale=0.416667 dst_box=(0 
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+zoom-calib: done (time+image), travel_sec=1.855 wide_sec=1.855 tele_sec=1.793 min_stop_sec=4.161 max_stop_sec=4.161
+HTTP MJPEG on 0.0.0.0:8080  ( / , /stream, /api/models, /model/select )
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+zoom-recalib: drift update (mean_diff=0.977, travel_sec=1.859)
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w
