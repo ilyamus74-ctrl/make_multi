@@ -11,6 +11,6 @@
   "invert_tilt": false,
   "target_x": 0.5,
   "target_y": 0.5,
-  "min_pan": 4,
-  "min_tilt": 3
+  "min_pan": 5,
+  "min_tilt": 4
 }
