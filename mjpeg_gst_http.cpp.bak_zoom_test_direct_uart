@@ -2550,49 +2550,33 @@ static void handle_client(int cfd, const Opts& o) {
     cmd = std::max(-o.cmd_max_zoom, std::min(o.cmd_max_zoom, cmd));
     holdMs = std::max(0, std::min(8000, holdMs));
 
-    const std::string uartDev = trim(o.zoom_calib_uart_dev).empty()
-      ? std::string("/dev/ttyUSB0")
-      : o.zoom_calib_uart_dev;
-    const int uartBaud = o.zoom_calib_uart_baud > 0 ? o.zoom_calib_uart_baud : 115200;
-
-    auto sendZoomDirect = [&](int c) -> bool {
-      int fd = open_uart_for_zoom(uartDev, uartBaud);
-      if (fd < 0) return false;
-
-      const bool okWrite = write_uart_line(fd, std::string("Z ") + std::to_string(c));
-
-      // Ensure bytes are flushed before closing the short-lived UART fd.
-      tcdrain(fd);
-      std::this_thread::sleep_for(std::chrono::milliseconds(30));
-      ::close(fd);
-
-      return okWrite;
-    };
-
     bool okStart = true;
-    bool okStop = false;
+    bool okStop = true;
 
     if (cmd != 0 && holdMs > 0) {
-      okStart = sendZoomDirect(cmd);
+      okStart = send_zoom_via_bridge_ws(cmd);
       std::this_thread::sleep_for(std::chrono::milliseconds(holdMs));
+
+      // Hard safety: always send Z 0 several times, even if start reported false.
+      okStop = false;
+      for (int i = 0; i < 3; ++i) {
+        okStop = send_zoom_via_bridge_ws(0) || okStop;
+        std::this_thread::sleep_for(std::chrono::milliseconds(80));
+      }
     } else {
       cmd = 0;
       holdMs = 0;
-    }
-
-    // Hard safety: always send Z 0 several times.
-    for (int i = 0; i < 3; ++i) {
-      okStop = sendZoomDirect(0) || okStop;
-      std::this_thread::sleep_for(std::chrono::milliseconds(80));
+      okStop = false;
+      for (int i = 0; i < 3; ++i) {
+        okStop = send_zoom_via_bridge_ws(0) || okStop;
+        std::this_thread::sleep_for(std::chrono::milliseconds(80));
+      }
     }
 
     const bool ok = okStart && okStop;
 
     std::ostringstream os;
     os << "{\"ok\":" << (ok ? "true" : "false")
-       << ",\"transport\":\"direct_uart\""
-       << ",\"uart\":\"" << json_escape(uartDev) << "\""
-       << ",\"baud\":" << uartBaud
        << ",\"cmd\":" << cmd
        << ",\"hold_ms\":" << holdMs
        << ",\"ok_start\":" << (okStart ? "true" : "false")
