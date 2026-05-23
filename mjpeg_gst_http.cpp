@@ -360,8 +360,8 @@ struct ZoomAprilTagCalibParams {
   double tag_size_mm = 160.0;
   double near_distance_mm = 1000.0;
   double far_distance_mm = 10000.0;
-  int samples = 20;
-  int impulse_ms = 100;
+  int samples = 12;
+  int impulse_ms = 170;
   int settle_ms = 250;
   int cmd_abs = 34;
   int wide_cmd_sign = 1;

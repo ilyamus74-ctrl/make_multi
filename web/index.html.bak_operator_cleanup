@@ -108,7 +108,8 @@
     .mode-chip{display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,0.08);font-size:12px}
     .mode-switch{display:inline-flex;gap:6px;align-items:center}
     .mode-btn{
-      border:1px solid var(--controls-border);
+      opacity:0.65;
+      border:1px solid rgba(255,255,255,0.25);
       background:rgba(255,255,255,0.08);
       color:#fff;
       border-radius:999px;
@@ -117,8 +118,26 @@
       cursor:pointer;
     }
     .mode-btn.active{
-      background:rgba(70,130,220,0.85);
-      border-color:rgba(130,180,255,0.95);
+      opacity:1;
+      background:#1565c0;
+      color:#fff;
+      border:2px solid #ffffff;
+      box-shadow:0 0 0 2px rgba(21,101,192,0.45);
+      font-weight:700;
+    }
+    #modePtzBtn.active,
+    #ptzModePtzBtn.active{
+      background:#c62828;
+      color:#fff;
+      border:2px solid #fff;
+      box-shadow:0 0 0 2px rgba(198,40,40,0.55);
+    }
+    #modeManualBtn.active,
+    #ptzModeManualBtn.active{
+      background:#2e7d32;
+      color:#fff;
+      border:2px solid #fff;
+      box-shadow:0 0 0 2px rgba(46,125,50,0.55);
     }
     .touch-controls{
       position:absolute;

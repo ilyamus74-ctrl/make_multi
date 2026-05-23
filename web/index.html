@@ -108,7 +108,8 @@
     .mode-chip{display:inline-flex;gap:6px;align-items:center;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,0.08);font-size:12px}
     .mode-switch{display:inline-flex;gap:6px;align-items:center}
     .mode-btn{
-      border:1px solid var(--controls-border);
+      opacity:0.65;
+      border:1px solid rgba(255,255,255,0.25);
       background:rgba(255,255,255,0.08);
       color:#fff;
       border-radius:999px;
@@ -117,8 +118,26 @@
       cursor:pointer;
     }
     .mode-btn.active{
-      background:rgba(70,130,220,0.85);
-      border-color:rgba(130,180,255,0.95);
+      opacity:1;
+      background:#1565c0;
+      color:#fff;
+      border:2px solid #ffffff;
+      box-shadow:0 0 0 2px rgba(21,101,192,0.45);
+      font-weight:700;
+    }
+    #modePtzBtn.active,
+    #ptzModePtzBtn.active{
+      background:#c62828;
+      color:#fff;
+      border:2px solid #fff;
+      box-shadow:0 0 0 2px rgba(198,40,40,0.55);
+    }
+    #modeManualBtn.active,
+    #ptzModeManualBtn.active{
+      background:#2e7d32;
+      color:#fff;
+      border:2px solid #fff;
+      box-shadow:0 0 0 2px rgba(46,125,50,0.55);
     }
     .touch-controls{
       position:absolute;
@@ -495,6 +514,7 @@
   let zoomStateLastTs = Date.now();
   let zoomCalibProfile = null;
   let zoomCalibInProgress = false;
+  let zoomAprilTagCalibrationActive = false;
   let streamRetryTimer = null;
   let streamReloadToken = 0;
   let streamStatus = 'RECONNECTING';
@@ -1121,14 +1141,7 @@ ctx.fillText(lbl, tx + 4, ty - 4);
   }
 
   function sendManualTick() {
-    if (zoomCalibInProgress) {
-      if ($('auto').checked) connectWs();
-      if (ws && ws.readyState === 1) {
-        seq = (seq + 1) & 0xFFFF;
-        sendLine(`J ${seq} 0 0`);
-        sendLine('Z 0');
-      }
-      $('zoomStick').textContent = 'zoom=0 (CALIBRATION)';
+    if (zoomAprilTagCalibrationActive || zoomCalibInProgress) {
       return;
     }
     pidState.targetText = 'manual mode';
@@ -1761,11 +1774,15 @@ async function ptzStart() {
     const isAuto = selectedMode === 'auto';
     const isPtz = selectedMode === 'ptz';
     $('modeManualBtn').classList.toggle('active', selectedMode === 'manual');
+    $('modePtzBtn').classList.toggle('active', selectedMode === 'ptz');
+    $('ptzModeManualBtn')?.classList.toggle('active', selectedMode === 'manual');
+    $('ptzModePtzBtn')?.classList.toggle('active', selectedMode === 'ptz');
     $('modeAssistBtn').classList.toggle('active', selectedMode === 'assist');
     $('modeAutoBtn').classList.toggle('active', isAuto);
-    $('modePtzBtn').classList.toggle('active', isPtz);
     $('touchControls').classList.toggle('disabled', isAuto);
-    $('controlModeChip').textContent = `MODE: ${mode} | ${activeProfile.toUpperCase()}`;
+    $('controlModeChip').textContent = zoomAprilTagCalibrationActive && selectedMode === 'ptz'
+      ? 'ACTIVE MODE: PTZ / CALIB SAFE'
+      : `ACTIVE MODE: ${mode}`;
   }
   function setControlMode(mode) {
     if (mode !== 'manual' && mode !== 'assist' && mode !== 'auto' && mode !== 'ptz') return;
@@ -2007,27 +2024,83 @@ async function ptzStart() {
   }
 
   async function runAprilTagZoomCalibrationFromUi() {
+    const prevMode = $('controlMode')?.value || 'manual';
+
     try {
-      $('zoomAprilTagCalibStatus').textContent = 'starting...';
+      $('zoomAprilTagCalibStatus').textContent = 'switching to PTZ safe mode...';
+
+      if ($('controlMode') && $('controlMode').value !== 'ptz') {
+        ptzLog('ZOOM CALIB SAFE MODE', {
+          from: prevMode,
+          to: 'ptz',
+          reason: 'april_tag_zoom_calibration'
+        });
+        setControlMode('ptz');
+        await sleepMs(200);
+      }
+
+      touchState = { pan: 0, tilt: 0, zoom: 0 };
+      keyboardState = { up: false, down: false, left: false, right: false, zin: false, zout: false };
+
+      panicStop('zoom-apriltag-calibration-start');
+
+      zoomAprilTagCalibrationActive = true;
+      zoomCalibInProgress = true;
+      syncControlModeUi();
+
+      $('zoomRunAprilTagCalibBtn').disabled = true;
+      $('zoomRunAprilTagCalibBtn').classList.add('active');
+
+      $('zoomAprilTagCalibStatus').textContent = 'saving settings...';
       await saveZoomCalibSettingsFromUi();
+
       const payload = readZoomCalibSettingsFromUi();
       payload.mode = "apriltag_zoom_table";
+
+      $('zoomAprilTagCalibStatus').textContent = 'starting calibration...';
+
       const res = await fetch('/api/zoom_calibration', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+
       const data = await res.json();
       ptzLog('ZOOM APRILTAG CALIB', data);
+
+      if (!data?.started) {
+        $('zoomAprilTagCalibStatus').textContent = 'busy/not started';
+        return;
+      }
+      $('zoomAprilTagCalibStatus').textContent = 'calibration running...';
+
       for (let i = 0; i < 180; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await sleepMs(1000);
         await refreshZoomCalibrationProfile();
-        const s = $('zoomCalibStatus').textContent || 'idle';
-        $('zoomAprilTagCalibStatus').textContent = s;
+
+        const status = $('zoomCalibStatus').textContent || 'running';
+        $('zoomAprilTagCalibStatus').textContent = status;
+
         if (!zoomCalibInProgress) break;
       }
-    } catch (_) {
-      $('zoomAprilTagCalibStatus').textContent = 'error';
+
+      await saveZoomCalibSettingsFromUi();
+
+    } catch (e) {
+      $('zoomAprilTagCalibStatus').textContent = `error: ${String(e.message || e)}`;
+      ptzLog('ZOOM APRILTAG CALIB error', { error: String(e.message || e) });
+    } finally {
+      zoomAprilTagCalibrationActive = false;
+      zoomCalibInProgress = false;
+
+      $('zoomRunAprilTagCalibBtn').disabled = false;
+      $('zoomRunAprilTagCalibBtn').classList.remove('active');
+
+      touchState = { pan: 0, tilt: 0, zoom: 0 };
+      keyboardState = { up: false, down: false, left: false, right: false, zin: false, zout: false };
+
+      panicStop('zoom-apriltag-calibration-end');
+      syncControlModeUi();
     }
   }
 
@@ -3047,7 +3120,7 @@ async function ptzStart() {
   }
 
   function manualDrive(pan, tilt, zoom) {
-    if (zoomCalibInProgress) {
+    if (zoomAprilTagCalibrationActive || zoomCalibInProgress) {
       pan = 0;
       tilt = 0;
       zoom = 0;
@@ -3224,7 +3297,7 @@ async function ptzStart() {
   }
 
   function sendZoomOnly(zoom) {
-    if (zoomCalibInProgress) zoom = 0;
+    if (zoomAprilTagCalibrationActive || zoomCalibInProgress) zoom = 0;
     const safeLimited = applySafeModeLimits(0, 0, zoom);
     const limited = applyCommandLimits(0, 0, safeLimited.zoom);
 
