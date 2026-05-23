@@ -2492,3 +2492,7 @@
 2026-05-23T20:48:11Z type=video_lost payload={"type":"video_lost","ts_ms":1779569291231,"details":{"status":"RECONNECTING"}}
 2026-05-23T20:48:11Z type=video_retry payload={"type":"video_retry","ts_ms":1779569291232,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
 2026-05-23T20:48:11Z type=video_restored payload={"type":"video_restored","ts_ms":1779569291248,"details":{"lost_for_ms":17}}
+2026-05-23T21:08:50Z type=video_restored payload={"type":"video_restored","ts_ms":1779570530936,"details":{"lost_for_ms":26}}
+2026-05-23T21:08:51Z type=video_lost payload={"type":"video_lost","ts_ms":1779570531049,"details":{"status":"RECONNECTING"}}
+2026-05-23T21:08:51Z type=video_retry payload={"type":"video_retry","ts_ms":1779570531050,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
+2026-05-23T21:08:51Z type=video_restored payload={"type":"video_restored","ts_ms":1779570531061,"details":{"lost_for_ms":12}}
