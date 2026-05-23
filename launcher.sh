@@ -31,6 +31,7 @@ WIDTH="${WIDTH:-1920}"
 HEIGHT="${HEIGHT:-1080}"
 FPS="${FPS:-25}"
 JPEG_QUALITY="${JPEG_QUALITY:-20}"
+MJPEG_NICE="${MJPEG_NICE:-5}"
 DEINTERLACE="${DEINTERLACE:-0}"            # 1 => --deinterlace, 0 => disabled
 LABELS="${LABELS:-$ROOT_DIR/models/coco_80_labels_list.txt}"
 CMD_MAX_PAN="${CMD_MAX_PAN:-20}"
@@ -149,7 +150,7 @@ fi
 
 start_mjpeg() {
   log "Starting MJPEG server: $MJPEG_BIN"
-  "$MJPEG_BIN" "${MJPEG_ARGS[@]}" >>"$MJPEG_LOG" 2>&1 &
+  nice -n "$MJPEG_NICE" "$MJPEG_BIN" "${MJPEG_ARGS[@]}" >>"$MJPEG_LOG" 2>&1 &
   MJPEG_PID=$!
   log "MJPEG pid=$MJPEG_PID (log: $MJPEG_LOG)"
 
