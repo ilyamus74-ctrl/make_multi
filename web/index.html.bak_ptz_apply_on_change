@@ -279,7 +279,7 @@
         <code id="ptzStateLine">idle</code>
       </div>
       <div class="row" id="ptzConfigPanel">
-        <label>PTZ Y⇅ <input id="ptzInvertTilt" type="checkbox"></label>
+        <label>PTZ Y⇅ <input id="ptzInvertTilt" type="checkbox" checked></label>
         <label>PTZ X⇄ <input id="ptzInvertPan" type="checkbox"></label>
         <label>Center X <input id="ptzTargetX" type="number" min="0.1" max="0.9" step="0.05" value="0.5"></label>
         <label>Center Y <input id="ptzTargetY" type="number" min="0.1" max="0.9" step="0.05" value="0.5"></label>
@@ -1189,7 +1189,6 @@ ctx.fillText(lbl, tx + 4, ty - 4);
     const det = await apiGetJson('/api/detections');
     const tr = await apiGetJson('/api/tracker/state');
     const ap = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`);
-    syncPtzConfigUiFromState(ap);
     const roi = await apiGetJson('/api/detection/roi_config');
     const items = Array.isArray(det.items) ? det.items : [];
     const ok = {
@@ -1242,34 +1241,6 @@ function readPtzConfigFromUi() {
     min_tilt: Math.max(0, Math.min(20, Number($('ptzMinTilt')?.value || 3))),
   };
 }
-
-
-function syncPtzConfigUiFromState(ap) {
-  if (!ap || ap.ok !== true) return;
-
-  if ($('ptzInvertTilt')) $('ptzInvertTilt').checked = Boolean(ap.invert_tilt);
-  if ($('ptzInvertPan')) $('ptzInvertPan').checked = Boolean(ap.invert_pan);
-
-  if ($('ptzTargetX') && Number.isFinite(Number(ap.target_x))) {
-    $('ptzTargetX').value = Number(ap.target_x).toFixed(2);
-  }
-  if ($('ptzTargetY') && Number.isFinite(Number(ap.target_y))) {
-    $('ptzTargetY').value = Number(ap.target_y).toFixed(2);
-  }
-  if ($('ptzMinPan') && Number.isFinite(Number(ap.min_pan))) {
-    $('ptzMinPan').value = String(Number(ap.min_pan));
-  }
-  if ($('ptzMinTilt') && Number.isFinite(Number(ap.min_tilt))) {
-    $('ptzMinTilt').value = String(Number(ap.min_tilt));
-  }
-}
-
-async function refreshPtzConfigFromServer() {
-  const ap = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`);
-  syncPtzConfigUiFromState(ap);
-  return ap;
-}
-
 
 async function ptzApplyConfig() {
   const cfg = readPtzConfigFromUi();
@@ -1421,16 +1392,6 @@ async function ptzStart() {
   $('ptzStopBtn').onclick = () => ptzStop().catch(e => ptzLog('STOP error', { error: String(e.message || e) }));
   $('ptzApplyConfigBtn').onclick = () =>
     ptzApplyConfig().catch(e => ptzLog('PTZ CONFIG error', { error: String(e.message || e) }));
-
-  ['ptzInvertTilt','ptzInvertPan','ptzTargetX','ptzTargetY','ptzMinPan','ptzMinTilt'].forEach(id => {
-    if ($(id)) {
-      $(id).onchange = () =>
-        ptzApplyConfig().catch(e => ptzLog('PTZ CONFIG onchange error', {
-          field: id,
-          error: String(e.message || e)
-        }));
-    }
-  });
   $('ptzRoiPersonBtn').onclick = () => ptzSetRoiPerson().catch(e => ptzLog('ROI PERSON error', { error: String(e.message || e) }));
   $('ptzRoiVehicleBtn').onclick = () => ptzSetRoiVehicle().catch(e => ptzLog('ROI VEHICLE error', { error: String(e.message || e) }));
   $('ptzRoiFullBtn').onclick = () => ptzSetFullFrame().catch(e => ptzLog('ROI FULL error', { error: String(e.message || e) }));
@@ -1535,7 +1496,6 @@ async function ptzStart() {
   initSettings();
   refreshDetectionLimits().catch(e => ptzLog('LIMIT init error', { error: String(e.message || e) }));
   refreshDetectionThrottle().catch(e => ptzLog('THROTTLE init error', { error: String(e.message || e) }));
-  refreshPtzConfigFromServer().catch(e => ptzLog('PTZ CONFIG init error', { error: String(e.message || e) }));
   $('mjpegFrame').onload = () => {
     clearStreamRetry();
     telemetryState.lastImgFrameTs = Date.now();
