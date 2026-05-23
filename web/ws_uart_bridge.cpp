@@ -137,8 +137,9 @@ struct Session : public std::enable_shared_from_this<Session> {
     if (msg.empty() || msg.back() != '\n') msg.push_back('\n');
 
     beast::error_code ec;
-    ws_.text(true, ec);
-    if (ec) {
+    try {
+      ws_.text(true);
+    } catch (...) {
       running.store(false);
       return;
     }
