@@ -1,0 +1,11 @@
+{
+  "tag_size_mm": 160,
+  "near_distance_mm": 1000,
+  "far_distance_mm": 10000,
+  "samples": 20,
+  "impulse_ms": 350,
+  "settle_ms": 250,
+  "cmd_abs": 34,
+  "wide_cmd_sign": 1,
+  "wide_hold_ms": 2000
+}
