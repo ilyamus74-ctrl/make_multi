@@ -336,7 +336,6 @@ void Session::run() {
           if (is_joystick_line(line)) {
             last_joy_line = line;
           } else {
-            std::cerr << "UART_TX " << line << "\n";
             bridge_->send_uart_line(line);
           }
         }
@@ -345,7 +344,6 @@ void Session::run() {
       }
 
       if (!last_joy_line.empty()) {
-        std::cerr << "UART_TX " << last_joy_line << "\n";
         bridge_->send_uart_line(last_joy_line);
       }
     }
