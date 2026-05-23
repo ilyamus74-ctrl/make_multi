@@ -144,7 +144,10 @@ static DetectionMode g_detectionMode = DetectionMode::FullFrame;
 static std::vector<DetectionRoi> g_detectionRois;
 static std::atomic<int> g_lastRawBoxes{0};
 static std::atomic<int> g_lastNmsBoxes{0};
+static std::atomic<int> g_maxDetections{10};
+static std::atomic<int> g_maxRawCandidates{50};
 static std::string g_roiConfigFile = "detection_roi_config.json";
+static std::string g_detectionLimitsFile = "detection_limits.json";
 
 static float track_box_iou(const DetectionBox& a, const DetectionBox& b) {
   const int x1 = std::max(a.left, b.left);
@@ -1358,6 +1361,45 @@ static void load_roi_config() {
   parse_roi_config_json(payload, g_lastFrameWidth.load(), g_lastFrameHeight.load());
 }
 
+
+static void limit_detection_boxes_by_confidence(std::vector<DetectionBox>& boxes, int maxBoxes) {
+  if (maxBoxes <= 0) return;
+  if (static_cast<int>(boxes.size()) <= maxBoxes) return;
+
+  std::sort(boxes.begin(), boxes.end(), [](const DetectionBox& a, const DetectionBox& b) {
+    return a.prop > b.prop;
+  });
+
+  boxes.resize(maxBoxes);
+}
+
+static void save_detection_limits() {
+  std::ofstream out(g_detectionLimitsFile, std::ios::trunc | std::ios::binary);
+  if (!out) return;
+  out << "{\"ok\":true,\"max_detections\":" << g_maxDetections.load()
+      << ",\"max_raw_candidates\":" << g_maxRawCandidates.load() << "}";
+}
+
+static void load_detection_limits() {
+  std::ifstream in(g_detectionLimitsFile, std::ios::binary);
+  if (!in) return;
+  std::ostringstream ss;
+  ss << in.rdbuf();
+  const std::string payload = trim(ss.str());
+  if (payload.empty()) return;
+
+  int maxDet = g_maxDetections.load();
+  int maxRaw = g_maxRawCandidates.load();
+  extract_json_int_field(payload, "max_detections", &maxDet);
+  extract_json_int_field(payload, "max_raw_candidates", &maxRaw);
+
+  maxDet = std::max(1, std::min(100, maxDet));
+  maxRaw = std::max(maxDet, std::min(300, std::max(1, maxRaw)));
+
+  g_maxDetections = maxDet;
+  g_maxRawCandidates = maxRaw;
+}
+
 static void update_tracker_runtime_state(const std::vector<DetectionBox>& boxes, uint64_t frameId) {
   std::lock_guard<std::mutex> lk(g_trackerStateMtx);
   g_trackerState.last_frame_id = frameId;
@@ -1443,7 +1485,9 @@ static std::string detections_json() {
      << ",\"detection_debug\":{\"mode\":\"" << detection_mode_str(dm) << "\""
      << ",\"roi_count\":" << roiCount
      << ",\"raw_boxes\":" << g_lastRawBoxes.load()
+     << ",\"raw_limit\":" << g_maxRawCandidates.load()
      << ",\"nms_boxes\":" << g_lastNmsBoxes.load()
+     << ",\"max_detections\":" << g_maxDetections.load()
      << "}"
      << ",\"items\":[";
   for (size_t i = 0; i < g_lastDetectionBoxes.size(); ++i) {
@@ -2531,6 +2575,56 @@ static void handle_client(int cfd, const Opts& o) {
 
 
 
+  if (path == "/api/detection/limits") {
+    if (method == "GET") {
+      std::ostringstream os;
+      os << "{\"ok\":true,\"max_detections\":" << g_maxDetections.load()
+         << ",\"max_raw_candidates\":" << g_maxRawCandidates.load() << "}";
+      const std::string body = os.str();
+      const std::string hdr =
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\n"
+        "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+      send_all(cfd, hdr.data(), hdr.size());
+      send_all(cfd, body.data(), body.size());
+      ::close(cfd);
+      return;
+    }
+    if (method == "POST") {
+      int maxDet = g_maxDetections.load();
+      int maxRaw = g_maxRawCandidates.load();
+      const std::string payload = trim(bodyReq);
+      if (!payload.empty()) {
+        extract_json_int_field(payload, "max_detections", &maxDet);
+        extract_json_int_field(payload, "max_raw_candidates", &maxRaw);
+      }
+      maxDet = std::max(1, std::min(100, maxDet));
+      maxRaw = std::max(maxDet, std::min(300, std::max(1, maxRaw)));
+      g_maxDetections = maxDet;
+      g_maxRawCandidates = maxRaw;
+      save_detection_limits();
+      std::ostringstream os;
+      os << "{\"ok\":true,\"max_detections\":" << maxDet
+         << ",\"max_raw_candidates\":" << maxRaw << "}";
+      const std::string body = os.str();
+      const std::string hdr =
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\n"
+        "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+      send_all(cfd, hdr.data(), hdr.size());
+      send_all(cfd, body.data(), body.size());
+      ::close(cfd);
+      return;
+    }
+    const char* body = "Method Not Allowed";
+    std::string hdr =
+      "HTTP/1.1 405 Method Not Allowed\r\nAllow: GET, POST\r\nContent-Type: text/plain\r\nConnection: close\r\n"
+      "Content-Length: " + std::to_string(std::strlen(body)) + "\r\n\r\n";
+    send_all(cfd, hdr.data(), hdr.size());
+    send_all(cfd, body, std::strlen(body));
+    ::close(cfd);
+    return;
+  }
+
+
   if (path == "/api/detection/roi_config") {
     if (method == "GET") {
       const std::string body = roi_config_json();
@@ -2902,8 +2996,12 @@ static void gst_capture_thread(const Opts& o) {
           }
 
           if (anyInfer) {
-            g_lastRawBoxes = static_cast<int>(collectedBoxes.size());
+            const int rawBeforeLimit = static_cast<int>(collectedBoxes.size());
+            g_lastRawBoxes = rawBeforeLimit;
+            limit_detection_boxes_by_confidence(collectedBoxes, g_maxRawCandidates.load());
             auto boxes = nms_detection_boxes(collectedBoxes, 0.45f);
+            // TODO(adaptive): preserve selected track candidate while trimming by confidence.
+            limit_detection_boxes_by_confidence(boxes, g_maxDetections.load());
             g_lastNmsBoxes = static_cast<int>(boxes.size());
             assign_stable_track_ids(boxes, bgr.cols, bgr.rows);
             update_tracker_runtime_state(boxes, frameId);
@@ -2963,12 +3061,14 @@ static void usage() {
     << "              [--labels model/coco_80_labels_list.txt]\n"
     << "              [--model-dir new_yolo8/model_rknn] [--model <path/to/model.rknn>]\n"
     << "              [--cmd-max-pan 45] [--cmd-max-tilt 45] [--cmd-max-zoom 24]\n"
+    << "              [--max-detections 10] [--max-raw-candidates 50]\n"
     << "              [--zoom-calib-enable] [--zoom-calib-uart /dev/ttyUSB0] [--zoom-calib-baud 115200] [--no-zoom-calib]\n";
 }
 
 static bool arg_eq(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 int main(int argc, char** argv) {
   Opts o;
+  load_detection_limits();
   for (int i = 1; i < argc; ++i) {
     if (arg_eq(argv[i], "--dev") && i + 1 < argc) o.dev = argv[++i];
     else if (arg_eq(argv[i], "--port") && i + 1 < argc) o.port = std::stoi(argv[++i]);
@@ -2987,11 +3087,15 @@ int main(int argc, char** argv) {
     else if (arg_eq(argv[i], "--zoom-calib-baud") && i + 1 < argc) o.zoom_calib_uart_baud = std::stoi(argv[++i]);
     else if (arg_eq(argv[i], "--no-zoom-calib")) o.zoom_calib_enable = false;
     else if (arg_eq(argv[i], "--deinterlace")) o.deinterlace = true;
+    else if (arg_eq(argv[i], "--max-detections") && i + 1 < argc) g_maxDetections = std::stoi(argv[++i]);
+    else if (arg_eq(argv[i], "--max-raw-candidates") && i + 1 < argc) g_maxRawCandidates = std::stoi(argv[++i]);
     else if (arg_eq(argv[i], "-h") || arg_eq(argv[i], "--help")) { usage(); return 0; }
   }
   o.cmd_max_pan = std::max(0, std::min(100, o.cmd_max_pan));
   o.cmd_max_tilt = std::max(0, std::min(100, o.cmd_max_tilt));
   o.cmd_max_zoom = std::max(0, std::min(100, o.cmd_max_zoom));
+  g_maxDetections = std::max(1, std::min(100, g_maxDetections.load()));
+  g_maxRawCandidates = std::max(g_maxDetections.load(), std::min(300, std::max(1, g_maxRawCandidates.load())));
   g_cmdMaxPan = o.cmd_max_pan;
   g_cmdMaxTilt = o.cmd_max_tilt;
   g_cmdMaxZoom = o.cmd_max_zoom;

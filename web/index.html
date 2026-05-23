@@ -257,6 +257,15 @@
         <select id="operatorModelSelect" class="small-select"></select>
         <button id="operatorModelApplyBtn" class="small-btn">APPLY MODEL</button>
         <code id="operatorModelState">model: --</code>
+        <span style="opacity:.55">|</span>
+        <b>LIMIT:</b>
+        <select id="operatorDetectionLimit" class="small-select">
+          <option value="5">weak: 5</option>
+          <option value="10" selected>normal: 10</option>
+          <option value="20">strong: 20</option>
+        </select>
+        <button id="operatorLimitApplyBtn" class="small-btn">APPLY LIMIT</button>
+        <code id="operatorLimitState">limit: --</code>
         <code id="ptzStateLine">idle</code>
       </div>
       <div class="row">
@@ -1372,6 +1381,10 @@ async function ptzStart() {
   $('operatorModelSelect').onchange = () => {
     $('operatorModelState').textContent = `selected: ${$('operatorModelSelect').value}`;
   };
+  $('operatorLimitApplyBtn').onclick = () =>
+    applyOperatorDetectionLimit().catch(e =>
+      ptzLog('LIMIT error', { error: String(e.message || e) })
+    );
   $('detectorClassesSource').onchange = async () => {
     detectorClassSource = $('detectorClassesSource').value || 'coco.names';
     await refreshDetectorClasses(detectorClassSource, detectorSelectedClasses);
@@ -1426,6 +1439,7 @@ async function ptzStart() {
     };
   });
   initSettings();
+  refreshDetectionLimits().catch(e => ptzLog('LIMIT init error', { error: String(e.message || e) }));
   $('mjpegFrame').onload = () => {
     clearStreamRetry();
     telemetryState.lastImgFrameTs = Date.now();
@@ -2044,6 +2058,22 @@ async function ptzStart() {
     ptzLog('MODEL SWITCH done', { model });
 
     await ptzPrecheck();
+  }
+  async function refreshDetectionLimits() {
+    const lim = await apiGetJson('/api/detection/limits');
+    $('operatorDetectionLimit').value = String(lim.max_detections || 10);
+    $('operatorLimitState').textContent = `limit: ${lim.max_detections}/${lim.max_raw_candidates}`;
+  }
+
+  async function applyOperatorDetectionLimit() {
+    const maxDet = Number($('operatorDetectionLimit').value || 10);
+    const maxRaw = Math.max(20, maxDet * 5);
+    const res = await apiPostJson('/api/detection/limits', {
+      max_detections: maxDet,
+      max_raw_candidates: maxRaw,
+    });
+    $('operatorLimitState').textContent = `limit: ${res.max_detections}/${res.max_raw_candidates}`;
+    ptzLog('DETECTION LIMIT', res);
   }
   async function syncDetectorEnabled(enabled) {
     const wantEnabled = !!enabled;
