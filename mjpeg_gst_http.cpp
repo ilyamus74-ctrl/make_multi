@@ -470,19 +470,33 @@ static int tcp_connect_local(const std::string& host, int port) {
   return fd;
 }
 
-static bool send_zoom_via_bridge_ws(int cmd) {
-  const std::string host = "127.0.0.1";
-  const int port = 8765;
-
-  int fd = tcp_connect_local(host, port);
-  if (fd < 0) return false;
-
-  auto close_fd = [&]() {
-    ::shutdown(fd, SHUT_WR);
-    std::this_thread::sleep_for(std::chrono::milliseconds(30));
-    ::close(fd);
+static bool ws_send_text_frame(int fd, const std::string& payload) {
+  if (payload.size() >= 126) return false;
+  std::vector<uint8_t> fr;
+  fr.reserve(payload.size() + 6);
+  fr.push_back(0x81);
+  fr.push_back(static_cast<uint8_t>(0x80 | payload.size()));
+  const uint32_t rnd = static_cast<uint32_t>(std::rand());
+  uint8_t mk[4] = {
+    static_cast<uint8_t>((rnd >> 24) & 0xff),
+    static_cast<uint8_t>((rnd >> 16) & 0xff),
+    static_cast<uint8_t>((rnd >> 8) & 0xff),
+    static_cast<uint8_t>(rnd & 0xff)
   };
+  fr.insert(fr.end(), mk, mk + 4);
+  for (size_t i = 0; i < payload.size(); ++i) fr.push_back(static_cast<uint8_t>(payload[i]) ^ mk[i % 4]);
 
+  size_t sent = 0;
+  while (sent < fr.size()) {
+    const ssize_t n = ::send(fd, fr.data() + sent, fr.size() - sent, MSG_NOSIGNAL);
+    if (n > 0) { sent += static_cast<size_t>(n); continue; }
+    if (n < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) continue;
+    return false;
+  }
+  return true;
+}
+
+static bool bridge_ws_handshake(int fd, const std::string& host, int port) {
   const std::string req =
     "GET /ws HTTP/1.1\r\n"
     "Host: " + host + ":" + std::to_string(port) + "\r\n"
@@ -492,53 +506,58 @@ static bool send_zoom_via_bridge_ws(int cmd) {
     "Sec-WebSocket-Version: 13\r\n"
     "\r\n";
 
-  if (::send(fd, req.data(), req.size(), 0) < 0) {
-    ::close(fd);
-    return false;
-  }
+  if (::send(fd, req.data(), req.size(), MSG_NOSIGNAL) < 0) return false;
 
   char resp[1024];
   const int n = ::recv(fd, resp, sizeof(resp), 0);
-  if (n <= 0 || std::string(resp, n).find("101") == std::string::npos) {
-    ::close(fd);
-    return false;
-  }
+  return (n > 0 && std::string(resp, n).find("101") != std::string::npos);
+}
 
-  // Important: include newline. Bridge command parser is line-oriented.
-  const std::string msg = "Z " + std::to_string(cmd) + "\n";
-  if (msg.size() >= 126) {
-    close_fd();
-    return false;
-  }
+static bool send_zoom_stream_via_bridge_ws(int cmd, int hold_ms) {
+  const std::string host = "127.0.0.1";
+  const int port = 8765;
+  int fd = tcp_connect_local(host, port);
+  if (fd < 0) return false;
+  bool ok = false;
+  bool handshakeOk = false;
+  bool started = false;
+  bool hadFatal = false;
+  auto send_pair = [&](int seq, int zcmd) -> bool {
+    return ws_send_text_frame(fd, "J " + std::to_string(seq) + " 0 0\n") &&
+           ws_send_text_frame(fd, "Z " + std::to_string(zcmd) + "\n");
+  };
 
-  std::vector<uint8_t> fr;
-  fr.push_back(0x81); // text frame
-  fr.push_back(static_cast<uint8_t>(0x80 | msg.size())); // masked payload
-  uint8_t mk[4] = {0x12, 0x34, 0x56, 0x78};
-  fr.insert(fr.end(), mk, mk + 4);
-  for (size_t i = 0; i < msg.size(); ++i) {
-    fr.push_back(static_cast<uint8_t>(msg[i]) ^ mk[i % 4]);
-  }
-
-  size_t sent = 0;
-  while (sent < fr.size()) {
-    const ssize_t k = ::send(fd, fr.data() + sent, fr.size() - sent, MSG_NOSIGNAL);
-    if (k > 0) {
-      sent += static_cast<size_t>(k);
-      continue;
+  if (bridge_ws_handshake(fd, host, port)) {
+    handshakeOk = true;
+    static std::atomic<int> seqCounter{1};
+    const auto t0 = std::chrono::steady_clock::now();
+    while (true) {
+      const int seq = seqCounter.fetch_add(1);
+      if (!send_pair(seq, cmd)) { hadFatal = true; break; }
+      started = true;
+      const auto now = std::chrono::steady_clock::now();
+      const int elapsed = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(now - t0).count());
+      if (elapsed >= hold_ms) break;
+      std::this_thread::sleep_for(std::chrono::milliseconds(80));
     }
-    if (k < 0 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(2));
-      continue;
+    if (started) {
+      bool stopOk = true;
+      for (int i = 0; i < 8; ++i) {
+        const int seq = seqCounter.fetch_add(1);
+        if (!send_pair(seq, 0)) { stopOk = false; hadFatal = true; break; }
+        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+      }
+      ok = stopOk;
     }
-    close_fd();
-    return false;
   }
+  ::shutdown(fd, SHUT_RDWR);
+  ::close(fd);
+  if (hadFatal || !handshakeOk) return false;
+  return started && ok;
+}
 
-  // Give ws_uart_bridge time to read/process the frame before TCP close.
-  std::this_thread::sleep_for(std::chrono::milliseconds(80));
-  close_fd();
-  return true;
+static bool send_zoom_via_bridge_ws(int cmd) {
+  return send_zoom_stream_via_bridge_ws(cmd, 0);
 }
 
 static bool fetch_latest_gray_frame(uint64_t* outFid, cv::Mat* outGray) {
@@ -951,21 +970,18 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
     g_zoomCalibLastRunAt = now_utc_iso8601();
   }
   (void)std::system("curl -sS -m 1 -X POST http://127.0.0.1:8090/api/autopilot/stop >/dev/null 2>/dev/null");
-    int uartFd = -1;
-  const bool bridgeReady = send_zoom_via_bridge_ws(0);
-  if (!bridgeReady) {
-    uartFd = open_uart_for_zoom(o.zoom_calib_uart_dev, o.zoom_calib_uart_baud);
-    if (uartFd < 0) { g_detectEnabled = prevDetect; return false; }
-  }
-  auto write_zoom_cmd = [&](int zcmd){
-    if (bridgeReady) return send_zoom_via_bridge_ws(zcmd);
-    return write_uart_line(uartFd, std::string("Z ") + std::to_string(zcmd));
-  };
-  auto stop_zoom = [&](){ (void)write_zoom_cmd(0); };
   const int cmd = std::max(1, std::min(o.cmd_max_zoom, params.cmd_abs));
-  write_zoom_cmd(params.wide_cmd_sign * cmd);
-  std::this_thread::sleep_for(std::chrono::milliseconds(params.wide_hold_ms));
-  write_zoom_cmd(0);
+  const int wideCmd = params.wide_cmd_sign * cmd;
+  const bool wideOk = send_zoom_stream_via_bridge_ws(wideCmd, params.wide_hold_ms);
+  std::cout << "zoom-apriltag: wide stream cmd=" << wideCmd << " hold_ms=" << params.wide_hold_ms << " ok=" << (wideOk ? 1 : 0) << "\n";
+  if (!wideOk) {
+    g_detectEnabled = prevDetect;
+    std::lock_guard<std::mutex> slk(g_zoomCalibStatusMtx);
+    g_zoomCalibLastStatus = "failed";
+    g_zoomCalibLastMessage = "bridge_ws_stream_failed";
+    g_zoomCalibLastRunAt = now_utc_iso8601();
+    return false;
+  }
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
   g_zoomRatio = 0.0;
 
@@ -973,16 +989,25 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
   cv::Mat gray; uint64_t fid = 0;
   if (fetch_latest_gray_frame(&fid, &gray)) rows.push_back(measure_zoom_markers_apriltag(gray, params));
   for (int i = 1; i <= std::max(1, params.samples); ++i) {
-    write_zoom_cmd(-params.wide_cmd_sign * cmd);
-    std::this_thread::sleep_for(std::chrono::milliseconds(std::max(20, params.impulse_ms)));
-    stop_zoom();
+    const int impulseCmd = -params.wide_cmd_sign * cmd;
+    const bool impulseOk = send_zoom_stream_via_bridge_ws(impulseCmd, params.impulse_ms);
+    std::cout << "zoom-apriltag: impulse idx=" << i << " cmd=" << impulseCmd << " hold_ms=" << params.impulse_ms << " ok=" << (impulseOk ? 1 : 0) << "\n";
+    if (!impulseOk) {
+      g_detectEnabled = prevDetect;
+      std::lock_guard<std::mutex> slk(g_zoomCalibStatusMtx);
+      g_zoomCalibLastStatus = "failed";
+      g_zoomCalibLastMessage = "bridge_ws_stream_failed";
+      g_zoomCalibLastRunAt = now_utc_iso8601();
+      return false;
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(std::max(50, params.settle_ms)));
     ZoomMarkerMeasurement m;
     if (fetch_latest_gray_frame(&fid, &gray)) m = measure_zoom_markers_apriltag(gray, params);
+    std::cout << "zoom-apriltag: measure idx=" << i << " tags_found=" << m.tags_found << "\n";
     rows.push_back(m);
     g_zoomCalibProgressIdx = i; g_zoomCalibProgressSamples = params.samples; g_zoomCalibProgressTagsFound = m.tags_found;
   }
-  stop_zoom(); if (uartFd >= 0) ::close(uartFd); g_detectEnabled = prevDetect;
+  g_detectEnabled = prevDetect;
   double minF = 1e9, maxF = 0.0;
   for (const auto& r : rows) if (r.ok) { minF = std::min(minF, r.focal_px); maxF = std::max(maxF, r.focal_px); }
   std::ostringstream os;
