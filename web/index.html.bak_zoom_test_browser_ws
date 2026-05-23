@@ -1538,39 +1538,6 @@ async function ptzStart() {
 
   let zoomTestStopTimer = null;
 
-  function runWhenWsReady(fn) {
-    if (ws && ws.readyState === 1) {
-      fn();
-      return;
-    }
-
-    connectWs();
-
-    let done = false;
-    const tryRun = () => {
-      if (done) return;
-      if (ws && ws.readyState === 1) {
-        done = true;
-        fn();
-      }
-    };
-
-    setTimeout(tryRun, 80);
-    setTimeout(tryRun, 200);
-    setTimeout(tryRun, 500);
-  }
-
-  function sendZoomViaBrowserWs(cmd) {
-    cmd = Math.round(Number(cmd || 0));
-    cmd = Math.max(-cmdLimits.zoom, Math.min(cmdLimits.zoom, cmd));
-
-    runWhenWsReady(() => {
-      sendLine(`Z ${cmd}`);
-      updateZoomStateFromCommand(cmd);
-      $('zoomStick').textContent = `zoom=${cmd} (ZOOM TEST WS)`;
-    });
-  }
-
   async function zoomTest(cmd, holdMs) {
     cmd = Math.round(Number(cmd || 0));
     holdMs = Math.max(0, Math.min(8000, Math.round(Number(holdMs || 0))));
@@ -1584,26 +1551,22 @@ async function ptzStart() {
       zoomTestStopTimer = null;
     }
 
-    $('zoomAprilTagCalibStatus').textContent = `ws test cmd=${cmd} hold=${holdMs}`;
+    $('zoomAprilTagCalibStatus').textContent = `test cmd=${cmd} hold=${holdMs}`;
 
-    sendZoomViaBrowserWs(cmd);
-
+    // Safety stop from browser side.
     if (cmd !== 0 && holdMs > 0) {
       zoomTestStopTimer = setTimeout(() => {
-        sendZoomViaBrowserWs(0);
-        $('zoomAprilTagCalibStatus').textContent = `ws stopped after ${holdMs}ms`;
-        ptzLog('ZOOM TEST WS autostop', { cmd: 0, hold_ms: 0 });
-      }, holdMs);
+        apiPostJson('/api/zoom_test', { cmd: 0, hold_ms: 0 })
+          .then(res => {
+            $('zoomAprilTagCalibStatus').textContent = `stopped after ${holdMs}ms`;
+            ptzLog('ZOOM TEST autostop', res);
+          })
+          .catch(e => ptzLog('ZOOM TEST autostop error', { error: String(e.message || e) }));
+      }, holdMs + 150);
     }
 
-    const res = {
-      ok: true,
-      transport: 'browser_ws',
-      cmd,
-      hold_ms: holdMs
-    };
-
-    ptzLog('ZOOM TEST WS', res);
+    const res = await apiPostJson('/api/zoom_test', { cmd, hold_ms: holdMs });
+    ptzLog('ZOOM TEST', res);
     return res;
   }
 
@@ -1612,22 +1575,12 @@ async function ptzStart() {
       clearTimeout(zoomTestStopTimer);
       zoomTestStopTimer = null;
     }
-
     if (document.activeElement && typeof document.activeElement.blur === 'function') {
       document.activeElement.blur();
     }
-
-    sendZoomViaBrowserWs(0);
-
-    const res = {
-      ok: true,
-      transport: 'browser_ws',
-      cmd: 0,
-      hold_ms: 0
-    };
-
-    $('zoomAprilTagCalibStatus').textContent = 'ws stopped';
-    ptzLog('ZOOM STOP WS', res);
+    const res = await apiPostJson('/api/zoom_test', { cmd: 0, hold_ms: 0 });
+    $('zoomAprilTagCalibStatus').textContent = 'stopped';
+    ptzLog('ZOOM STOP', res);
     return res;
   }
 
