@@ -1256,9 +1256,6 @@ async function ptzStart() {
   saveSettings();
   disconnectWs();
 
-  // Apply current server-side PTZ settings before starting autopilot.
-  await ptzApplyConfig();
-
   const tr = await apiGetJson('/api/tracker/state');
   if (tr.mode !== 'TRACKING' || tr.selected_box_valid !== true) {
     ptzLog('START blocked: tracker not ready', tr);
