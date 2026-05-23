@@ -32,7 +32,6 @@ HEIGHT="${HEIGHT:-1080}"
 FPS="${FPS:-25}"
 JPEG_QUALITY="${JPEG_QUALITY:-20}"
 MJPEG_NICE="${MJPEG_NICE:-5}"
-MJPEG_CPUSET="${MJPEG_CPUSET:-4-7}"
 DEINTERLACE="${DEINTERLACE:-0}"            # 1 => --deinterlace, 0 => disabled
 LABELS="${LABELS:-$ROOT_DIR/models/coco_80_labels_list.txt}"
 CMD_MAX_PAN="${CMD_MAX_PAN:-20}"
@@ -151,12 +150,12 @@ fi
 
 start_mjpeg() {
   log "Starting MJPEG server: $MJPEG_BIN"
-  nice -n "$MJPEG_NICE" taskset -c "$MJPEG_CPUSET" "$MJPEG_BIN" "${MJPEG_ARGS[@]}" >>"$MJPEG_LOG" 2>&1 &
+  nice -n "$MJPEG_NICE" "$MJPEG_BIN" "${MJPEG_ARGS[@]}" >>"$MJPEG_LOG" 2>&1 &
   MJPEG_PID=$!
   log "MJPEG pid=$MJPEG_PID (log: $MJPEG_LOG)"
   sleep 0.2
   renice -n "$MJPEG_NICE" -p "$MJPEG_PID" >/dev/null 2>&1 || true
-  log "MJPEG nice set to $MJPEG_NICE, cpuset=$MJPEG_CPUSET for pid=$MJPEG_PID"
+  log "MJPEG nice set to $MJPEG_NICE for pid=$MJPEG_PID"
   sleep 0.3
   if ! kill -0 "$MJPEG_PID" 2>/dev/null; then
     log "ERROR: MJPEG failed to start (see $MJPEG_LOG)"
