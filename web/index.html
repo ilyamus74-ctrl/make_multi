@@ -252,6 +252,11 @@
         <button id="ptzRoiPersonBtn" class="small-btn">PERSON</button>
         <button id="ptzRoiVehicleBtn" class="small-btn">VEHICLE</button>
         <button id="ptzRoiFullBtn" class="small-btn">FULL FRAME</button>
+        <span style="opacity:.55">|</span>
+        <b>MODEL:</b>
+        <select id="operatorModelSelect" class="small-select"></select>
+        <button id="operatorModelApplyBtn" class="small-btn">APPLY MODEL</button>
+        <code id="operatorModelState">model: --</code>
         <code id="ptzStateLine">idle</code>
       </div>
       <div class="row">
@@ -1354,8 +1359,19 @@ async function ptzStart() {
     saveSettings();
   };
   $('detectorToggleBtn').onclick = () => toggleDetectorEnabled();
-  $('detectorModelSelect').onchange = () => selectDetectorModel($('detectorModelSelect').value);
-
+  $('detectorModelSelect').onchange = () => {
+    const model = $('detectorModelSelect').value;
+    if ($('operatorModelSelect')) $('operatorModelSelect').value = model;
+    if ($('operatorModelState')) $('operatorModelState').textContent = `selected: ${model}`;
+    selectDetectorModel(model);
+  };
+  $('operatorModelApplyBtn').onclick = () =>
+    applyOperatorModelSelection().catch(e =>
+      ptzLog('MODEL SWITCH error', { error: String(e.message || e) })
+    );
+  $('operatorModelSelect').onchange = () => {
+    $('operatorModelState').textContent = `selected: ${$('operatorModelSelect').value}`;
+  };
   $('detectorClassesSource').onchange = async () => {
     detectorClassSource = $('detectorClassesSource').value || 'coco.names';
     await refreshDetectorClasses(detectorClassSource, detectorSelectedClasses);
@@ -1895,6 +1911,46 @@ async function ptzStart() {
     } else {
       select.value = normalizedModels[0];
     }
+
+    syncOperatorModelSelect(normalizedModels, select.value);
+  }
+
+  function syncOperatorModelSelect(models, currentModel) {
+    const select = $('operatorModelSelect');
+    if (!select) return;
+
+    select.innerHTML = '';
+
+    const normalizedModels = Array.isArray(models)
+      ? models.map(v => String(v || '')).filter(Boolean)
+      : [];
+
+    if (!normalizedModels.length) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'no models';
+      select.appendChild(opt);
+      select.disabled = true;
+      $('operatorModelState').textContent = 'model: unavailable';
+      return;
+    }
+
+    normalizedModels.forEach(model => {
+      const opt = document.createElement('option');
+      opt.value = model;
+      opt.textContent = model;
+      select.appendChild(opt);
+    });
+
+    select.disabled = false;
+
+    if (currentModel && normalizedModels.includes(currentModel)) {
+      select.value = currentModel;
+    } else {
+      select.value = normalizedModels[0];
+    }
+
+    $('operatorModelState').textContent = `model: ${select.value}`;
   }
 
   async function refreshDetectorModels(currentModelHint) {
@@ -1970,6 +2026,25 @@ async function ptzStart() {
     await refreshDetectorConfig();
   }
 
+  async function applyOperatorModelSelection() {
+    const model = String($('operatorModelSelect')?.value || '').trim();
+    if (!model) return;
+
+    try {
+      await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/stop`, {});
+    } catch (_) {}
+
+    $('operatorModelState').textContent = `switching: ${model}`;
+    ptzLog('MODEL SWITCH requested', { model });
+
+    $('detectorModelSelect').value = model;
+    await selectDetectorModel(model);
+
+    $('operatorModelState').textContent = `model: ${model}`;
+    ptzLog('MODEL SWITCH done', { model });
+
+    await ptzPrecheck();
+  }
   async function syncDetectorEnabled(enabled) {
     const wantEnabled = !!enabled;
     try {
