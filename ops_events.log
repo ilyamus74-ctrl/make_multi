@@ -2103,3 +2103,15 @@
 2026-05-23T09:43:43Z type=video_restored payload={"type":"video_restored","ts_ms":1779529423376,"details":{"lost_for_ms":10}}
 2026-05-23T09:44:00Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779529440670,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":496}}
 2026-05-23T09:44:01Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779529441185,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":10}}
+2026-05-23T10:18:26Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779531506010,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":12}}
+2026-05-23T10:24:25Z type=video_restored payload={"type":"video_restored","ts_ms":1779531865641,"details":{"lost_for_ms":31}}
+2026-05-23T10:24:25Z type=video_lost payload={"type":"video_lost","ts_ms":1779531865875,"details":{"status":"RECONNECTING"}}
+2026-05-23T10:24:25Z type=video_retry payload={"type":"video_retry","ts_ms":1779531865876,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
+2026-05-23T10:24:25Z type=video_restored payload={"type":"video_restored","ts_ms":1779531865889,"details":{"lost_for_ms":14}}
+2026-05-23T10:25:56Z type=video_restored payload={"type":"video_restored","ts_ms":1779531956782,"details":{"lost_for_ms":23}}
+2026-05-23T10:25:57Z type=video_lost payload={"type":"video_lost","ts_ms":1779531957093,"details":{"status":"RECONNECTING"}}
+2026-05-23T10:25:57Z type=video_retry payload={"type":"video_retry","ts_ms":1779531957093,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
+2026-05-23T10:25:57Z type=video_restored payload={"type":"video_restored","ts_ms":1779531957106,"details":{"lost_for_ms":13}}
+2026-05-23T10:26:12Z type=detector_model_switch_start payload={"type":"detector_model_switch_start","model":"model_rknn/yolov8s_640x480_9out_fp32.rknn"}
+2026-05-23T10:26:13Z type=detector_model_switch_ok payload={"type":"detector_model_switch_ok","model":"model_rknn/yolov8s_640x480_9out_fp32.rknn"}
+2026-05-23T10:26:13Z type=detector_model_switch_fail payload={"type":"detector_model_switch_fail","model":"model_rknn/yolov8s_640x480_9out_fp32.rknn","reason":"cooldown"}
