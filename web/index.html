@@ -278,6 +278,15 @@
         <code id="operatorDetectEveryState">detect: --</code>
         <code id="ptzStateLine">idle</code>
       </div>
+      <div class="row" id="ptzConfigPanel">
+        <label>PTZ Y⇅ <input id="ptzInvertTilt" type="checkbox" checked></label>
+        <label>PTZ X⇄ <input id="ptzInvertPan" type="checkbox"></label>
+        <label>Center X <input id="ptzTargetX" type="number" min="0.1" max="0.9" step="0.05" value="0.5"></label>
+        <label>Center Y <input id="ptzTargetY" type="number" min="0.1" max="0.9" step="0.05" value="0.5"></label>
+        <label>Min P <input id="ptzMinPan" type="number" min="0" max="20" step="1" value="4"></label>
+        <label>Min T <input id="ptzMinTilt" type="number" min="0" max="20" step="1" value="3"></label>
+        <button id="ptzApplyConfigBtn" class="small-btn">APPLY PTZ</button>
+      </div>
       <div class="row">
         <details><summary>PTZ log</summary><textarea id="ptzDebugLog" style="width:100%;height:48px;font-family:monospace;font-size:12px"></textarea></details>
       </div>
@@ -1214,6 +1223,32 @@ ctx.fillText(lbl, tx + 4, ty - 4);
     await ptzPrecheck();
   }
 
+function readPtzConfigFromUi() {
+  return {
+    kp: 18,
+    ki: 0,
+    kd: 1.5,
+    deadzone: 0.04,
+    max_pan: 20,
+    max_tilt: 20,
+    max_accel: 4,
+    hz: 10,
+    invert_tilt: Boolean($('ptzInvertTilt')?.checked),
+    invert_pan: Boolean($('ptzInvertPan')?.checked),
+    target_x: Math.max(0.1, Math.min(0.9, Number($('ptzTargetX')?.value || 0.5))),
+    target_y: Math.max(0.1, Math.min(0.9, Number($('ptzTargetY')?.value || 0.5))),
+    min_pan: Math.max(0, Math.min(20, Number($('ptzMinPan')?.value || 4))),
+    min_tilt: Math.max(0, Math.min(20, Number($('ptzMinTilt')?.value || 3))),
+  };
+}
+
+async function ptzApplyConfig() {
+  const cfg = readPtzConfigFromUi();
+  const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/config`, cfg);
+  ptzLog('PTZ CONFIG', { cfg, res });
+  await ptzPrecheck();
+}
+
 async function ptzStart() {
   $('controlMode').value = 'ptz';
   if ($('auto')) $('auto').checked = false;
@@ -1352,6 +1387,8 @@ async function ptzStart() {
   $('ptzSelectFirstBtn').onclick = () => ptzSelectFirstTarget().catch(e => ptzLog('SELECT error', { error: String(e.message || e) }));
   $('ptzStartBtn').onclick = () => ptzStart().catch(e => ptzLog('START error', { error: String(e.message || e) }));
   $('ptzStopBtn').onclick = () => ptzStop().catch(e => ptzLog('STOP error', { error: String(e.message || e) }));
+  $('ptzApplyConfigBtn').onclick = () =>
+    ptzApplyConfig().catch(e => ptzLog('PTZ CONFIG error', { error: String(e.message || e) }));
   $('ptzRoiPersonBtn').onclick = () => ptzSetRoiPerson().catch(e => ptzLog('ROI PERSON error', { error: String(e.message || e) }));
   $('ptzRoiVehicleBtn').onclick = () => ptzSetRoiVehicle().catch(e => ptzLog('ROI VEHICLE error', { error: String(e.message || e) }));
   $('ptzRoiFullBtn').onclick = () => ptzSetFullFrame().catch(e => ptzLog('ROI FULL error', { error: String(e.message || e) }));
