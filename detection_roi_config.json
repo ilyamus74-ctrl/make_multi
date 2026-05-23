@@ -1,1 +1,1 @@
-{"ok":true,"detection_mode":"roi","rois":[{"id":"person_test","enabled":true,"x":0,"y":0,"w":1920,"h":1080,"every_n_frames":1,"classes":[0]}]}
+{"ok":true,"detection_mode":"roi","rois":[{"id":"vehicle_test","enabled":true,"x":500,"y":220,"w":900,"h":500,"every_n_frames":1,"classes":[2,5,7]}]}
