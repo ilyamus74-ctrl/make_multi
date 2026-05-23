@@ -702,8 +702,6 @@ static std::string zoom_calibration_json() {
   return os.str();
 }
 
-static bool extract_json_double_field(const std::string& json, const std::string& key, double* out);
-
 static std::string zoom_calib_settings_json(const ZoomAprilTagCalibParams& p) {
   std::ostringstream os;
   os << "{"
