@@ -1557,7 +1557,7 @@ async function ptzStart() {
     return Boolean(ws && ws.readyState === 1);
   }
 
-  async function sendZoomFrame(cmd) {
+  async function sendZoomViaBrowserWsStrict(cmd) {
     cmd = Math.round(Number(cmd || 0));
     cmd = Math.max(-cmdLimits.zoom, Math.min(cmdLimits.zoom, cmd));
 
@@ -1566,28 +1566,25 @@ async function ptzStart() {
       throw new Error('WS not ready for zoom command');
     }
 
-    // Important:
-    // Normal manual control sends both J and Z.
-    // Some controller firmware may only reliably release zoom when a neutral J frame is also sent.
-    seq = (seq + 1) & 0xFFFF;
-    sendLine(`J ${seq} 0 0`);
     sendLine(`Z ${cmd}`);
-
     updateZoomStateFromCommand(cmd);
-    $('zoomStick').textContent = `zoom=${cmd} (ZOOM TEST STREAM)`;
+    $('zoomStick').textContent = `zoom=${cmd} (ZOOM TEST WS)`;
 
-    await sleepMs(15);
+    // Small pause gives ws_uart_bridge time to process the frame.
+    await sleepMs(30);
+
     return cmd;
   }
 
   async function sendZoomStopBurst(reason = 'stop') {
-    for (let i = 0; i < 8; i++) {
-      await sendZoomFrame(0);
-      await sleepMs(60);
+    // Send several stops. Some firmware/servo states ignore a single short stop.
+    for (let i = 0; i < 5; i++) {
+      await sendZoomViaBrowserWsStrict(0);
+      await sleepMs(70);
     }
 
-    $('zoomAprilTagCalibStatus').textContent = `stopped (${reason})`;
-    ptzLog('ZOOM TEST stop-burst', { cmd: 0, repeat: 8, reason });
+    $('zoomAprilTagCalibStatus').textContent = `ws stopped (${reason})`;
+    ptzLog('ZOOM TEST WS stop-burst', { cmd: 0, repeat: 5, reason });
   }
 
   async function zoomTest(cmd, holdMs) {
@@ -1606,45 +1603,41 @@ async function ptzStart() {
       zoomTestStopTimer = null;
     }
 
-    $('zoomAprilTagCalibStatus').textContent = `stream cmd=${cmd} hold=${holdMs}`;
+    $('zoomAprilTagCalibStatus').textContent = `ws pulse cmd=${cmd} hold=${holdMs}`;
 
-    ptzLog('ZOOM TEST stream start', {
-      transport: 'browser_ws_stream',
+    ptzLog('ZOOM TEST WS start', {
+      transport: 'browser_ws',
       cmd,
       hold_ms: holdMs
     });
 
     if (cmd === 0 || holdMs === 0) {
       await sendZoomStopBurst('manual-zero');
-      return { ok: true, transport: 'browser_ws_stream', cmd: 0, hold_ms: 0 };
+      return { ok: true, transport: 'browser_ws', cmd: 0, hold_ms: 0 };
     }
 
-    const started = performance.now();
+    // 1. Send start and wait until it is actually sent.
+    await sendZoomViaBrowserWsStrict(cmd);
 
-    // Send a continuous command stream during the whole hold time.
-    while ((performance.now() - started) < holdMs) {
-      if (mySeq !== zoomTestPulseSeq) {
-        return { ok: false, transport: 'browser_ws_stream', cancelled: true };
-      }
+    // 2. Only now count hold time.
+    await sleepMs(holdMs);
 
-      await sendZoomFrame(cmd);
-      await sleepMs(80);
-    }
-
+    // 3. If a newer test started, do not fight it.
     if (mySeq !== zoomTestPulseSeq) {
-      return { ok: false, transport: 'browser_ws_stream', cancelled: true };
+      return { ok: false, transport: 'browser_ws', cancelled: true };
     }
 
+    // 4. Hard stop burst.
     await sendZoomStopBurst(`after ${holdMs}ms`);
 
     const res = {
       ok: true,
-      transport: 'browser_ws_stream',
+      transport: 'browser_ws',
       cmd,
       hold_ms: holdMs
     };
 
-    ptzLog('ZOOM TEST stream done', res);
+    ptzLog('ZOOM TEST WS done', res);
     return res;
   }
 
@@ -1664,12 +1657,12 @@ async function ptzStart() {
 
     const res = {
       ok: true,
-      transport: 'browser_ws_stream',
+      transport: 'browser_ws',
       cmd: 0,
       hold_ms: 0
     };
 
-    ptzLog('ZOOM STOP stream', res);
+    ptzLog('ZOOM STOP WS', res);
     return res;
   }
 
