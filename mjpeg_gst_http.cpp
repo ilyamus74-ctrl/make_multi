@@ -345,6 +345,7 @@ static double g_zoomCalibProgressRatio = 0.0;
 static int g_zoomCalibProgressTagsFound = 0;
 static std::string g_zoomAprilTagProfileJson = "{}";
 static std::string g_zoomAprilTagProfileFile = "zoom_apriltag_profile.json";
+static std::string g_zoomCalibSettingsFile = "zoom_calibration_settings.json";
 
 struct ZoomMarkerMeasurement {
   bool ok = false;
@@ -359,13 +360,29 @@ struct ZoomAprilTagCalibParams {
   double tag_size_mm = 160.0;
   double near_distance_mm = 1000.0;
   double far_distance_mm = 10000.0;
-  int cmd_abs = 34;
-  int wide_cmd_sign = -1;
-  int wide_hold_ms = 3000;
-  int settle_ms = 250;
-  int impulse_ms = 100;
   int samples = 20;
+  int impulse_ms = 100;
+  int settle_ms = 250;
+  int cmd_abs = 34;
+  int wide_cmd_sign = 1;
+  int wide_hold_ms = 2000;
 };
+
+static ZoomAprilTagCalibParams g_zoomCalibSettings;
+
+static void clamp_zoom_calib_params(ZoomAprilTagCalibParams& p, int cmdMaxZoom) {
+  p.tag_size_mm = std::max(20.0, std::min(1000.0, p.tag_size_mm));
+  p.near_distance_mm = std::max(100.0, std::min(50000.0, p.near_distance_mm));
+  p.far_distance_mm = std::max(100.0, std::min(100000.0, p.far_distance_mm));
+  if (p.far_distance_mm < p.near_distance_mm) std::swap(p.far_distance_mm, p.near_distance_mm);
+  p.samples = std::max(1, std::min(100, p.samples));
+  p.impulse_ms = std::max(20, std::min(2000, p.impulse_ms));
+  p.settle_ms = std::max(50, std::min(3000, p.settle_ms));
+  const int maxZoom = std::max(1, cmdMaxZoom);
+  p.cmd_abs = std::max(1, std::min(maxZoom, p.cmd_abs));
+  p.wide_cmd_sign = (p.wide_cmd_sign < 0) ? -1 : 1;
+  p.wide_hold_ms = std::max(300, std::min(10000, p.wide_hold_ms));
+}
 
 static const std::chrono::steady_clock::time_point g_processStartedAt = std::chrono::steady_clock::now();
 static std::chrono::steady_clock::time_point g_lastModelSwitchTs = std::chrono::steady_clock::time_point::min();
@@ -683,6 +700,59 @@ static std::string zoom_calibration_json() {
   }
   os << "]}";
   return os.str();
+}
+
+static std::string zoom_calib_settings_json(const ZoomAprilTagCalibParams& p) {
+  std::ostringstream os;
+  os << "{"
+     << "\"ok\":true"
+     << ",\"tag_size_mm\":" << p.tag_size_mm
+     << ",\"near_distance_mm\":" << p.near_distance_mm
+     << ",\"far_distance_mm\":" << p.far_distance_mm
+     << ",\"samples\":" << p.samples
+     << ",\"impulse_ms\":" << p.impulse_ms
+     << ",\"settle_ms\":" << p.settle_ms
+     << ",\"cmd_abs\":" << p.cmd_abs
+     << ",\"wide_cmd_sign\":" << p.wide_cmd_sign
+     << ",\"wide_hold_ms\":" << p.wide_hold_ms
+     << "}";
+  return os.str();
+}
+
+static bool save_zoom_calib_settings(const ZoomAprilTagCalibParams& p) {
+  std::ofstream f(g_zoomCalibSettingsFile);
+  if (!f) return false;
+  f << "{\n"
+    << "  \"tag_size_mm\": " << p.tag_size_mm << ",\n"
+    << "  \"near_distance_mm\": " << p.near_distance_mm << ",\n"
+    << "  \"far_distance_mm\": " << p.far_distance_mm << ",\n"
+    << "  \"samples\": " << p.samples << ",\n"
+    << "  \"impulse_ms\": " << p.impulse_ms << ",\n"
+    << "  \"settle_ms\": " << p.settle_ms << ",\n"
+    << "  \"cmd_abs\": " << p.cmd_abs << ",\n"
+    << "  \"wide_cmd_sign\": " << p.wide_cmd_sign << ",\n"
+    << "  \"wide_hold_ms\": " << p.wide_hold_ms << "\n"
+    << "}\n";
+  return true;
+}
+
+static bool load_zoom_calib_settings(ZoomAprilTagCalibParams& p, int cmdMaxZoom) {
+  std::ifstream f(g_zoomCalibSettingsFile);
+  if (!f) return false;
+  std::string body((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+  double d = 0.0;
+  int i = 0;
+  if (extract_json_double_field(body, "tag_size_mm", &d)) p.tag_size_mm = d;
+  if (extract_json_double_field(body, "near_distance_mm", &d)) p.near_distance_mm = d;
+  if (extract_json_double_field(body, "far_distance_mm", &d)) p.far_distance_mm = d;
+  if (extract_json_int_field(body, "samples", &i)) p.samples = i;
+  if (extract_json_int_field(body, "impulse_ms", &i)) p.impulse_ms = i;
+  if (extract_json_int_field(body, "settle_ms", &i)) p.settle_ms = i;
+  if (extract_json_int_field(body, "cmd_abs", &i)) p.cmd_abs = i;
+  if (extract_json_int_field(body, "wide_cmd_sign", &i)) p.wide_cmd_sign = i;
+  if (extract_json_int_field(body, "wide_hold_ms", &i)) p.wide_hold_ms = i;
+  clamp_zoom_calib_params(p, cmdMaxZoom);
+  return true;
 }
 
 static bool extract_json_double_field(const std::string& json, const std::string& key, double* out) {
@@ -2613,7 +2683,7 @@ static void handle_client(int cfd, const Opts& o) {
       bool started = false;
       if (!g_zoomCalibInProgress.load()) {
         const std::string mode = extract_json_string_field(bodyReq, "mode");
-        ZoomAprilTagCalibParams p;
+        ZoomAprilTagCalibParams p = g_zoomCalibSettings;
         extract_json_double_field(bodyReq, "tag_size_mm", &p.tag_size_mm);
         extract_json_double_field(bodyReq, "near_distance_mm", &p.near_distance_mm);
         extract_json_double_field(bodyReq, "far_distance_mm", &p.far_distance_mm);
@@ -2623,12 +2693,9 @@ static void handle_client(int cfd, const Opts& o) {
         extract_json_int_field(bodyReq, "cmd_abs", &p.cmd_abs);
         extract_json_int_field(bodyReq, "wide_cmd_sign", &p.wide_cmd_sign);
         extract_json_int_field(bodyReq, "wide_hold_ms", &p.wide_hold_ms);
-        p.cmd_abs = std::max(1, std::min(o.cmd_max_zoom, p.cmd_abs));
-        p.wide_cmd_sign = (p.wide_cmd_sign < 0) ? -1 : 1;
-        p.wide_hold_ms = std::max(500, std::min(8000, p.wide_hold_ms));
-        p.impulse_ms = std::max(20, std::min(1000, p.impulse_ms));
-        p.settle_ms = std::max(50, std::min(2000, p.settle_ms));
-        p.samples = std::max(1, std::min(100, p.samples));
+        clamp_zoom_calib_params(p, o.cmd_max_zoom);
+        g_zoomCalibSettings = p;
+        save_zoom_calib_settings(g_zoomCalibSettings);
         std::thread([o, mode, p]() {
           const bool ok = (mode == "apriltag_zoom_table")
             ? run_zoom_apriltag_table_calibration(o, p)
@@ -2662,6 +2729,50 @@ static void handle_client(int cfd, const Opts& o) {
       "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
     send_all(cfd, hdr.data(), hdr.size());
     send_all(cfd, body.data(), body.size());
+    ::close(cfd);
+    return;
+  }
+
+  if (path == "/api/zoom_calibration/settings") {
+    if (method == "GET") {
+      const std::string body = zoom_calib_settings_json(g_zoomCalibSettings);
+      const std::string hdr =
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\n"
+        "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+      send_all(cfd, hdr.data(), hdr.size());
+      send_all(cfd, body.data(), body.size());
+      ::close(cfd);
+      return;
+    }
+    if (method == "POST") {
+      ZoomAprilTagCalibParams p = g_zoomCalibSettings;
+      extract_json_double_field(bodyReq, "tag_size_mm", &p.tag_size_mm);
+      extract_json_double_field(bodyReq, "near_distance_mm", &p.near_distance_mm);
+      extract_json_double_field(bodyReq, "far_distance_mm", &p.far_distance_mm);
+      extract_json_int_field(bodyReq, "samples", &p.samples);
+      extract_json_int_field(bodyReq, "impulse_ms", &p.impulse_ms);
+      extract_json_int_field(bodyReq, "settle_ms", &p.settle_ms);
+      extract_json_int_field(bodyReq, "cmd_abs", &p.cmd_abs);
+      extract_json_int_field(bodyReq, "wide_cmd_sign", &p.wide_cmd_sign);
+      extract_json_int_field(bodyReq, "wide_hold_ms", &p.wide_hold_ms);
+      clamp_zoom_calib_params(p, o.cmd_max_zoom);
+      g_zoomCalibSettings = p;
+      save_zoom_calib_settings(g_zoomCalibSettings);
+      const std::string body = zoom_calib_settings_json(g_zoomCalibSettings);
+      const std::string hdr =
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\n"
+        "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+      send_all(cfd, hdr.data(), hdr.size());
+      send_all(cfd, body.data(), body.size());
+      ::close(cfd);
+      return;
+    }
+    const char* body = "Method Not Allowed";
+    std::string hdr =
+      "HTTP/1.1 405 Method Not Allowed\r\nAllow: GET, POST\r\nContent-Type: text/plain\r\nConnection: close\r\n"
+      "Content-Length: " + std::to_string(std::strlen(body)) + "\r\n\r\n";
+    send_all(cfd, hdr.data(), hdr.size());
+    send_all(cfd, body, std::strlen(body));
     ::close(cfd);
     return;
   }
@@ -3529,6 +3640,9 @@ int main(int argc, char** argv) {
   g_cmdMaxPan = o.cmd_max_pan;
   g_cmdMaxTilt = o.cmd_max_tilt;
   g_cmdMaxZoom = o.cmd_max_zoom;
+  g_zoomCalibSettings = ZoomAprilTagCalibParams{};
+  load_zoom_calib_settings(g_zoomCalibSettings, o.cmd_max_zoom);
+  clamp_zoom_calib_params(g_zoomCalibSettings, o.cmd_max_zoom);
   std::cout << "zoom-calib: startup mode="
             << (o.zoom_calib_enable ? "enabled" : "disabled")
             << ", uart=" << (trim(o.zoom_calib_uart_dev).empty() ? "<unset>" : o.zoom_calib_uart_dev)

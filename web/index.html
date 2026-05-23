@@ -1693,6 +1693,18 @@ async function ptzStart() {
   $('zoomStopBtn').onclick = () => {
     zoomStopNow().catch(e => ptzLog('ZOOM STOP error', { error: String(e.message || e) }));
   };
+  [
+    'zoomTagSizeMm',
+    'zoomNearM',
+    'zoomFarM',
+    'zoomImpulseMs',
+    'zoomSamples',
+    'zoomCmdAbs',
+    'zoomWideHoldMs',
+    'zoomWideSign',
+  ].forEach(id => {
+    if ($(id)) $(id).onchange = scheduleZoomCalibSettingsSave;
+  });
   ['pidKp','pidKi','pidKd','pidDeadzone','pidMaxSpeed','pidMaxAccel','pidPanHold','pidPanRelease','reacquirePanStep','reacquireTiltStep','reacquirePanCadence','reacquireTiltCadence','reacquireMaxLostSec'].forEach(id => {
     $(id).onchange = () => saveSettings();
   });
@@ -1857,6 +1869,9 @@ async function ptzStart() {
   async function initSettings() {
     await restoreSettings();
     await refreshCommandLimits();
+    await loadZoomCalibSettings().catch(e =>
+      ptzLog('ZOOM CALIB SETTINGS load error', { error: String(e.message || e) })
+    );
     await refreshZoomCalibrationProfile();
     await refreshDetectorConfig();
     applyFitMode($('fitMode').value);
@@ -1915,6 +1930,50 @@ async function ptzStart() {
     } catch (_) {}
   }
 
+  async function loadZoomCalibSettings() {
+    const s = await apiGetJson('/api/zoom_calibration/settings');
+    if ($('zoomTagSizeMm')) $('zoomTagSizeMm').value = Number(s.tag_size_mm || 160);
+    if ($('zoomNearM')) $('zoomNearM').value = Number((s.near_distance_mm || 1000) / 1000).toFixed(2).replace(/\.00$/, '');
+    if ($('zoomFarM')) $('zoomFarM').value = Number((s.far_distance_mm || 10000) / 1000).toFixed(2).replace(/\.00$/, '');
+    if ($('zoomImpulseMs')) $('zoomImpulseMs').value = Number(s.impulse_ms || 100);
+    if ($('zoomSamples')) $('zoomSamples').value = Number(s.samples || 20);
+    if ($('zoomCmdAbs')) $('zoomCmdAbs').value = Number(s.cmd_abs || 34);
+    if ($('zoomWideHoldMs')) $('zoomWideHoldMs').value = Number(s.wide_hold_ms || 2000);
+    if ($('zoomWideSign')) $('zoomWideSign').value = String(Number(s.wide_cmd_sign || 1) < 0 ? -1 : 1);
+    if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings loaded';
+  }
+
+  function readZoomCalibSettingsFromUi() {
+    return {
+      tag_size_mm: Number($('zoomTagSizeMm')?.value || 160),
+      near_distance_mm: Number($('zoomNearM')?.value || 1) * 1000,
+      far_distance_mm: Number($('zoomFarM')?.value || 10) * 1000,
+      impulse_ms: Number($('zoomImpulseMs')?.value || 100),
+      settle_ms: 250,
+      samples: Number($('zoomSamples')?.value || 20),
+      cmd_abs: Number($('zoomCmdAbs')?.value || 34),
+      wide_cmd_sign: Number($('zoomWideSign')?.value || 1),
+      wide_hold_ms: Number($('zoomWideHoldMs')?.value || 2000),
+    };
+  }
+
+  async function saveZoomCalibSettingsFromUi() {
+    const payload = readZoomCalibSettingsFromUi();
+    const res = await apiPostJson('/api/zoom_calibration/settings', payload);
+    if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings saved';
+    ptzLog('ZOOM CALIB SETTINGS saved', res);
+    return res;
+  }
+  let zoomCalibSettingsSaveTimer = null;
+  function scheduleZoomCalibSettingsSave() {
+    if (zoomCalibSettingsSaveTimer) clearTimeout(zoomCalibSettingsSaveTimer);
+    zoomCalibSettingsSaveTimer = setTimeout(() => {
+      saveZoomCalibSettingsFromUi().catch(e =>
+        ptzLog('ZOOM CALIB SETTINGS save error', { error: String(e.message || e) })
+      );
+    }, 400);
+  }
+
   async function runZoomCalibrationFromUi() {
     try {
       zoomCalibInProgress = true;
@@ -1950,20 +2009,9 @@ async function ptzStart() {
   async function runAprilTagZoomCalibrationFromUi() {
     try {
       $('zoomAprilTagCalibStatus').textContent = 'starting...';
-      const cmdAbs = Math.max(1, Number($('zoomCmdAbs').value || 34));
-      const wideSign = Number($('zoomWideSign').value || -1);
-      const payload = {
-        mode: "apriltag_zoom_table",
-        tag_size_mm: Number($('zoomTagSizeMm').value || 160),
-        near_distance_mm: Number($('zoomNearM').value || 1) * 1000,
-        far_distance_mm: Number($('zoomFarM').value || 10) * 1000,
-        impulse_ms: Number($('zoomImpulseMs').value || 100),
-        settle_ms: 250,
-        samples: Number($('zoomSamples').value || 20),
-        cmd_abs: cmdAbs,
-        wide_cmd_sign: wideSign,
-        wide_hold_ms: Number($('zoomWideHoldMs').value || 3000),
-      };
+      await saveZoomCalibSettingsFromUi();
+      const payload = readZoomCalibSettingsFromUi();
+      payload.mode = "apriltag_zoom_table";
       const res = await fetch('/api/zoom_calibration', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
