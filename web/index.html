@@ -266,6 +266,16 @@
         </select>
         <button id="operatorLimitApplyBtn" class="small-btn">APPLY LIMIT</button>
         <code id="operatorLimitState">limit: --</code>
+        <span style="opacity:.55">|</span>
+        <b>DETECT FPS:</b>
+        <select id="operatorDetectEvery" class="small-select">
+          <option value="1">every frame</option>
+          <option value="2">1/2</option>
+          <option value="3" selected>1/3</option>
+          <option value="5">1/5</option>
+        </select>
+        <button id="operatorDetectEveryApplyBtn" class="small-btn">APPLY</button>
+        <code id="operatorDetectEveryState">detect: --</code>
         <code id="ptzStateLine">idle</code>
       </div>
       <div class="row">
@@ -1385,6 +1395,11 @@ async function ptzStart() {
     applyOperatorDetectionLimit().catch(e =>
       ptzLog('LIMIT error', { error: String(e.message || e) })
     );
+
+  $('operatorDetectEveryApplyBtn').onclick = () =>
+    applyOperatorDetectEvery().catch(e =>
+      ptzLog('DETECT FPS error', { error: String(e.message || e) })
+    );
   $('detectorClassesSource').onchange = async () => {
     detectorClassSource = $('detectorClassesSource').value || 'coco.names';
     await refreshDetectorClasses(detectorClassSource, detectorSelectedClasses);
@@ -1440,6 +1455,7 @@ async function ptzStart() {
   });
   initSettings();
   refreshDetectionLimits().catch(e => ptzLog('LIMIT init error', { error: String(e.message || e) }));
+  refreshDetectionThrottle().catch(e => ptzLog('THROTTLE init error', { error: String(e.message || e) }));
   $('mjpegFrame').onload = () => {
     clearStreamRetry();
     telemetryState.lastImgFrameTs = Date.now();
@@ -2065,6 +2081,11 @@ async function ptzStart() {
     $('operatorLimitState').textContent = `limit: ${lim.max_detections}/${lim.max_raw_candidates}`;
   }
 
+  async function refreshDetectionThrottle() {
+    const th = await apiGetJson('/api/detection/throttle');
+    $('operatorDetectEvery').value = String(th.detect_every_n_frames || 1);
+    $('operatorDetectEveryState').textContent = `detect: 1/${th.detect_every_n_frames || 1}`;
+  }
   async function applyOperatorDetectionLimit() {
     const maxDet = Number($('operatorDetectionLimit').value || 10);
     const maxRaw = Math.max(20, maxDet * 5);
@@ -2074,6 +2095,13 @@ async function ptzStart() {
     });
     $('operatorLimitState').textContent = `limit: ${res.max_detections}/${res.max_raw_candidates}`;
     ptzLog('DETECTION LIMIT', res);
+  }
+
+  async function applyOperatorDetectEvery() {
+    const detectEvery = Number($('operatorDetectEvery').value || 1);
+    const res = await apiPostJson('/api/detection/throttle', { detect_every_n_frames: detectEvery });
+    $('operatorDetectEveryState').textContent = `detect: 1/${res.detect_every_n_frames}`;
+    ptzLog('DETECTION THROTTLE', res);
   }
   async function syncDetectorEnabled(enabled) {
     const wantEnabled = !!enabled;

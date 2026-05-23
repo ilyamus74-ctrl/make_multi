@@ -62,6 +62,7 @@ struct Opts {
 
 static std::atomic<bool> g_running{true};
 static std::atomic<bool> g_detectEnabled{false};
+static std::atomic<int> g_detectEveryNFrames{1};
 static std::mutex g_mtx;
 static std::condition_variable g_cv;
 static std::vector<uint8_t> g_lastJpeg;
@@ -73,6 +74,7 @@ static bool g_modelReady = false;
 static std::string g_currentModel;
 static std::vector<std::string> g_availableModels;
 static std::atomic<int> g_lastDetections{0};
+static std::atomic<bool> g_lastInferenceSkipped{false};
 static int g_cmdMaxPan = 45;
 static int g_cmdMaxTilt = 45;
 static int g_cmdMaxZoom = 24;
@@ -148,6 +150,7 @@ static std::atomic<int> g_maxDetections{10};
 static std::atomic<int> g_maxRawCandidates{50};
 static std::string g_roiConfigFile = "detection_roi_config.json";
 static std::string g_detectionLimitsFile = "detection_limits.json";
+static std::string g_detectionThrottleFile = "detection_throttle.json";
 
 static float track_box_iou(const DetectionBox& a, const DetectionBox& b) {
   const int x1 = std::max(a.left, b.left);
@@ -1400,6 +1403,24 @@ static void load_detection_limits() {
   g_maxRawCandidates = maxRaw;
 }
 
+static void save_detection_throttle() {
+  std::ofstream out(g_detectionThrottleFile, std::ios::trunc | std::ios::binary);
+  if (!out) return;
+  out << "{\"ok\":true,\"detect_every_n_frames\":" << g_detectEveryNFrames.load() << "}";
+}
+
+static void load_detection_throttle() {
+  std::ifstream in(g_detectionThrottleFile, std::ios::binary);
+  if (!in) return;
+  std::ostringstream ss;
+  ss << in.rdbuf();
+  const std::string payload = trim(ss.str());
+  if (payload.empty()) return;
+  int detectEvery = g_detectEveryNFrames.load();
+  extract_json_int_field(payload, "detect_every_n_frames", &detectEvery);
+  g_detectEveryNFrames = std::max(1, std::min(30, detectEvery));
+}
+
 static void update_tracker_runtime_state(const std::vector<DetectionBox>& boxes, uint64_t frameId) {
   std::lock_guard<std::mutex> lk(g_trackerStateMtx);
   g_trackerState.last_frame_id = frameId;
@@ -1488,6 +1509,8 @@ static std::string detections_json() {
      << ",\"raw_limit\":" << g_maxRawCandidates.load()
      << ",\"nms_boxes\":" << g_lastNmsBoxes.load()
      << ",\"max_detections\":" << g_maxDetections.load()
+     << ",\"detect_every_n_frames\":" << g_detectEveryNFrames.load()
+     << ",\"inference_skipped\":" << (g_lastInferenceSkipped.load() ? "true" : "false")
      << "}"
      << ",\"items\":[";
   for (size_t i = 0; i < g_lastDetectionBoxes.size(); ++i) {
@@ -2624,6 +2647,47 @@ static void handle_client(int cfd, const Opts& o) {
     return;
   }
 
+  if (path == "/api/detection/throttle") {
+    if (method == "GET") {
+      std::ostringstream os;
+      os << "{\"ok\":true,\"detect_every_n_frames\":" << g_detectEveryNFrames.load() << "}";
+      const std::string body = os.str();
+      const std::string hdr =
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\n"
+        "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+      send_all(cfd, hdr.data(), hdr.size());
+      send_all(cfd, body.data(), body.size());
+      ::close(cfd);
+      return;
+    }
+    if (method == "POST") {
+      int detectEvery = g_detectEveryNFrames.load();
+      const std::string payload = trim(bodyReq);
+      if (!payload.empty()) extract_json_int_field(payload, "detect_every_n_frames", &detectEvery);
+      detectEvery = std::max(1, std::min(30, detectEvery));
+      g_detectEveryNFrames = detectEvery;
+      save_detection_throttle();
+      std::ostringstream os;
+      os << "{\"ok\":true,\"detect_every_n_frames\":" << detectEvery << "}";
+      const std::string body = os.str();
+      const std::string hdr =
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\n"
+        "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+      send_all(cfd, hdr.data(), hdr.size());
+      send_all(cfd, body.data(), body.size());
+      ::close(cfd);
+      return;
+    }
+    const char* body = "Method Not Allowed";
+    std::string hdr =
+      "HTTP/1.1 405 Method Not Allowed\r\nAllow: GET, POST\r\nContent-Type: text/plain\r\nConnection: close\r\n"
+      "Content-Length: " + std::to_string(std::strlen(body)) + "\r\n\r\n";
+    send_all(cfd, hdr.data(), hdr.size());
+    send_all(cfd, body, std::strlen(body));
+    ::close(cfd);
+    return;
+  }
+
 
   if (path == "/api/detection/roi_config") {
     if (method == "GET") {
@@ -2956,12 +3020,14 @@ static void gst_capture_thread(const Opts& o) {
             rois = g_detectionRois;
           }
           const uint64_t frameId = g_frameId.load();
+          const int detectEvery = std::max(1, g_detectEveryNFrames.load());
+          const bool runDetectorThisFrame = (frameId % static_cast<uint64_t>(detectEvery)) == 0;
           bool inferenceAttempted = false;
           bool anyInfer = false;
-          if (dm == DetectionMode::FullFrame) {
+          if (runDetectorThisFrame && dm == DetectionMode::FullFrame) {
             inferenceAttempted = true;
             anyInfer = run_inference_on_bgr(bgr, 0, 0, nullptr, collectedBoxes) || anyInfer;
-          } else if (dm == DetectionMode::Tiled) {
+          } else if (runDetectorThisFrame && dm == DetectionMode::Tiled) {
             const int tw = std::max(1, bgr.cols / 2);
             const int th = std::max(1, bgr.rows / 2);
             for (int ty = 0; ty < 2; ++ty) for (int tx = 0; tx < 2; ++tx) {
@@ -2973,7 +3039,7 @@ static void gst_capture_thread(const Opts& o) {
               inferenceAttempted = true;
               anyInfer = run_inference_on_bgr(bgr(rc), x, y, nullptr, collectedBoxes) || anyInfer;
             }
-          } else {
+          } else if (runDetectorThisFrame) {
             for (const auto& roi : rois) {
               if (!roi.enabled) continue;
               const int nth = std::max(1, roi.every_n_frames);
@@ -2995,7 +3061,10 @@ static void gst_capture_thread(const Opts& o) {
             }
           }
 
-          if (anyInfer) {
+          if (!runDetectorThisFrame) {
+            g_lastInferenceSkipped = true;
+          } else if (anyInfer) {
+            g_lastInferenceSkipped = false;
             const int rawBeforeLimit = static_cast<int>(collectedBoxes.size());
             g_lastRawBoxes = rawBeforeLimit;
             limit_detection_boxes_by_confidence(collectedBoxes, g_maxRawCandidates.load());
@@ -3013,6 +3082,7 @@ static void gst_capture_thread(const Opts& o) {
             }
             draw_detection_boxes(bgr, boxes);
           } else if (inferenceAttempted) {
+            g_lastInferenceSkipped = false;
             g_lastDetections = 0;
             std::lock_guard<std::mutex> lk(g_detMtx);
             g_lastDetectionBoxes.clear();
@@ -3032,6 +3102,7 @@ static void gst_capture_thread(const Opts& o) {
         if (!outJpeg.empty()) g_lastJpeg.swap(outJpeg);
         else g_lastJpeg.assign(map.data, map.data + map.size);
         if (!g_detectEnabled.load()) {
+          g_lastInferenceSkipped = false;
           std::lock_guard<std::mutex> lk2(g_detMtx);
           g_lastDetectionBoxes.clear();
           g_lastRawBoxes = 0;
@@ -3062,6 +3133,7 @@ static void usage() {
     << "              [--model-dir new_yolo8/model_rknn] [--model <path/to/model.rknn>]\n"
     << "              [--cmd-max-pan 45] [--cmd-max-tilt 45] [--cmd-max-zoom 24]\n"
     << "              [--max-detections 10] [--max-raw-candidates 50]\n"
+    << "              [--detect-every-n-frames 1]\n"
     << "              [--zoom-calib-enable] [--zoom-calib-uart /dev/ttyUSB0] [--zoom-calib-baud 115200] [--no-zoom-calib]\n";
 }
 
@@ -3069,6 +3141,7 @@ static bool arg_eq(const char* a, const char* b) { return std::strcmp(a, b) == 0
 int main(int argc, char** argv) {
   Opts o;
   load_detection_limits();
+  load_detection_throttle();
   for (int i = 1; i < argc; ++i) {
     if (arg_eq(argv[i], "--dev") && i + 1 < argc) o.dev = argv[++i];
     else if (arg_eq(argv[i], "--port") && i + 1 < argc) o.port = std::stoi(argv[++i]);
@@ -3089,6 +3162,7 @@ int main(int argc, char** argv) {
     else if (arg_eq(argv[i], "--deinterlace")) o.deinterlace = true;
     else if (arg_eq(argv[i], "--max-detections") && i + 1 < argc) g_maxDetections = std::stoi(argv[++i]);
     else if (arg_eq(argv[i], "--max-raw-candidates") && i + 1 < argc) g_maxRawCandidates = std::stoi(argv[++i]);
+    else if (arg_eq(argv[i], "--detect-every-n-frames") && i + 1 < argc) g_detectEveryNFrames = std::stoi(argv[++i]);
     else if (arg_eq(argv[i], "-h") || arg_eq(argv[i], "--help")) { usage(); return 0; }
   }
   o.cmd_max_pan = std::max(0, std::min(100, o.cmd_max_pan));
@@ -3096,6 +3170,7 @@ int main(int argc, char** argv) {
   o.cmd_max_zoom = std::max(0, std::min(100, o.cmd_max_zoom));
   g_maxDetections = std::max(1, std::min(100, g_maxDetections.load()));
   g_maxRawCandidates = std::max(g_maxDetections.load(), std::min(300, std::max(1, g_maxRawCandidates.load())));
+  g_detectEveryNFrames = std::max(1, std::min(30, g_detectEveryNFrames.load()));
   g_cmdMaxPan = o.cmd_max_pan;
   g_cmdMaxTilt = o.cmd_max_tilt;
   g_cmdMaxZoom = o.cmd_max_zoom;

@@ -42,6 +42,7 @@ CMD_MAX_TILT="${CMD_MAX_TILT:-20}"
 CMD_MAX_ZOOM="${CMD_MAX_ZOOM:-12}"
 MAX_DETECTIONS="${MAX_DETECTIONS:-10}"
 MAX_RAW_CANDIDATES="${MAX_RAW_CANDIDATES:-50}"
+DETECT_EVERY_N_FRAMES="${DETECT_EVERY_N_FRAMES:-1}"
 MJPEG_RESTART="${MJPEG_RESTART:-1}"        # 1 => auto-restart MJPEG on exit
 MJPEG_RESTART_DELAY="${MJPEG_RESTART_DELAY:-2}"
 MJPEG_MAX_RESTARTS="${MJPEG_MAX_RESTARTS:-0}"  # 0 => unlimited
@@ -175,6 +176,7 @@ MJPEG_ARGS=(
   --cmd-max-zoom "$CMD_MAX_ZOOM"
   --max-detections "$MAX_DETECTIONS"
   --max-raw-candidates "$MAX_RAW_CANDIDATES"
+  --detect-every-n-frames "$DETECT_EVERY_N_FRAMES"
 )
 if [[ "$ZOOM_CALIB_ENABLE" == "1" ]]; then
   MJPEG_ARGS+=(--zoom-calib-enable --zoom-calib-uart "$ZOOM_CALIB_UART_DEV" --zoom-calib-baud "$ZOOM_CALIB_UART_BAUD")
