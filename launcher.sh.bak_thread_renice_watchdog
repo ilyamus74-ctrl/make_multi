@@ -33,8 +33,6 @@ FPS="${FPS:-25}"
 JPEG_QUALITY="${JPEG_QUALITY:-20}"
 MJPEG_NICE="${MJPEG_NICE:-5}"
 MJPEG_CPUSET="${MJPEG_CPUSET:-4-7}"
-MJPEG_RENICE_WATCHDOG="${MJPEG_RENICE_WATCHDOG:-1}"
-MJPEG_RENICE_INTERVAL="${MJPEG_RENICE_INTERVAL:-2}"
 DEINTERLACE="${DEINTERLACE:-0}"            # 1 => --deinterlace, 0 => disabled
 LABELS="${LABELS:-$ROOT_DIR/models/coco_80_labels_list.txt}"
 CMD_MAX_PAN="${CMD_MAX_PAN:-20}"
@@ -75,7 +73,6 @@ AUTOPILOT_INVERT_TILT="${AUTOPILOT_INVERT_TILT:-1}"
 MJPEG_PID=""
 BRIDGE_PID=""
 AUTOPILOT_PID=""
-MJPEG_RENICE_WATCHDOG_PID=""
 
 log() { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
 
@@ -98,44 +95,11 @@ check_bin() {
   fi
 }
 
-
-renice_mjpeg_threads_once() {
-  local pid="${MJPEG_PID:-}"
-  [[ -n "$pid" ]] || return 0
-  [[ -d "/proc/$pid/task" ]] || return 0
-
-  for t in /proc/"$pid"/task/*; do
-    [[ -e "$t" ]] || continue
-    local tid="${t##*/}"
-    renice -n "$MJPEG_NICE" -p "$tid" >/dev/null 2>&1 || true
-  done
-}
-
-start_mjpeg_renice_watchdog() {
-  if [[ "${MJPEG_RENICE_WATCHDOG:-1}" != "1" ]]; then
-    return 0
-  fi
-
-  (
-    while true; do
-      renice_mjpeg_threads_once
-      sleep "${MJPEG_RENICE_INTERVAL:-2}"
-    done
-  ) &
-  MJPEG_RENICE_WATCHDOG_PID=$!
-  log "MJPEG renice watchdog pid=$MJPEG_RENICE_WATCHDOG_PID nice=$MJPEG_NICE interval=${MJPEG_RENICE_INTERVAL:-2}s"
-}
-
-
 cleanup() {
   local rc=$?
   trap - EXIT INT TERM
 
   log "Stopping child processes..."
-
-  if [[ -n "${MJPEG_RENICE_WATCHDOG_PID:-}" ]] && kill -0 "$MJPEG_RENICE_WATCHDOG_PID" 2>/dev/null; then
-    kill "$MJPEG_RENICE_WATCHDOG_PID" 2>/dev/null || true
-  fi
 
   if [[ -n "${BRIDGE_PID:-}" ]] && kill -0 "$BRIDGE_PID" 2>/dev/null; then
     kill "$BRIDGE_PID" 2>/dev/null || true
@@ -191,9 +155,8 @@ start_mjpeg() {
   MJPEG_PID=$!
   log "MJPEG pid=$MJPEG_PID (log: $MJPEG_LOG)"
   sleep 0.2
-  renice_mjpeg_threads_once
+  renice -n "$MJPEG_NICE" -p "$MJPEG_PID" >/dev/null 2>&1 || true
   log "MJPEG nice set to $MJPEG_NICE, cpuset=$MJPEG_CPUSET for pid=$MJPEG_PID"
-  start_mjpeg_renice_watchdog
   sleep 0.3
   if ! kill -0 "$MJPEG_PID" 2>/dev/null; then
     log "ERROR: MJPEG failed to start (see $MJPEG_LOG)"
