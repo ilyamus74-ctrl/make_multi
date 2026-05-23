@@ -3005,16 +3005,6 @@ static void gst_capture_thread(const Opts& o) {
       std::vector<uint8_t> outJpeg;
 
       if (g_detectEnabled.load()) {
-        const uint64_t frameId = g_frameId.load();
-        const int detectEvery = std::max(1, g_detectEveryNFrames.load());
-        const bool runDetectorThisFrame =
-            (frameId % static_cast<uint64_t>(detectEvery)) == 0;
-
-        if (!runDetectorThisFrame) {
-          g_lastInferenceSkipped = true;
-          // Keep outJpeg empty so the final block stores original JPEG from GStreamer.
-          // Do not decode, do not encode, do not run YOLO, do not clear tracker.
-        } else {
         std::vector<uint8_t> inJpeg(map.data, map.data + map.size);
         cv::Mat bgr = cv::imdecode(inJpeg, cv::IMREAD_COLOR);
 
@@ -3029,12 +3019,15 @@ static void gst_capture_thread(const Opts& o) {
             dm = g_detectionMode;
             rois = g_detectionRois;
           }
+          const uint64_t frameId = g_frameId.load();
+          const int detectEvery = std::max(1, g_detectEveryNFrames.load());
+          const bool runDetectorThisFrame = (frameId % static_cast<uint64_t>(detectEvery)) == 0;
           bool inferenceAttempted = false;
           bool anyInfer = false;
-          if (dm == DetectionMode::FullFrame) {
+          if (runDetectorThisFrame && dm == DetectionMode::FullFrame) {
             inferenceAttempted = true;
             anyInfer = run_inference_on_bgr(bgr, 0, 0, nullptr, collectedBoxes) || anyInfer;
-          } else if (dm == DetectionMode::Tiled) {
+          } else if (runDetectorThisFrame && dm == DetectionMode::Tiled) {
             const int tw = std::max(1, bgr.cols / 2);
             const int th = std::max(1, bgr.rows / 2);
             for (int ty = 0; ty < 2; ++ty) for (int tx = 0; tx < 2; ++tx) {
@@ -3046,7 +3039,7 @@ static void gst_capture_thread(const Opts& o) {
               inferenceAttempted = true;
               anyInfer = run_inference_on_bgr(bgr(rc), x, y, nullptr, collectedBoxes) || anyInfer;
             }
-          } else {
+          } else if (runDetectorThisFrame) {
             for (const auto& roi : rois) {
               if (!roi.enabled) continue;
               const int nth = std::max(1, roi.every_n_frames);
@@ -3068,7 +3061,9 @@ static void gst_capture_thread(const Opts& o) {
             }
           }
 
-          if (anyInfer) {
+          if (!runDetectorThisFrame) {
+            g_lastInferenceSkipped = true;
+          } else if (anyInfer) {
             g_lastInferenceSkipped = false;
             const int rawBeforeLimit = static_cast<int>(collectedBoxes.size());
             g_lastRawBoxes = rawBeforeLimit;
@@ -3099,7 +3094,6 @@ static void gst_capture_thread(const Opts& o) {
 
           std::vector<int> p = {cv::IMWRITE_JPEG_QUALITY, o.jpegq};
           cv::imencode(".jpg", bgr, outJpeg, p);
-        }
         }
       }
 
