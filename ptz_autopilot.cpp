@@ -6,7 +6,9 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <mutex>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -22,12 +24,81 @@ struct Config {std::string mjpeg_url="http://127.0.0.1:8080"; std::string tracke
 struct TrackerState {std::string mode="IDLE"; int track_id=0; bool valid=false; int l=0,t=0,r=0,b=0;};
 struct Runtime {std::atomic<bool> run{true}; std::atomic<bool> enabled{false}; std::atomic<int> seq{1}; std::mutex m; std::string last_tracker_mode="IDLE"; int last_track_id=0; double errx=0,erry=0; int cmdp=0,cmdt=0; std::string last_error; std::string mode="IDLE";};
 static Runtime g; static Config cfg;
+static std::string g_ptzConfigFile = "ptz_autopilot_config.json";
 
 static std::string trim(const std::string&s){size_t a=s.find_first_not_of(" \t\r\n"); if(a==std::string::npos) return ""; size_t b=s.find_last_not_of(" \t\r\n"); return s.substr(a,b-a+1);} 
 static bool json_bool(const std::string&s,const std::string&k,bool &v){auto p=s.find("\""+k+"\""); if(p==std::string::npos) return false; p=s.find(':',p); if(p==std::string::npos) return false; auto t=trim(s.substr(p+1,6)); if(t.rfind("true",0)==0){v=true;return true;} if(t.rfind("false",0)==0){v=false;return true;} return false;}
 static bool json_int(const std::string&s,const std::string&k,int &v){auto p=s.find("\""+k+"\""); if(p==std::string::npos) return false; p=s.find(':',p); if(p==std::string::npos) return false; char*e=nullptr; long x=strtol(s.c_str()+p+1,&e,10); if(e==s.c_str()+p+1) return false; v=(int)x; return true;}
 static bool json_num(const std::string&s,const std::string&k,double &v){auto p=s.find("\""+k+"\""); if(p==std::string::npos) return false; p=s.find(':',p); if(p==std::string::npos) return false; char*e=nullptr; double x=strtod(s.c_str()+p+1,&e); if(e==s.c_str()+p+1) return false; v=x; return true;}
 static std::string json_str(const std::string&s,const std::string&k){auto p=s.find("\""+k+"\""); if(p==std::string::npos) return ""; p=s.find(':',p); p=s.find('"',p); if(p==std::string::npos) return ""; auto e=s.find('"',p+1); if(e==std::string::npos) return ""; return s.substr(p+1,e-p-1);} 
+
+static void clamp_config() {
+  cfg.hz = std::max(1.0, std::min(50.0, cfg.hz));
+  cfg.kp = std::max(0.0, std::min(100.0, cfg.kp));
+  cfg.ki = std::max(0.0, std::min(20.0, cfg.ki));
+  cfg.kd = std::max(0.0, std::min(50.0, cfg.kd));
+  cfg.deadzone = std::max(0.0, std::min(0.5, cfg.deadzone));
+
+  cfg.max_pan = std::max(1, std::min(100, cfg.max_pan));
+  cfg.max_tilt = std::max(1, std::min(100, cfg.max_tilt));
+  cfg.max_accel = std::max(1, std::min(100, cfg.max_accel));
+
+  cfg.target_x = std::max(0.1, std::min(0.9, cfg.target_x));
+  cfg.target_y = std::max(0.1, std::min(0.9, cfg.target_y));
+
+  cfg.min_pan = std::max(0, std::min(cfg.max_pan, cfg.min_pan));
+  cfg.min_tilt = std::max(0, std::min(cfg.max_tilt, cfg.min_tilt));
+}
+static void save_ptz_config() {
+  std::ofstream f(g_ptzConfigFile);
+  if (!f) return;
+
+  f << "{\n"
+    << "  \"kp\": " << cfg.kp << ",\n"
+    << "  \"ki\": " << cfg.ki << ",\n"
+    << "  \"kd\": " << cfg.kd << ",\n"
+    << "  \"deadzone\": " << cfg.deadzone << ",\n"
+    << "  \"max_pan\": " << cfg.max_pan << ",\n"
+    << "  \"max_tilt\": " << cfg.max_tilt << ",\n"
+    << "  \"max_accel\": " << cfg.max_accel << ",\n"
+    << "  \"hz\": " << cfg.hz << ",\n"
+    << "  \"invert_pan\": " << (cfg.invert_pan ? "true" : "false") << ",\n"
+    << "  \"invert_tilt\": " << (cfg.invert_tilt ? "true" : "false") << ",\n"
+    << "  \"target_x\": " << cfg.target_x << ",\n"
+    << "  \"target_y\": " << cfg.target_y << ",\n"
+    << "  \"min_pan\": " << cfg.min_pan << ",\n"
+    << "  \"min_tilt\": " << cfg.min_tilt << "\n"
+    << "}\n";
+}
+static void load_ptz_config() {
+  std::ifstream f(g_ptzConfigFile);
+  if (!f) return;
+
+  std::string body((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+
+  json_num(body, "kp", cfg.kp);
+  json_num(body, "ki", cfg.ki);
+  json_num(body, "kd", cfg.kd);
+  json_num(body, "deadzone", cfg.deadzone);
+
+  json_int(body, "max_pan", cfg.max_pan);
+  json_int(body, "max_tilt", cfg.max_tilt);
+  json_int(body, "max_accel", cfg.max_accel);
+
+  json_num(body, "hz", cfg.hz);
+
+  bool b = false;
+  if (json_bool(body, "invert_pan", b)) cfg.invert_pan = b;
+  if (json_bool(body, "invert_tilt", b)) cfg.invert_tilt = b;
+
+  json_num(body, "target_x", cfg.target_x);
+  json_num(body, "target_y", cfg.target_y);
+
+  json_int(body, "min_pan", cfg.min_pan);
+  json_int(body, "min_tilt", cfg.min_tilt);
+
+  clamp_config();
+}
 
 static int tcp_connect(const std::string& host,int port){int fd=socket(AF_INET,SOCK_STREAM,0); if(fd<0)return -1; sockaddr_in a{}; a.sin_family=AF_INET; a.sin_port=htons(port); if(inet_pton(AF_INET,host.c_str(),&a.sin_addr)<=0){close(fd); return -1;} if(connect(fd,(sockaddr*)&a,sizeof(a))<0){close(fd);return -1;} return fd;}
 static bool http_get(const std::string&host,int port,const std::string&path,std::string&body){int fd=tcp_connect(host,port); if(fd<0) return false; std::ostringstream req; req<<"GET "<<path<<" HTTP/1.1\r\nHost: "<<host<<":"<<port<<"\r\nConnection: close\r\n\r\n"; std::string r=req.str(); send(fd,r.data(),r.size(),0); std::string resp; char buf[4096]; ssize_t n; while((n=recv(fd,buf,sizeof(buf),0))>0) resp.append(buf,n); close(fd); auto p=resp.find("\r\n\r\n"); if(p==std::string::npos) return false; body=resp.substr(p+4); return resp.find(" 200 ")!=std::string::npos;}
@@ -73,9 +144,12 @@ static void control_server(){int s=socket(AF_INET,SOCK_STREAM,0); int on=1; sets
  else if(method=="GET" && path=="/api/autopilot/state") out=state_json();
  else if(method=="POST" && path=="/api/autopilot/start"){g.enabled=true; out=state_json();}
  else if(method=="POST" && path=="/api/autopilot/stop"){g.enabled=false; out=state_json();}
- else if(method=="POST" && path=="/api/autopilot/config"){json_num(body,"kp",cfg.kp);json_num(body,"ki",cfg.ki);json_num(body,"kd",cfg.kd);json_num(body,"deadzone",cfg.deadzone);json_int(body,"max_pan",cfg.max_pan);json_int(body,"max_tilt",cfg.max_tilt);json_int(body,"max_accel",cfg.max_accel);json_num(body,"hz",cfg.hz); bool invp=false; if(json_bool(body,"invert_pan",invp)) cfg.invert_pan=invp; bool invt=false; if(json_bool(body,"invert_tilt",invt)) cfg.invert_tilt=invt; json_num(body,"target_x",cfg.target_x); json_num(body,"target_y",cfg.target_y); json_int(body,"min_pan",cfg.min_pan); json_int(body,"min_tilt",cfg.min_tilt); cfg.target_x=std::max(0.1,std::min(0.9,cfg.target_x)); cfg.target_y=std::max(0.1,std::min(0.9,cfg.target_y)); cfg.min_pan=std::max(0,std::min(cfg.max_pan,cfg.min_pan)); cfg.min_tilt=std::max(0,std::min(cfg.max_tilt,cfg.min_tilt)); out=state_json();}
+ else if(method=="POST" && path=="/api/autopilot/config"){json_num(body,"kp",cfg.kp);json_num(body,"ki",cfg.ki);json_num(body,"kd",cfg.kd);json_num(body,"deadzone",cfg.deadzone);json_int(body,"max_pan",cfg.max_pan);json_int(body,"max_tilt",cfg.max_tilt);json_int(body,"max_accel",cfg.max_accel);json_num(body,"hz",cfg.hz); bool invp=false; if(json_bool(body,"invert_pan",invp)) cfg.invert_pan=invp; bool invt=false; if(json_bool(body,"invert_tilt",invt)) cfg.invert_tilt=invt; json_num(body,"target_x",cfg.target_x); json_num(body,"target_y",cfg.target_y); json_int(body,"min_pan",cfg.min_pan); json_int(body,"min_tilt",cfg.min_tilt); clamp_config(); save_ptz_config(); out=state_json();}
  std::string hdr="HTTP/1.1 "+std::to_string(status)+" "+status_text+"\r\nContent-Type: application/json\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nContent-Length: "+std::to_string(out.size())+"\r\nConnection: close\r\n\r\n"; send(c,hdr.data(),hdr.size(),0); if(!out.empty()) send(c,out.data(),out.size(),0); close(c);} close(s);} 
 static void on_sig(int){g.enabled=false; g.run=false;}
 int main(int argc,char**argv){for(int i=1;i<argc;i++){std::string a=argv[i]; auto next=[&](auto &v){if(i+1<argc){std::istringstream ss(argv[++i]); ss>>v;}}; if(a=="--mjpeg-url") next(cfg.mjpeg_url); else if(a=="--bridge-host") next(cfg.bridge_host); else if(a=="--bridge-port") next(cfg.bridge_port); else if(a=="--control-port") next(cfg.control_port); else if(a=="--width") next(cfg.width); else if(a=="--height") next(cfg.height); else if(a=="--hz") next(cfg.hz); else if(a=="--kp") next(cfg.kp); else if(a=="--ki") next(cfg.ki); else if(a=="--kd") next(cfg.kd); else if(a=="--deadzone") next(cfg.deadzone); else if(a=="--max-pan") next(cfg.max_pan); else if(a=="--max-tilt") next(cfg.max_tilt); else if(a=="--max-accel") next(cfg.max_accel); else if(a=="--invert-pan") {int v=0; next(v); cfg.invert_pan=(v!=0);} else if(a=="--invert-tilt") {int v=1; next(v); cfg.invert_tilt=(v!=0);} else if(a=="--target-x") next(cfg.target_x); else if(a=="--target-y") next(cfg.target_y); else if(a=="--min-pan") next(cfg.min_pan); else if(a=="--min-tilt") next(cfg.min_tilt); else if(a=="--enable"){int v=0; next(v); cfg.enabled=(v!=0);} }
  auto p=cfg.mjpeg_url.find("://"); auto hostport=(p==std::string::npos)?cfg.mjpeg_url:cfg.mjpeg_url.substr(p+3); auto slash=hostport.find('/'); if(slash!=std::string::npos) hostport=hostport.substr(0,slash); auto colon=hostport.find(':'); if(colon!=std::string::npos){cfg.tracker_host=hostport.substr(0,colon); cfg.tracker_port=std::stoi(hostport.substr(colon+1));}
- cfg.target_x=std::max(0.1,std::min(0.9,cfg.target_x)); cfg.target_y=std::max(0.1,std::min(0.9,cfg.target_y)); cfg.min_pan=std::max(0,std::min(cfg.max_pan,cfg.min_pan)); cfg.min_tilt=std::max(0,std::min(cfg.max_tilt,cfg.min_tilt)); g.enabled=cfg.enabled; std::signal(SIGINT,on_sig); std::signal(SIGTERM,on_sig); std::thread t1(autopilot_loop), t2(control_server); t1.join(); t2.join(); return 0;}
+ clamp_config();
+ load_ptz_config();
+ clamp_config();
+ g.enabled=cfg.enabled; std::signal(SIGINT,on_sig); std::signal(SIGTERM,on_sig); std::thread t1(autopilot_loop), t2(control_server); t1.join(); t2.join(); return 0;}
