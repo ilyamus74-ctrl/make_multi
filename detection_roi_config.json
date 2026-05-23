@@ -1,1 +1,1 @@
-{"ok":true,"detection_mode":"roi","rois":[{"id":"vehicle_test","enabled":true,"x":500,"y":220,"w":900,"h":500,"every_n_frames":1,"classes":[2,5,7]}]}
+{"ok":true,"detection_mode":"full_frame","rois":[]}
