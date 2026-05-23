@@ -310,6 +310,17 @@
           <button id="zoomRunCalibrationBtn">RUN CALIBRATION</button>
           <code id="zoomCalibStatus">idle</code>
         </div>
+
+        <div class="row">
+          <b>ZOOM CALIB:</b>
+          <button id="zoomRunAprilTagCalibBtn" class="small-btn">RUN APRILTAG ZOOM CALIB</button>
+          <label>Tag mm <input id="zoomTagSizeMm" type="number" value="160"></label>
+          <label>Near m <input id="zoomNearM" type="number" value="1" step="0.1"></label>
+          <label>Far m <input id="zoomFarM" type="number" value="10" step="0.5"></label>
+          <label>Impulse ms <input id="zoomImpulseMs" type="number" value="100"></label>
+          <label>Samples <input id="zoomSamples" type="number" value="20"></label>
+          <code id="zoomAprilTagCalibStatus">idle</code>
+        </div>
         <div class="row">Микрошаг: <code id="msBtn">-</code> &nbsp;(<span id="msLegend">X←  B→  A↓  Y↑</span>)</div>
 
         <div class="row">
@@ -1516,6 +1527,9 @@ async function ptzStart() {
   $('zoomRunCalibrationBtn').onclick = async () => {
     await runZoomCalibrationFromUi();
   };
+  $('zoomRunAprilTagCalibBtn').onclick = async () => {
+    await runAprilTagZoomCalibrationFromUi();
+  };
   ['pidKp','pidKi','pidKd','pidDeadzone','pidMaxSpeed','pidMaxAccel','pidPanHold','pidPanRelease','reacquirePanStep','reacquireTiltStep','reacquirePanCadence','reacquireTiltCadence','reacquireMaxLostSec'].forEach(id => {
     $(id).onchange = () => saveSettings();
   });
@@ -1767,6 +1781,37 @@ async function ptzStart() {
       $('zoomCalibStatus').textContent = 'error';
       zoomCalibInProgress = false;
       $('zoomRunCalibrationBtn').disabled = false;
+    }
+  }
+
+  async function runAprilTagZoomCalibrationFromUi() {
+    try {
+      $('zoomAprilTagCalibStatus').textContent = 'starting...';
+      const payload = {
+        mode: "apriltag_zoom_table",
+        tag_size_mm: Number($('zoomTagSizeMm').value || 160),
+        near_distance_mm: Number($('zoomNearM').value || 1) * 1000,
+        far_distance_mm: Number($('zoomFarM').value || 10) * 1000,
+        impulse_ms: Number($('zoomImpulseMs').value || 100),
+        samples: Number($('zoomSamples').value || 20),
+        cmd_abs: cmdLimits.zoom || 34,
+      };
+      const res = await fetch('/api/zoom_calibration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      ptzLog('ZOOM APRILTAG CALIB', data);
+      for (let i = 0; i < 180; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await refreshZoomCalibrationProfile();
+        const s = $('zoomCalibStatus').textContent || 'idle';
+        $('zoomAprilTagCalibStatus').textContent = s;
+        if (!zoomCalibInProgress) break;
+      }
+    } catch (_) {
+      $('zoomAprilTagCalibStatus').textContent = 'error';
     }
   }
 
