@@ -359,11 +359,12 @@ struct ZoomAprilTagCalibParams {
   double tag_size_mm = 160.0;
   double near_distance_mm = 1000.0;
   double far_distance_mm = 10000.0;
-  int samples = 20;
-  int impulse_ms = 100;
-  int settle_ms = 250;
   int cmd_abs = 34;
   int wide_cmd_sign = -1;
+  int wide_hold_ms = 3000;
+  int settle_ms = 250;
+  int impulse_ms = 100;
+  int samples = 20;
 };
 
 static const std::chrono::steady_clock::time_point g_processStartedAt = std::chrono::steady_clock::now();
@@ -439,6 +440,41 @@ static bool write_uart_line(int fd, const std::string& line) {
     return false;
   }
   return true;
+}
+
+static int tcp_connect_local(const std::string& host, int port) {
+  int fd = ::socket(AF_INET, SOCK_STREAM, 0);
+  if (fd < 0) return -1;
+  sockaddr_in a{};
+  a.sin_family = AF_INET;
+  a.sin_port = htons(static_cast<uint16_t>(port));
+  if (::inet_pton(AF_INET, host.c_str(), &a.sin_addr) != 1) { ::close(fd); return -1; }
+  if (::connect(fd, reinterpret_cast<sockaddr*>(&a), sizeof(a)) < 0) { ::close(fd); return -1; }
+  return fd;
+}
+
+static bool send_zoom_via_bridge_ws(int cmd) {
+  const std::string host = "127.0.0.1";
+  const int port = 8765;
+  int fd = tcp_connect_local(host, port);
+  if (fd < 0) return false;
+  const std::string req = "GET /ws HTTP/1.1\r\nHost: " + host + ":" + std::to_string(port) +
+    "\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n";
+  if (::send(fd, req.data(), req.size(), 0) < 0) { ::close(fd); return false; }
+  char resp[1024];
+  const int n = ::recv(fd, resp, sizeof(resp), 0);
+  if (n <= 0 || std::string(resp, n).find("101") == std::string::npos) { ::close(fd); return false; }
+  const std::string msg = "Z " + std::to_string(cmd);
+  if (msg.size() >= 126) { ::close(fd); return false; }
+  std::vector<uint8_t> fr;
+  fr.push_back(0x81);
+  fr.push_back(static_cast<uint8_t>(0x80 | msg.size()));
+  uint8_t mk[4] = {0x12, 0x34, 0x56, 0x78};
+  fr.insert(fr.end(), mk, mk + 4);
+  for (size_t i = 0; i < msg.size(); ++i) fr.push_back(static_cast<uint8_t>(msg[i]) ^ mk[i % 4]);
+  const bool ok = ::send(fd, fr.data(), fr.size(), 0) >= 0;
+  ::close(fd);
+  return ok;
 }
 
 static bool fetch_latest_gray_frame(uint64_t* outFid, cv::Mat* outGray) {
@@ -796,20 +832,29 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
     g_zoomCalibLastRunAt = now_utc_iso8601();
   }
   (void)std::system("curl -sS -m 1 -X POST http://127.0.0.1:8090/api/autopilot/stop >/dev/null 2>/dev/null");
-  int uartFd = open_uart_for_zoom(o.zoom_calib_uart_dev, o.zoom_calib_uart_baud);
-  if (uartFd < 0) { g_detectEnabled = prevDetect; return false; }
-  auto stop_zoom = [&](){ write_uart_line(uartFd, "Z 0"); };
-  const int cmd = std::max(1, params.cmd_abs);
-  write_uart_line(uartFd, std::string("Z ") + std::to_string(params.wide_cmd_sign * cmd));
-  std::this_thread::sleep_for(std::chrono::milliseconds(3000));
-  stop_zoom(); std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    int uartFd = -1;
+  const bool bridgeReady = send_zoom_via_bridge_ws(0);
+  if (!bridgeReady) {
+    uartFd = open_uart_for_zoom(o.zoom_calib_uart_dev, o.zoom_calib_uart_baud);
+    if (uartFd < 0) { g_detectEnabled = prevDetect; return false; }
+  }
+  auto write_zoom_cmd = [&](int zcmd){
+    if (bridgeReady) return send_zoom_via_bridge_ws(zcmd);
+    return write_uart_line(uartFd, std::string("Z ") + std::to_string(zcmd));
+  };
+  auto stop_zoom = [&](){ (void)write_zoom_cmd(0); };
+  const int cmd = std::max(1, std::min(o.cmd_max_zoom, params.cmd_abs));
+  write_zoom_cmd(params.wide_cmd_sign * cmd);
+  std::this_thread::sleep_for(std::chrono::milliseconds(params.wide_hold_ms));
+  write_zoom_cmd(0);
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   g_zoomRatio = 0.0;
 
   std::vector<ZoomMarkerMeasurement> rows;
   cv::Mat gray; uint64_t fid = 0;
   if (fetch_latest_gray_frame(&fid, &gray)) rows.push_back(measure_zoom_markers_apriltag(gray, params));
   for (int i = 1; i <= std::max(1, params.samples); ++i) {
-    write_uart_line(uartFd, std::string("Z ") + std::to_string(-params.wide_cmd_sign * cmd));
+    write_zoom_cmd(-params.wide_cmd_sign * cmd);
     std::this_thread::sleep_for(std::chrono::milliseconds(std::max(20, params.impulse_ms)));
     stop_zoom();
     std::this_thread::sleep_for(std::chrono::milliseconds(std::max(50, params.settle_ms)));
@@ -818,7 +863,7 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
     rows.push_back(m);
     g_zoomCalibProgressIdx = i; g_zoomCalibProgressSamples = params.samples; g_zoomCalibProgressTagsFound = m.tags_found;
   }
-  stop_zoom(); ::close(uartFd); g_detectEnabled = prevDetect;
+  stop_zoom(); if (uartFd >= 0) ::close(uartFd); g_detectEnabled = prevDetect;
   double minF = 1e9, maxF = 0.0;
   for (const auto& r : rows) if (r.ok) { minF = std::min(minF, r.focal_px); maxF = std::max(maxF, r.focal_px); }
   std::ostringstream os;
@@ -2439,6 +2484,40 @@ static void handle_client(int cfd, const Opts& o) {
     return;
   }
 
+  if (path == "/api/zoom_test") {
+    if (method != "POST") {
+      const char* body = "Method Not Allowed";
+      std::string hdr =
+        "HTTP/1.1 405 Method Not Allowed\r\nAllow: POST\r\nContent-Type: text/plain\r\nConnection: close\r\n"
+        "Content-Length: " + std::to_string(std::strlen(body)) + "\r\n\r\n";
+      send_all(cfd, hdr.data(), hdr.size());
+      send_all(cfd, body, std::strlen(body));
+      ::close(cfd);
+      return;
+    }
+    int cmd = 0;
+    int holdMs = 0;
+    extract_json_int_field(bodyReq, "cmd", &cmd);
+    extract_json_int_field(bodyReq, "hold_ms", &holdMs);
+    cmd = std::max(-o.cmd_max_zoom, std::min(o.cmd_max_zoom, cmd));
+    holdMs = std::max(20, std::min(8000, holdMs));
+    bool ok = send_zoom_via_bridge_ws(cmd);
+    if (cmd == 0) holdMs = 0;
+    if (ok && cmd != 0) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(holdMs));
+      ok = send_zoom_via_bridge_ws(0) && ok;
+    }
+    std::ostringstream os;
+    os << "{\"ok\":" << (ok ? "true" : "false") << ",\"cmd\":" << cmd << ",\"hold_ms\":" << holdMs << "}";
+    const std::string body = os.str();
+    const std::string hdr =
+      "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\n"
+      "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+    send_all(cfd, hdr.data(), hdr.size());
+    send_all(cfd, body.data(), body.size());
+    ::close(cfd);
+    return;
+  }
 
   if (path == "/api/zoom_calibration") {
     if (method == "POST") {
@@ -2454,6 +2533,13 @@ static void handle_client(int cfd, const Opts& o) {
         extract_json_int_field(bodyReq, "settle_ms", &p.settle_ms);
         extract_json_int_field(bodyReq, "cmd_abs", &p.cmd_abs);
         extract_json_int_field(bodyReq, "wide_cmd_sign", &p.wide_cmd_sign);
+        extract_json_int_field(bodyReq, "wide_hold_ms", &p.wide_hold_ms);
+        p.cmd_abs = std::max(1, std::min(o.cmd_max_zoom, p.cmd_abs));
+        p.wide_cmd_sign = (p.wide_cmd_sign < 0) ? -1 : 1;
+        p.wide_hold_ms = std::max(500, std::min(8000, p.wide_hold_ms));
+        p.impulse_ms = std::max(20, std::min(1000, p.impulse_ms));
+        p.settle_ms = std::max(50, std::min(2000, p.settle_ms));
+        p.samples = std::max(1, std::min(100, p.samples));
         std::thread([o, mode, p]() {
           const bool ok = (mode == "apriltag_zoom_table")
             ? run_zoom_apriltag_table_calibration(o, p)

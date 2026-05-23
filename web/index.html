@@ -295,6 +295,17 @@
         <label>Far m <input id="zoomFarM" type="number" value="10" step="0.5"></label>
         <label>Impulse ms <input id="zoomImpulseMs" type="number" value="100"></label>
         <label>Samples <input id="zoomSamples" type="number" value="20"></label>
+        <label>Cmd <input id="zoomCmdAbs" type="number" value="34" min="1" max="100"></label>
+        <label>Wide hold ms <input id="zoomWideHoldMs" type="number" value="3000" min="500" max="8000"></label>
+        <label>Wide sign
+          <select id="zoomWideSign">
+            <option value="-1" selected>-</option>
+            <option value="1">+</option>
+          </select>
+        </label>
+        <button id="zoomTestWideBtn" class="small-btn">TEST WIDE</button>
+        <button id="zoomTestTeleBtn" class="small-btn">TEST TELE</button>
+        <button id="zoomStopBtn" class="small-btn">STOP ZOOM</button>
         <code id="zoomAprilTagCalibStatus">idle</code>
       </div>
       <div class="row">
@@ -1530,6 +1541,20 @@ async function ptzStart() {
   $('zoomRunAprilTagCalibBtn').onclick = async () => {
     await runAprilTagZoomCalibrationFromUi();
   };
+  $('zoomTestWideBtn').onclick = () => {
+    const cmd = Number($('zoomCmdAbs').value || 34) * Number($('zoomWideSign').value || -1);
+    const hold = Number($('zoomWideHoldMs').value || 1000);
+    zoomTest(cmd, hold).catch(e => ptzLog('ZOOM TEST error', { error: String(e.message || e) }));
+  };
+  $('zoomTestTeleBtn').onclick = () => {
+    const cmd = -Number($('zoomCmdAbs').value || 34) * Number($('zoomWideSign').value || -1);
+    const hold = Number($('zoomWideHoldMs').value || 1000);
+    zoomTest(cmd, hold).catch(e => ptzLog('ZOOM TEST error', { error: String(e.message || e) }));
+  };
+  $('zoomStopBtn').onclick = () => {
+    apiPostJson('/api/zoom_test', { cmd: 0, hold_ms: 0 })
+      .catch(e => ptzLog('ZOOM STOP error', { error: String(e.message || e) }));
+  };
   ['pidKp','pidKi','pidKd','pidDeadzone','pidMaxSpeed','pidMaxAccel','pidPanHold','pidPanRelease','reacquirePanStep','reacquireTiltStep','reacquirePanCadence','reacquireTiltCadence','reacquireMaxLostSec'].forEach(id => {
     $(id).onchange = () => saveSettings();
   });
@@ -1787,14 +1812,19 @@ async function ptzStart() {
   async function runAprilTagZoomCalibrationFromUi() {
     try {
       $('zoomAprilTagCalibStatus').textContent = 'starting...';
+      const cmdAbs = Math.max(1, Number($('zoomCmdAbs').value || 34));
+      const wideSign = Number($('zoomWideSign').value || -1);
       const payload = {
         mode: "apriltag_zoom_table",
         tag_size_mm: Number($('zoomTagSizeMm').value || 160),
         near_distance_mm: Number($('zoomNearM').value || 1) * 1000,
         far_distance_mm: Number($('zoomFarM').value || 10) * 1000,
         impulse_ms: Number($('zoomImpulseMs').value || 100),
+        settle_ms: 250,
         samples: Number($('zoomSamples').value || 20),
-        cmd_abs: cmdLimits.zoom || 34,
+        cmd_abs: cmdAbs,
+        wide_cmd_sign: wideSign,
+        wide_hold_ms: Number($('zoomWideHoldMs').value || 3000),
       };
       const res = await fetch('/api/zoom_calibration', {
         method: 'POST',
@@ -1815,6 +1845,11 @@ async function ptzStart() {
     }
   }
 
+  async function zoomTest(cmd, holdMs) {
+    const res = await apiPostJson('/api/zoom_test', { cmd, hold_ms: holdMs });
+    ptzLog('ZOOM TEST', res);
+    $('zoomAprilTagCalibStatus').textContent = `test cmd=${cmd} hold=${holdMs}`;
+  }
   async function restoreSettings() {
     const raw = localStorage.getItem('pantilt_ui_settings_v2');
     const defaults = { config_version: 16, mjpegUrl: defaultMjpegUrl(), streamMode: 'iframe', fitMode: 'contain' , controlMode: 'assist', landscapeLock: false, controlProfile: 'indoor', safeLostSec: 2.0, safeRestoreSec: 3.0, invertTiltAxis: INV_TILT_DEFAULT, swapMicroButtons: false, detectorEnabled: false, detectorClassSource: 'coco.names', detectorSelectedClasses: [], pidKp: 32, pidKi: 0, pidKd: 18, pidDeadzone: 4, pidMaxSpeed: 40, pidMaxAccel: 8, pidPanHold: 2, pidPanRelease: 5, reacquirePanStep: 18, reacquireTiltStep: 8, reacquirePanCadence: 8, reacquireTiltCadence: 16, reacquireHoldMs: 700, reacquireMaxLostSec: 8, pidTargetClass: 'any', selectedTargetId: null, showDetOverlay: true, selectTargetByTap: true, zoomTravelSec: DEFAULT_ZOOM_TRAVEL_SEC, zoomState: 0, l0_enabled: true, l1_enabled: true, l2_enabled: true, l3_enabled: true, w0: 0.40, w1: 0.25, w2: 0.20, w3: 0.15 };
