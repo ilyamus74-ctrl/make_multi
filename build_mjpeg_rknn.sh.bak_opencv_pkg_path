@@ -42,20 +42,6 @@ CXXFLAGS="-O2 -std=c++17 $CFLAGS"
 gcc $CFLAGS -c "$IMAGE_UTILS_SRC" -o "$BUILD_DIR/image_utils.o"
 gcc $CFLAGS -c "$FILE_UTILS_SRC" -o "$BUILD_DIR/file_utils.o"
 
-
-# Prefer Debian/system OpenCV when available.
-# /usr/local OpenCV builds may miss opencv_aruco, which is required for AprilTag diagnostics/calibration.
-OPENCV_PKG_CONFIG_PATH="${OPENCV_PKG_CONFIG_PATH:-/usr/lib/aarch64-linux-gnu/pkgconfig}"
-if [[ -d "$OPENCV_PKG_CONFIG_PATH" ]]; then
-  export PKG_CONFIG_PATH="$OPENCV_PKG_CONFIG_PATH:${PKG_CONFIG_PATH:-}"
-fi
-
-OPENCV_LIBS="$(pkg-config --libs opencv4 || true)"
-if ! grep -q 'opencv_aruco' <<<"$OPENCV_LIBS"; then
-  echo "WARNING: pkg-config opencv4 does not include opencv_aruco." >&2
-  echo "         AprilTag detector will be unavailable unless OpenCV aruco/contrib is linked." >&2
-fi
-
 EXTRA_LINK_LIBS="${EXTRA_LINK_LIBS:-}"
 
 # image_utils.c depends on TurboJPEG (tj*) and librga (wrapbuffer*/improcess).
