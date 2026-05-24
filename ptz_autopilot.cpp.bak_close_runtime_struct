@@ -24,7 +24,6 @@ struct Config {std::string mjpeg_url="http://127.0.0.1:8080"; std::string tracke
 struct TrackerState {std::string mode="IDLE"; int track_id=0; bool valid=false; int l=0,t=0,r=0,b=0;};
 struct ZoomState { bool ok=false; bool profile_loaded=false; double zoom_ratio=0.0,focal_px=0.0,focal_min_px=0.0,focal_max_px=0.0,speed_scale=1.0; std::string source; std::string error; };
 struct Runtime {std::atomic<bool> run{true}; std::atomic<bool> enabled{false}; std::atomic<int> seq{1}; std::mutex m; std::string last_tracker_mode="IDLE"; int last_track_id=0; double errx=0,erry=0; int cmdp=0,cmdt=0; std::string last_error; std::string mode="IDLE"; double zoom_ratio=0,zoom_focal_px=0,zoom_focal_min_px=0,zoom_focal_max_px=0,zoom_speed_scale=1; int base_cmd_pan=0,base_cmd_tilt=0,scaled_cmd_pan=0,scaled_cmd_tilt=0,effective_max_pan=0,effective_max_tilt=0,effective_max_accel=0; std::string zoom_source,zoom_error;
-};
 static Runtime g; static Config cfg;
 static std::string g_ptzConfigFile = "ptz_autopilot_config.json";
 
