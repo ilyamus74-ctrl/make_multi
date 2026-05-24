@@ -309,6 +309,7 @@
       <div class="row" id="zoomAprilTagCalibPanel">
         <b>ZOOM CALIB:</b>
         <button id="zoomRunAprilTagCalibBtn" class="small-btn">RUN APRILTAG ZOOM CALIB</button>
+        <button id="zoomBuildMasterProfileBtn" class="small-btn">BUILD MASTER PROFILE</button>
         <button id="apriltagTestBtn" class="small-btn">TEST APRILTAG</button>
         <label>Tag mm <input id="zoomTagSizeMm" type="number" value="160"></label>
         <label>Anchor ID <input id="zoomAnchorTagId" type="number" value="7"></label>
@@ -1705,6 +1706,10 @@ async function ptzStart() {
   $('zoomRunAprilTagCalibBtn').onclick = async () => {
     await runAprilTagZoomCalibrationFromUi();
   };
+  if ($('zoomBuildMasterProfileBtn')) $('zoomBuildMasterProfileBtn').onclick = () =>
+    buildZoomMasterProfileFromUi().catch(e =>
+      ptzLog('ZOOM MASTER PROFILE error', { error: String(e.message || e) })
+    );
   $('apriltagTestBtn').onclick = () =>
     testAprilTagFromUi().catch(e =>
       ptzLog('APRILTAG TEST error', { error: String(e.message || e) })
@@ -2060,6 +2065,16 @@ async function ptzStart() {
         `apriltag tags=${res.tags_found || 0} ${res.message || ''}`;
     }
 
+    return res;
+  }
+
+  async function buildZoomMasterProfileFromUi() {
+    const res = await apiPostJson('/api/zoom_calibration/build_master_profile', {});
+    ptzLog('ZOOM MASTER PROFILE', res);
+    if ($('zoomAprilTagCalibStatus')) {
+      $('zoomAprilTagCalibStatus').textContent =
+        res.ok ? `master ok points=${res.points_total_clean || 0}` : `master failed ${res.error || ''}`;
+    }
     return res;
   }
 

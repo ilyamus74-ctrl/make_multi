@@ -19,6 +19,7 @@
 #include <cmath>
 #include <map>
 #include <set>
+#include <regex>
 #include <unordered_map>
 #include <sstream>
 #include <mutex>
@@ -1172,6 +1173,29 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
     for (size_t j = 0; j < rows[i].ids.size(); ++j) { if (j) os << ","; os << rows[i].ids[j]; }
     os << "]}";
   }
+
+  os << "],\"profile_points\":[";
+  bool firstProfilePoint = true;
+  std::set<int> seenProfileIdx;
+  for (size_t pi = 0; pi < cleanIdx.size(); ++pi) {
+    const size_t i = cleanIdx[pi];
+    if (!rows[i].anchor_found || rows[i].focal_px <= 0.0) continue;
+    const int profileIdx = static_cast<int>(pi);
+    if (profileIdx < 0 || seenProfileIdx.count(profileIdx)) continue;
+    seenProfileIdx.insert(profileIdx);
+    const double zr = hasFocalRange ? std::max(0.0, std::min(1.0, (rows[i].focal_px - minF) / (maxF - minF))) : 0.0;
+    if (!firstProfilePoint) os << ",";
+    firstProfilePoint = false;
+    os << "{\"profile_idx\":" << profileIdx
+       << ",\"zoom_ratio\":" << std::fixed << std::setprecision(3) << zr
+       << ",\"focal_px\":" << rows[i].focal_px
+       << ",\"source_idx\":" << i
+       << ",\"anchor_distance_mm\":" << params.anchor_distance_mm
+       << ",\"anchor_tag_id\":" << params.anchor_tag_id
+       << ",\"anchor_px\":" << rows[i].anchor_px
+       << "}";
+  }
+
   os << "]}";
   g_zoomAprilTagProfileJson = os.str();
   std::ofstream out(g_zoomAprilTagProfileFile, std::ios::trunc); out << g_zoomAprilTagProfileJson;
@@ -1779,6 +1803,29 @@ static size_t find_matching_json_bracket(const std::string& s, size_t openPos, c
   }
 
   return std::string::npos;
+}
+
+static std::vector<std::string> extract_json_object_array(const std::string& json, const std::string& key) {
+  std::vector<std::string> out;
+  const std::string pattern = "\"" + key + "\"";
+  const auto keyPos = json.find(pattern);
+  if (keyPos == std::string::npos) return out;
+  const auto colonPos = json.find(':', keyPos + pattern.size());
+  if (colonPos == std::string::npos) return out;
+  const auto arrBegin = json.find('[', colonPos + 1);
+  if (arrBegin == std::string::npos) return out;
+  const auto arrEnd = find_matching_json_bracket(json, arrBegin, '[', ']');
+  if (arrEnd == std::string::npos || arrEnd <= arrBegin) return out;
+  size_t pos = arrBegin + 1;
+  while (pos < arrEnd) {
+    const auto objBegin = json.find('{', pos);
+    if (objBegin == std::string::npos || objBegin >= arrEnd) break;
+    const auto objEnd = find_matching_json_bracket(json, objBegin, '{', '}');
+    if (objEnd == std::string::npos || objEnd > arrEnd) break;
+    out.push_back(json.substr(objBegin, objEnd - objBegin + 1));
+    pos = objEnd + 1;
+  }
+  return out;
 }
 
 static bool parse_roi_config_json(const std::string& payload, int frameW, int frameH) {
@@ -3000,7 +3047,112 @@ static void handle_client(int cfd, const Opts& o) {
   }
 
   if (path == "/api/zoom_calibration/build_master_profile") {
-    const std::string body = "{\"ok\":false,\"error\":\"not_implemented\"}";
+    std::vector<std::string> profileFiles;
+    for (const auto& e : std::filesystem::directory_iterator(std::filesystem::current_path())) {
+      if (!e.is_regular_file()) continue;
+      const std::string name = e.path().filename().string();
+      if (name.rfind("zoom_apriltag_profile_anchor_", 0) == 0 && e.path().extension() == ".json") profileFiles.push_back(name);
+    }
+    std::sort(profileFiles.begin(), profileFiles.end());
+    struct SourceRef { std::string file; int source_idx = -1; double anchor_distance_mm = 0.0; };
+    struct Point { double focal_px = 0.0; double anchor_px_sum = 0.0; int anchor_px_count = 0; std::vector<SourceRef> sources; };
+    std::vector<std::string> profilesUsed;
+    std::vector<std::pair<std::string, std::string>> profilesSkipped;
+    std::vector<Point> pointsRaw;
+    for (const auto& file : profileFiles) {
+      std::ifstream in(file);
+      if (!in.good()) continue;
+      std::ostringstream ss; ss << in.rdbuf();
+      const std::string payload = ss.str();
+      const std::string status = extract_json_string_field(payload, "status");
+      int validRowsClean = 0;
+      extract_json_int_field(payload, "valid_rows_clean", &validRowsClean);
+      if (status != "ok" || validRowsClean < 4) {
+        profilesSkipped.push_back({file, "status_failed_or_too_few_rows"});
+        continue;
+      }
+      profilesUsed.push_back(file);
+      double anchorDistanceMm = 0.0;
+      extract_json_double_field(payload, "anchor_distance_mm", &anchorDistanceMm);
+      auto objects = extract_json_object_array(payload, "profile_points");
+      if (objects.empty()) objects = extract_json_object_array(payload, "samples");
+      for (const auto& obj : objects) {
+        int profileIdx = -1;
+        extract_json_int_field(obj, "profile_idx", &profileIdx);
+        bool anchorFound = true;
+        extract_json_bool_field(obj, "anchor_found", &anchorFound);
+        double focalPx = 0.0;
+        extract_json_double_field(obj, "focal_px", &focalPx);
+        if (profileIdx < 0 || !anchorFound || focalPx <= 0.0) continue;
+        int sourceIdx = -1;
+        if (!extract_json_int_field(obj, "source_idx", &sourceIdx)) extract_json_int_field(obj, "idx", &sourceIdx);
+        double anchorPx = 0.0;
+        const bool hasAnchorPx = extract_json_double_field(obj, "anchor_px", &anchorPx);
+        Point p;
+        p.focal_px = focalPx;
+        if (hasAnchorPx) { p.anchor_px_sum = anchorPx; p.anchor_px_count = 1; }
+        p.sources.push_back({file, sourceIdx, anchorDistanceMm});
+        pointsRaw.push_back(p);
+      }
+    }
+    const int pointsTotalRaw = static_cast<int>(pointsRaw.size());
+    std::sort(pointsRaw.begin(), pointsRaw.end(), [](const Point& a, const Point& b){ return a.focal_px < b.focal_px; });
+    std::vector<Point> pointsClean;
+    for (const auto& p : pointsRaw) {
+      if (pointsClean.empty()) { pointsClean.push_back(p); continue; }
+      Point& prev = pointsClean.back();
+      const double thr = std::max(50.0, prev.focal_px * 0.03);
+      if (std::abs(p.focal_px - prev.focal_px) < thr) {
+        const int prevCount = static_cast<int>(prev.sources.size());
+        prev.focal_px = (prev.focal_px * prevCount + p.focal_px) / static_cast<double>(prevCount + 1);
+        prev.anchor_px_sum += p.anchor_px_sum;
+        prev.anchor_px_count += p.anchor_px_count;
+        prev.sources.insert(prev.sources.end(), p.sources.begin(), p.sources.end());
+      } else {
+        pointsClean.push_back(p);
+      }
+    }
+    const int pointsTotalClean = static_cast<int>(pointsClean.size());
+    std::string body;
+    if (pointsTotalClean < 4) {
+      std::ostringstream os;
+      os << "{\"ok\":false,\"error\":\"too_few_master_points\",\"points_total_clean\":" << pointsTotalClean << "}";
+      body = os.str();
+    } else {
+      const double minF = pointsClean.front().focal_px;
+      const double maxF = pointsClean.back().focal_px;
+      std::ostringstream master;
+      master << "{\"method\":\"apriltag_zoom_master_profile\",\"status\":\"ok\",\"profiles_used\":[";
+      for (size_t i = 0; i < profilesUsed.size(); ++i) { if (i) master << ","; master << "\"" << json_escape(profilesUsed[i]) << "\""; }
+      master << "],\"profiles_skipped\":[";
+      for (size_t i = 0; i < profilesSkipped.size(); ++i) { if (i) master << ","; master << "{\"file\":\"" << json_escape(profilesSkipped[i].first) << "\",\"reason\":\"" << profilesSkipped[i].second << "\"}"; }
+      master << "],\"points_total_raw\":" << pointsTotalRaw << ",\"points_total_clean\":" << pointsTotalClean
+             << ",\"focal_min_px\":" << minF << ",\"focal_max_px\":" << maxF << ",\"profile_points\":[";
+      for (size_t i = 0; i < pointsClean.size(); ++i) {
+        const double zr = (maxF > minF) ? ((pointsClean[i].focal_px - minF) / (maxF - minF)) : 0.0;
+        if (i) master << ",";
+        master << "{\"profile_idx\":" << i << ",\"zoom_ratio\":" << std::fixed << std::setprecision(3) << std::max(0.0, std::min(1.0, zr))
+               << ",\"focal_px\":" << pointsClean[i].focal_px;
+        if (pointsClean[i].anchor_px_count > 0) master << ",\"anchor_px\":" << (pointsClean[i].anchor_px_sum / pointsClean[i].anchor_px_count);
+        master << ",\"sources\":[";
+        for (size_t j = 0; j < pointsClean[i].sources.size(); ++j) {
+          if (j) master << ",";
+          const auto& s = pointsClean[i].sources[j];
+          master << "{\"file\":\"" << json_escape(s.file) << "\",\"source_idx\":" << s.source_idx << ",\"anchor_distance_mm\":" << s.anchor_distance_mm << "}";
+        }
+        master << "]}";
+      }
+      master << "]}";
+      std::ofstream mout("zoom_apriltag_master_profile.json", std::ios::trunc);
+      mout << master.str();
+      std::ostringstream os;
+      os << "{\"ok\":true,\"output\":\"zoom_apriltag_master_profile.json\",\"profiles_used\":[";
+      for (size_t i = 0; i < profilesUsed.size(); ++i) { if (i) os << ","; os << "\"" << json_escape(profilesUsed[i]) << "\""; }
+      os << "],\"profiles_skipped\":[";
+      for (size_t i = 0; i < profilesSkipped.size(); ++i) { if (i) os << ","; os << "{\"file\":\"" << json_escape(profilesSkipped[i].first) << "\",\"reason\":\"" << profilesSkipped[i].second << "\"}"; }
+      os << "],\"points_total_raw\":" << pointsTotalRaw << ",\"points_total_clean\":" << pointsTotalClean << "}";
+      body = os.str();
+    }
     const std::string hdr =
       "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\n"
       "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
