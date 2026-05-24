@@ -1228,8 +1228,6 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
 
 static bool move_zoom_to_ratio(double targetRatio) { g_zoomRatio = std::max(0.0, std::min(1.0, targetRatio)); return true; }
 
-static std::vector<std::string> extract_json_object_array(const std::string& json, const std::string& key);
-
 static bool load_zoom_master_profile() {
   ZoomMasterProfile next;
   std::ifstream in(g_zoomMasterProfileFile);
