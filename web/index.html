@@ -1383,7 +1383,7 @@ async function ptzStart() {
       const conf = await apiGetJson('/api/tracking/confidence');
       const detCount = Array.isArray(det.items) ? det.items.length : 0;
       const fused = Number(conf?.fused ?? 0);
-      $('ptzStateLine').textContent = `DET=${detCount} | TRACK=${tr.mode} id=${tr.selected_track_id} valid=${tr.selected_box_valid} | PTZ=${ap.enabled}/${ap.mode} cmd=${ap.cmd_pan},${ap.cmd_tilt} | CONF=${fused.toFixed(2)}`;
+      $('ptzStateLine').textContent = `DET=${detCount} | TRACK=${tr.mode} id=${tr.selected_track_id} valid=${tr.selected_box_valid} | PTZ=${ap.enabled}/${ap.mode} cmd=${ap.cmd_pan},${ap.cmd_tilt} | Z=${Number(ap.zoom_ratio||0).toFixed(2)} F=${Math.round(Number(ap.zoom_focal_px||0))} S=${Number(ap.zoom_speed_scale||1).toFixed(2)} | base=${ap.base_cmd_pan||0},${ap.base_cmd_tilt||0} scaled=${ap.cmd_pan},${ap.cmd_tilt} | CONF=${fused.toFixed(2)}`;
       $('pidCmd').textContent = `PTZ ${ap.cmd_pan},${ap.cmd_tilt}`;
       $('pidTarget').textContent = `PTZ id=${tr.selected_track_id} ${tr.mode}`;
     } catch (e) {

@@ -234,6 +234,10 @@ start_autopilot() {
     --target-y "$AUTOPILOT_TARGET_Y" \
     --min-pan "$AUTOPILOT_MIN_PAN" \
     --min-tilt "$AUTOPILOT_MIN_TILT" \
+  --zoom-scale-enable "${AUTOPILOT_ZOOM_SCALE_ENABLE:-1}" \
+  --zoom-scale-min "${AUTOPILOT_ZOOM_SCALE_MIN:-0.12}" \
+  --zoom-scale-max "${AUTOPILOT_ZOOM_SCALE_MAX:-1.0}" \
+  --zoom-scale-smoothing "${AUTOPILOT_ZOOM_SCALE_SMOOTHING:-0.25}" \
     --enable 0 \
     >>"$AUTOPILOT_LOG" 2>&1 &
   AUTOPILOT_PID=$!
