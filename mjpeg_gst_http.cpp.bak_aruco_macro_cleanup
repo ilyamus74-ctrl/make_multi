@@ -37,9 +37,9 @@
 #include <opencv2/imgproc.hpp>
 #if __has_include(<opencv2/aruco.hpp>)
 #include <opencv2/aruco.hpp>
-#define APP_HAVE_OPENCV_ARUCO 1
+#define HAVE_OPENCV_ARUCO 1
 #else
-#define APP_HAVE_OPENCV_ARUCO 0
+#define HAVE_OPENCV_ARUCO 0
 #endif
 
 #include "../yolov8.h"
@@ -593,7 +593,7 @@ static bool fetch_latest_bgr_frame(uint64_t* outFid, cv::Mat* outBgr) {
 
 static AprilTagTestResult run_apriltag_test_on_latest_frame(bool saveDebugImage) {
   AprilTagTestResult r;
-#if APP_HAVE_OPENCV_ARUCO
+#if HAVE_OPENCV_ARUCO
   r.detector_available = true;
   uint64_t fid = 0;
   cv::Mat bgr;
@@ -869,7 +869,7 @@ static bool extract_json_double_field(const std::string& json, const std::string
 
 static ZoomMarkerMeasurement measure_zoom_markers_apriltag(const cv::Mat& gray, const ZoomAprilTagCalibParams& p) {
   ZoomMarkerMeasurement m;
-#if APP_HAVE_OPENCV_ARUCO
+#if HAVE_OPENCV_ARUCO
   auto dict = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_APRILTAG_36h11);
   std::vector<std::vector<cv::Point2f>> corners;
   std::vector<int> ids;
