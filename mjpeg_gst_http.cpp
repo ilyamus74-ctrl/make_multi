@@ -562,6 +562,76 @@ static bool send_zoom_via_bridge_ws(int cmd) {
   return send_zoom_stream_via_bridge_ws(cmd, 0);
 }
 
+
+struct AprilTagTestResult {
+  bool detector_available = false;
+  bool ok = false;
+  uint64_t frame_id = 0;
+  int width = 0;
+  int height = 0;
+  int tags_found = 0;
+  std::vector<int> ids;
+  std::string message;
+  std::string debug_image = "debug_apriltag_latest.jpg";
+};
+
+static bool fetch_latest_bgr_frame(uint64_t* outFid, cv::Mat* outBgr) {
+  std::vector<uint8_t> jpeg;
+  uint64_t fid = 0;
+  {
+    std::lock_guard<std::mutex> lk(g_mtx);
+    fid = g_frameId.load();
+    if (fid == 0 || g_lastJpeg.empty()) return false;
+    jpeg = g_lastJpeg;
+  }
+  cv::Mat bgr = cv::imdecode(jpeg, cv::IMREAD_COLOR);
+  if (bgr.empty()) return false;
+  *outFid = fid;
+  *outBgr = bgr;
+  return true;
+}
+
+static AprilTagTestResult run_apriltag_test_on_latest_frame(bool saveDebugImage) {
+  AprilTagTestResult r;
+#if HAVE_OPENCV_ARUCO
+  r.detector_available = true;
+  uint64_t fid = 0;
+  cv::Mat bgr;
+  if (!fetch_latest_bgr_frame(&fid, &bgr) || bgr.empty()) {
+    r.message = "frame_unavailable";
+    return r;
+  }
+  r.frame_id = fid;
+  r.width = bgr.cols;
+  r.height = bgr.rows;
+  cv::Mat gray;
+  cv::cvtColor(bgr, gray, cv::COLOR_BGR2GRAY);
+
+  auto dict = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_APRILTAG_36h11);
+  std::vector<std::vector<cv::Point2f>> corners;
+  std::vector<int> ids;
+  cv::aruco::detectMarkers(gray, dict, corners, ids);
+  r.tags_found = static_cast<int>(ids.size());
+  r.ids = ids;
+  r.ok = r.tags_found > 0;
+  r.message = r.ok ? "ok" : "apriltag_not_found";
+
+  if (saveDebugImage) {
+    cv::Mat dbg = bgr.clone();
+    if (!ids.empty()) cv::aruco::drawDetectedMarkers(dbg, corners, ids);
+    cv::imwrite(r.debug_image, dbg);
+  }
+#else
+  (void)saveDebugImage;
+  r.detector_available = false;
+  r.ok = false;
+  r.tags_found = 0;
+  r.ids.clear();
+  r.message = "apriltag_detector_unavailable";
+#endif
+  return r;
+}
+
 static bool fetch_latest_gray_frame(uint64_t* outFid, cv::Mat* outGray) {
   std::vector<uint8_t> jpeg;
   uint64_t fid = 0;
@@ -2733,6 +2803,46 @@ static void handle_client(int cfd, const Opts& o) {
        << ",\"hold_ms\":" << holdMs
        << ",\"ok_start\":" << (okStart ? "true" : "false")
        << ",\"ok_stop\":" << (okStop ? "true" : "false")
+       << "}";
+    const std::string body = os.str();
+    const std::string hdr =
+      "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\n"
+      "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+    send_all(cfd, hdr.data(), hdr.size());
+    send_all(cfd, body.data(), body.size());
+    ::close(cfd);
+    return;
+  }
+
+  if (path == "/api/apriltag/test") {
+    if (method != "GET") {
+      const char* body = "Method Not Allowed";
+      std::string hdr =
+        "HTTP/1.1 405 Method Not Allowed\r\nAllow: GET\r\nContent-Type: text/plain\r\nConnection: close\r\n"
+        "Content-Length: " + std::to_string(std::strlen(body)) + "\r\n\r\n";
+      send_all(cfd, hdr.data(), hdr.size());
+      send_all(cfd, body, std::strlen(body));
+      ::close(cfd);
+      return;
+    }
+    const AprilTagTestResult r = run_apriltag_test_on_latest_frame(true);
+    std::ostringstream os;
+    os << "{"
+       << "\"ok\":" << (r.ok ? "true" : "false")
+       << ",\"detector_available\":" << (r.detector_available ? "true" : "false")
+       << ",\"dictionary\":\"DICT_APRILTAG_36h11\""
+       << ",\"frame_id\":" << r.frame_id
+       << ",\"width\":" << r.width
+       << ",\"height\":" << r.height
+       << ",\"tags_found\":" << r.tags_found
+       << ",\"ids\":[";
+    for (size_t i = 0; i < r.ids.size(); ++i) {
+      if (i) os << ",";
+      os << r.ids[i];
+    }
+    os << "]"
+       << ",\"message\":\"" << json_escape(r.message) << "\""
+       << ",\"debug_image\":\"" << json_escape(r.debug_image) << "\""
        << "}";
     const std::string body = os.str();
     const std::string hdr =

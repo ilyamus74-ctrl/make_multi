@@ -309,6 +309,7 @@
       <div class="row" id="zoomAprilTagCalibPanel">
         <b>ZOOM CALIB:</b>
         <button id="zoomRunAprilTagCalibBtn" class="small-btn">RUN APRILTAG ZOOM CALIB</button>
+        <button id="apriltagTestBtn" class="small-btn">TEST APRILTAG</button>
         <label>Tag mm <input id="zoomTagSizeMm" type="number" value="160"></label>
         <label>Near m <input id="zoomNearM" type="number" value="1" step="0.1"></label>
         <label>Far m <input id="zoomFarM" type="number" value="10" step="0.5"></label>
@@ -1699,6 +1700,10 @@ async function ptzStart() {
   $('zoomRunAprilTagCalibBtn').onclick = async () => {
     await runAprilTagZoomCalibrationFromUi();
   };
+  $('apriltagTestBtn').onclick = () =>
+    testAprilTagFromUi().catch(e =>
+      ptzLog('APRILTAG TEST error', { error: String(e.message || e) })
+    );
   $('zoomTestWideBtn').onclick = () => {
     const cmd = Number($('zoomCmdAbs').value || 34) * Number($('zoomWideSign').value || -1);
     const hold = Number($('zoomWideHoldMs').value || 1000);
@@ -2033,6 +2038,18 @@ async function ptzStart() {
       zoomCalibInProgress = false;
       $('zoomRunCalibrationBtn').disabled = false;
     }
+  }
+
+  async function testAprilTagFromUi() {
+    const res = await apiGetJson('/api/apriltag/test');
+    ptzLog('APRILTAG TEST', res);
+
+    if ($('zoomAprilTagCalibStatus')) {
+      $('zoomAprilTagCalibStatus').textContent =
+        `apriltag tags=${res.tags_found || 0} ${res.message || ''}`;
+    }
+
+    return res;
   }
 
   async function runAprilTagZoomCalibrationFromUi() {

@@ -2506,3 +2506,12 @@
 2026-05-24T08:24:24Z type=video_lost payload={"type":"video_lost","ts_ms":1779611064797,"details":{"status":"RECONNECTING"}}
 2026-05-24T08:24:24Z type=video_retry payload={"type":"video_retry","ts_ms":1779611064798,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
 2026-05-24T08:24:24Z type=video_restored payload={"type":"video_restored","ts_ms":1779611064809,"details":{"lost_for_ms":12}}
+2026-05-24T09:34:50Z type=video_restored payload={"type":"video_restored","ts_ms":1779615290467,"details":{"lost_for_ms":24}}
+2026-05-24T09:34:50Z type=video_lost payload={"type":"video_lost","ts_ms":1779615290633,"details":{"status":"RECONNECTING"}}
+2026-05-24T09:34:50Z type=video_retry payload={"type":"video_retry","ts_ms":1779615290634,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
+2026-05-24T09:34:50Z type=video_restored payload={"type":"video_restored","ts_ms":1779615290649,"details":{"lost_for_ms":16}}
+2026-05-24T09:34:50Z type=video_restored payload={"type":"video_restored","ts_ms":1779615290704,"details":{"lost_for_ms":29}}
+2026-05-24T09:34:51Z type=video_restored payload={"type":"video_restored","ts_ms":1779615290991,"details":{"lost_for_ms":24}}
+2026-05-24T09:34:51Z type=video_retry payload={"type":"video_retry","ts_ms":1779615291227,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
+2026-05-24T09:34:51Z type=video_lost payload={"type":"video_lost","ts_ms":1779615291224,"details":{"status":"RECONNECTING"}}
+2026-05-24T09:34:51Z type=video_restored payload={"type":"video_restored","ts_ms":1779615291244,"details":{"lost_for_ms":20}}
