@@ -350,18 +350,16 @@ static std::string g_zoomCalibSettingsFile = "zoom_calibration_settings.json";
 struct ZoomMarkerMeasurement {
   bool ok = false;
   int tags_found = 0;
-  bool anchor_found = false;
-  int anchor_id = -1;
-  double anchor_px = 0.0;
-  std::vector<int> ids;
+  double near_px = 0.0;
+  double far_px = 0.0;
   double focal_px = 0.0;
   double confidence = 0.0;
   std::string message;
 };
 struct ZoomAprilTagCalibParams {
   double tag_size_mm = 160.0;
-  int anchor_tag_id = 7;
-  double anchor_distance_mm = 1000.0;
+  double near_distance_mm = 1000.0;
+  double far_distance_mm = 10000.0;
   int samples = 12;
   int impulse_ms = 170;
   int settle_ms = 250;
@@ -375,8 +373,9 @@ static ZoomAprilTagCalibParams g_zoomCalibSettings;
 
 static void clamp_zoom_calib_params(ZoomAprilTagCalibParams& p, int cmdMaxZoom) {
   p.tag_size_mm = std::max(20.0, std::min(1000.0, p.tag_size_mm));
-  p.anchor_tag_id = std::max(-1, std::min(100000, p.anchor_tag_id));
-  p.anchor_distance_mm = std::max(100.0, std::min(100000.0, p.anchor_distance_mm));
+  p.near_distance_mm = std::max(100.0, std::min(50000.0, p.near_distance_mm));
+  p.far_distance_mm = std::max(100.0, std::min(100000.0, p.far_distance_mm));
+  if (p.far_distance_mm < p.near_distance_mm) std::swap(p.far_distance_mm, p.near_distance_mm);
   p.samples = std::max(1, std::min(100, p.samples));
   p.impulse_ms = std::max(20, std::min(2000, p.impulse_ms));
   p.settle_ms = std::max(50, std::min(3000, p.settle_ms));
@@ -802,8 +801,8 @@ static std::string zoom_calib_settings_json(const ZoomAprilTagCalibParams& p) {
   os << "{"
      << "\"ok\":true"
      << ",\"tag_size_mm\":" << p.tag_size_mm
-     << ",\"anchor_tag_id\":" << p.anchor_tag_id
-     << ",\"anchor_distance_mm\":" << p.anchor_distance_mm
+     << ",\"near_distance_mm\":" << p.near_distance_mm
+     << ",\"far_distance_mm\":" << p.far_distance_mm
      << ",\"samples\":" << p.samples
      << ",\"impulse_ms\":" << p.impulse_ms
      << ",\"settle_ms\":" << p.settle_ms
@@ -820,8 +819,8 @@ static bool save_zoom_calib_settings(const ZoomAprilTagCalibParams& p) {
   if (!f) return false;
   f << "{\n"
     << "  \"tag_size_mm\": " << p.tag_size_mm << ",\n"
-    << "  \"anchor_tag_id\": " << p.anchor_tag_id << ",\n"
-    << "  \"anchor_distance_mm\": " << p.anchor_distance_mm << ",\n"
+    << "  \"near_distance_mm\": " << p.near_distance_mm << ",\n"
+    << "  \"far_distance_mm\": " << p.far_distance_mm << ",\n"
     << "  \"samples\": " << p.samples << ",\n"
     << "  \"impulse_ms\": " << p.impulse_ms << ",\n"
     << "  \"settle_ms\": " << p.settle_ms << ",\n"
@@ -840,10 +839,8 @@ static bool load_zoom_calib_settings(ZoomAprilTagCalibParams& p, int cmdMaxZoom)
   double d = 0.0;
   int i = 0;
   if (extract_json_double_field(body, "tag_size_mm", &d)) p.tag_size_mm = d;
-  if (extract_json_int_field(body, "anchor_tag_id", &i)) p.anchor_tag_id = i;
-  else if (extract_json_int_field(body, "near_tag_id", &i)) p.anchor_tag_id = i;
-  if (extract_json_double_field(body, "anchor_distance_mm", &d)) p.anchor_distance_mm = d;
-  else if (extract_json_double_field(body, "near_distance_mm", &d)) p.anchor_distance_mm = d;
+  if (extract_json_double_field(body, "near_distance_mm", &d)) p.near_distance_mm = d;
+  if (extract_json_double_field(body, "far_distance_mm", &d)) p.far_distance_mm = d;
   if (extract_json_int_field(body, "samples", &i)) p.samples = i;
   if (extract_json_int_field(body, "impulse_ms", &i)) p.impulse_ms = i;
   if (extract_json_int_field(body, "settle_ms", &i)) p.settle_ms = i;
@@ -877,31 +874,20 @@ static ZoomMarkerMeasurement measure_zoom_markers_apriltag(const cv::Mat& gray, 
   std::vector<std::vector<cv::Point2f>> corners;
   std::vector<int> ids;
   cv::aruco::detectMarkers(gray, dict, corners, ids);
-  int anchorIdx = -1;
-  for (size_t i = 0; i < corners.size(); ++i) {
+  for (const auto& c : corners) {
+    if (c.size() < 4) continue;
+    const double w = 0.5 * (cv::norm(c[0] - c[1]) + cv::norm(c[2] - c[3]));
+    if (w <= 0.0) continue;
+    if (m.tags_found == 0) m.near_px = w;
+    else if (w > m.near_px) { m.far_px = m.near_px; m.near_px = w; }
+    else m.far_px = std::max(m.far_px, w);
     m.tags_found++;
-    if (i < ids.size()) m.ids.push_back(ids[i]);
-    if (p.anchor_tag_id >= 0) {
-      if (i < ids.size() && ids[i] == p.anchor_tag_id) anchorIdx = static_cast<int>(i);
-    } else if (anchorIdx < 0) {
-      anchorIdx = static_cast<int>(i);
-    }
   }
   if (m.tags_found <= 0) { m.message = "apriltag_not_found"; return m; }
-  if (anchorIdx >= 0 && static_cast<size_t>(anchorIdx) < corners.size()) {
-    const auto& c = corners[anchorIdx];
-    if (c.size() >= 4) {
-      m.anchor_px = 0.5 * (cv::norm(c[0] - c[1]) + cv::norm(c[2] - c[3]));
-      m.anchor_found = (m.anchor_px > 0.0);
-      m.anchor_id = (anchorIdx < static_cast<int>(ids.size())) ? ids[anchorIdx] : -1;
-      if (m.anchor_found) {
-        m.focal_px = m.anchor_px * (p.anchor_distance_mm / p.tag_size_mm);
-      }
-    }
-  }
-  m.ok = m.anchor_found && m.focal_px > 0.0;
-  m.confidence = m.anchor_found ? 1.0 : 0.0;
-  if (!m.anchor_found) m.message = "apriltag_anchor_not_found";
+  if (m.near_px > 0.0) m.focal_px += m.near_px * (p.near_distance_mm / p.tag_size_mm);
+  if (m.far_px > 0.0) m.focal_px += m.far_px * (p.far_distance_mm / p.tag_size_mm);
+  m.focal_px /= (m.far_px > 0.0 ? 2.0 : 1.0);
+  m.ok = m.focal_px > 0.0; m.confidence = m.tags_found >= 2 ? 1.0 : 0.5;
 #else
   (void)gray; (void)p;
   m.message = "apriltag_detector_unavailable";
@@ -1109,77 +1095,47 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
   }
   g_detectEnabled = prevDetect;
   double minF = 1e9, maxF = 0.0;
-  int validRowsRaw = 0;
+  int validRows = 0;
   int tagsTotal = 0;
-  int anchorMissWithTags = 0;
   for (const auto& r : rows) {
     tagsTotal += r.tags_found;
-    if (r.tags_found > 0 && !r.anchor_found) anchorMissWithTags++;
-    if (r.anchor_found && r.focal_px > 0.0) {
+    if (r.ok && r.tags_found > 0 && r.focal_px > 0.0) {
       minF = std::min(minF, r.focal_px);
       maxF = std::max(maxF, r.focal_px);
-      validRowsRaw++;
+      validRows++;
     }
   }
-  std::vector<size_t> validIdx;
-  for (size_t i = 0; i < rows.size(); ++i) if (rows[i].anchor_found && rows[i].focal_px > 0.0) validIdx.push_back(i);
-  std::sort(validIdx.begin(), validIdx.end(), [&](size_t a, size_t b){ return rows[a].focal_px < rows[b].focal_px; });
-  std::vector<size_t> cleanIdx;
-  for (size_t k = 0; k < validIdx.size(); ++k) {
-    if (cleanIdx.empty()) { cleanIdx.push_back(validIdx[k]); continue; }
-    const double prevF = rows[cleanIdx.back()].focal_px;
-    const double curF = rows[validIdx[k]].focal_px;
-    const double thr = std::max(25.0, prevF * 0.03);
-    if (std::abs(curF - prevF) >= thr) cleanIdx.push_back(validIdx[k]);
-  }
-  int validRows = static_cast<int>(cleanIdx.size());
-  minF = 1e9; maxF = 0.0;
-  for (size_t i : cleanIdx) { minF = std::min(minF, rows[i].focal_px); maxF = std::max(maxF, rows[i].focal_px); }
-
   const bool hasFocalRange = (validRows > 0 && maxF > minF);
   const bool noTags = (tagsTotal == 0);
-  const bool tooFewRows = (validRows < 4);
+  const bool tooFewRows = (validRows < 3);
   const bool noFocalChange = (!hasFocalRange) || ((maxF - minF) < 1e-6);
   std::string calibStatus = "ok";
   std::string calibMessage = "apriltag_zoom_table_done";
-  if (noTags) { calibStatus = "failed"; calibMessage = "apriltag_anchor_not_found"; }
-  else if (anchorMissWithTags == static_cast<int>(rows.size())) { calibStatus = "failed"; calibMessage = "apriltag_anchor_not_found"; }
+  if (noTags) { calibStatus = "failed"; calibMessage = "apriltag_no_tags_detected"; }
   else if (tooFewRows) { calibStatus = "failed"; calibMessage = "apriltag_too_few_valid_rows"; }
   else if (noFocalChange) { calibStatus = "failed"; calibMessage = "apriltag_no_focal_change"; }
   std::ostringstream os;
   os << "{\"method\":\"apriltag_zoom_table\",\"calibration_direction\":\"" << params.calibration_direction
-     << "\",\"marker_mode\":\"single_anchor\""
-     << ",\"tag_size_mm\":" << params.tag_size_mm
-     << ",\"anchor_tag_id\":" << params.anchor_tag_id << ",\"anchor_distance_mm\":" << params.anchor_distance_mm
+     << "\",\"tag_size_mm\":" << params.tag_size_mm
+     << ",\"near_distance_mm\":" << params.near_distance_mm << ",\"far_distance_mm\":" << params.far_distance_mm
      << ",\"cmd_abs\":" << cmd << ",\"home_cmd\":" << homeCmd << ",\"step_cmd\":" << stepCmd
      << ",\"impulse_ms\":" << params.impulse_ms << ",\"settle_ms\":" << params.settle_ms
-     << ",\"valid_rows_raw\":" << validRowsRaw << ",\"valid_rows_clean\":" << validRows << ",\"tags_total\":" << tagsTotal
+     << ",\"valid_rows\":" << validRows << ",\"tags_total\":" << tagsTotal
      << ",\"status\":\"" << calibStatus << "\",\"samples\":[";
   for (size_t i = 0; i < rows.size(); ++i) {
-    int profileIdx = -1;
-    for (size_t pi = 0; pi < cleanIdx.size(); ++pi) if (cleanIdx[pi] == i) { profileIdx = static_cast<int>(pi); break; }
     double zr = 0.0;
-    if (profileIdx >= 0 && hasFocalRange) zr = std::max(0.0, std::min(1.0, (rows[i].focal_px - minF) / (maxF - minF)));
+    if (rows[i].ok && rows[i].tags_found > 0 && rows[i].focal_px > 0.0 && hasFocalRange) zr = std::max(0.0, std::min(1.0, (rows[i].focal_px - minF) / (maxF - minF)));
     g_zoomCalibProgressRatio = zr;
     if (i) os << ",";
-    os << "{\"idx\":" << i << ",\"profile_idx\":" << profileIdx << ",\"zoom_ratio\":" << std::fixed << std::setprecision(3) << zr
+    os << "{\"idx\":" << i << ",\"zoom_ratio\":" << std::fixed << std::setprecision(3) << zr
        << ",\"cmd\":" << (i == 0 ? 0 : cmd) << ",\"direction\":\"" << params.calibration_direction << "\""
        << ",\"hold_ms\":" << (i == 0 ? 0 : params.impulse_ms)
-       << ",\"focal_px\":" << rows[i].focal_px
-       << ",\"anchor_tag_id\":" << params.anchor_tag_id << ",\"anchor_found\":" << (rows[i].anchor_found ? "true" : "false")
-       << ",\"anchor_px\":" << rows[i].anchor_px
-       << ",\"tags_found\":" << rows[i].tags_found << ",\"ids\":[";
-    for (size_t j = 0; j < rows[i].ids.size(); ++j) { if (j) os << ","; os << rows[i].ids[j]; }
-    os << "]}";
+       << ",\"focal_px\":" << rows[i].focal_px << ",\"near_px\":" << rows[i].near_px << ",\"far_px\":" << rows[i].far_px
+       << ",\"tags_found\":" << rows[i].tags_found << "}";
   }
   os << "]}";
   g_zoomAprilTagProfileJson = os.str();
   std::ofstream out(g_zoomAprilTagProfileFile, std::ios::trunc); out << g_zoomAprilTagProfileJson;
-  std::ostringstream distName; distName << (params.anchor_distance_mm / 1000.0);
-  std::string ds = distName.str(); std::replace(ds.begin(), ds.end(), '.', '_');
-  while (!ds.empty() && ds.back() == '0') ds.pop_back();
-  if (!ds.empty() && ds.back() == '_') ds.pop_back();
-  std::ofstream out2(std::string("zoom_apriltag_profile_anchor_") + ds + "m.json", std::ios::trunc); out2 << g_zoomAprilTagProfileJson;
   {
     std::lock_guard<std::mutex> slk(g_zoomCalibStatusMtx);
     g_zoomCalibLastStatus = calibStatus;
@@ -2905,8 +2861,8 @@ static void handle_client(int cfd, const Opts& o) {
         const std::string mode = extract_json_string_field(bodyReq, "mode");
         ZoomAprilTagCalibParams p = g_zoomCalibSettings;
         extract_json_double_field(bodyReq, "tag_size_mm", &p.tag_size_mm);
-        if (!extract_json_int_field(bodyReq, "anchor_tag_id", &p.anchor_tag_id)) extract_json_int_field(bodyReq, "near_tag_id", &p.anchor_tag_id);
-        if (!extract_json_double_field(bodyReq, "anchor_distance_mm", &p.anchor_distance_mm)) extract_json_double_field(bodyReq, "near_distance_mm", &p.anchor_distance_mm);
+        extract_json_double_field(bodyReq, "near_distance_mm", &p.near_distance_mm);
+        extract_json_double_field(bodyReq, "far_distance_mm", &p.far_distance_mm);
         extract_json_int_field(bodyReq, "samples", &p.samples);
         extract_json_int_field(bodyReq, "impulse_ms", &p.impulse_ms);
         extract_json_int_field(bodyReq, "settle_ms", &p.settle_ms);
@@ -2968,8 +2924,8 @@ static void handle_client(int cfd, const Opts& o) {
     if (method == "POST") {
       ZoomAprilTagCalibParams p = g_zoomCalibSettings;
       extract_json_double_field(bodyReq, "tag_size_mm", &p.tag_size_mm);
-      if (!extract_json_int_field(bodyReq, "anchor_tag_id", &p.anchor_tag_id)) extract_json_int_field(bodyReq, "near_tag_id", &p.anchor_tag_id);
-      if (!extract_json_double_field(bodyReq, "anchor_distance_mm", &p.anchor_distance_mm)) extract_json_double_field(bodyReq, "near_distance_mm", &p.anchor_distance_mm);
+      extract_json_double_field(bodyReq, "near_distance_mm", &p.near_distance_mm);
+      extract_json_double_field(bodyReq, "far_distance_mm", &p.far_distance_mm);
       extract_json_int_field(bodyReq, "samples", &p.samples);
       extract_json_int_field(bodyReq, "impulse_ms", &p.impulse_ms);
       extract_json_int_field(bodyReq, "settle_ms", &p.settle_ms);
@@ -2995,17 +2951,6 @@ static void handle_client(int cfd, const Opts& o) {
       "Content-Length: " + std::to_string(std::strlen(body)) + "\r\n\r\n";
     send_all(cfd, hdr.data(), hdr.size());
     send_all(cfd, body, std::strlen(body));
-    ::close(cfd);
-    return;
-  }
-
-  if (path == "/api/zoom_calibration/build_master_profile") {
-    const std::string body = "{\"ok\":false,\"error\":\"not_implemented\"}";
-    const std::string hdr =
-      "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\n"
-      "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
-    send_all(cfd, hdr.data(), hdr.size());
-    send_all(cfd, body.data(), body.size());
     ::close(cfd);
     return;
   }

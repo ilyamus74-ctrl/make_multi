@@ -311,10 +311,14 @@
         <button id="zoomRunAprilTagCalibBtn" class="small-btn">RUN APRILTAG ZOOM CALIB</button>
         <button id="apriltagTestBtn" class="small-btn">TEST APRILTAG</button>
         <label>Tag mm <input id="zoomTagSizeMm" type="number" value="160"></label>
-        <label>Near m <input id="zoomNearM" type="number" value="1" step="0.1"></label>
-        <label>Far m <input id="zoomFarM" type="number" value="10" step="0.5"></label>
-        <label>Impulse ms <input id="zoomImpulseMs" type="number" value="100"></label>
-        <label>Samples <input id="zoomSamples" type="number" value="20"></label>
+        <label>Anchor ID <input id="zoomAnchorTagId" type="number" value="7"></label>
+        <label>Anchor distance m <input id="zoomAnchorDistanceM" type="number" value="1" step="0.1"></label>
+        <button id="zoomAnchor1mBtn" class="small-btn">1 m</button>
+        <button id="zoomAnchor5mBtn" class="small-btn">5 m</button>
+        <button id="zoomAnchor10mBtn" class="small-btn">10 m</button>
+        <label>Impulse ms <input id="zoomImpulseMs" type="number" value="170"></label>
+        <label>Settle ms <input id="zoomSettleMs" type="number" value="250"></label>
+        <label>Samples <input id="zoomSamples" type="number" value="12"></label>
         <label>Cmd <input id="zoomCmdAbs" type="number" value="34" min="1" max="100"></label>
         <label>Wide hold ms <input id="zoomWideHoldMs" type="number" value="3000" min="500" max="8000"></label>
         <label>Direction
@@ -333,6 +337,7 @@
         <button id="zoomTestTeleBtn" class="small-btn">TEST TELE</button>
         <button id="zoomStopBtn" class="small-btn">STOP ZOOM</button>
         <code id="zoomAprilTagCalibStatus">idle</code>
+        <span style="opacity:.8">Manual 3-run flow: set Anchor distance 1m/5m/10m, move marker, press RUN each time.</span>
       </div>
       <div class="row">
         <details><summary>PTZ log</summary><textarea id="ptzDebugLog" style="width:100%;height:48px;font-family:monospace;font-size:12px"></textarea></details>
@@ -1717,11 +1722,16 @@ async function ptzStart() {
   $('zoomStopBtn').onclick = () => {
     zoomStopNow().catch(e => ptzLog('ZOOM STOP error', { error: String(e.message || e) }));
   };
+
+  if ($('zoomAnchor1mBtn')) $('zoomAnchor1mBtn').onclick = () => { $('zoomAnchorDistanceM').value = 1; scheduleZoomCalibSettingsSave(); };
+  if ($('zoomAnchor5mBtn')) $('zoomAnchor5mBtn').onclick = () => { $('zoomAnchorDistanceM').value = 5; scheduleZoomCalibSettingsSave(); };
+  if ($('zoomAnchor10mBtn')) $('zoomAnchor10mBtn').onclick = () => { $('zoomAnchorDistanceM').value = 10; scheduleZoomCalibSettingsSave(); };
   [
     'zoomTagSizeMm',
-    'zoomNearM',
-    'zoomFarM',
+    'zoomAnchorTagId',
+    'zoomAnchorDistanceM',
     'zoomImpulseMs',
+    'zoomSettleMs',
     'zoomSamples',
     'zoomCmdAbs',
     'zoomWideHoldMs',
@@ -1962,10 +1972,11 @@ async function ptzStart() {
   async function loadZoomCalibSettings() {
     const s = await apiGetJson('/api/zoom_calibration/settings');
     if ($('zoomTagSizeMm')) $('zoomTagSizeMm').value = Number(s.tag_size_mm || 160);
-    if ($('zoomNearM')) $('zoomNearM').value = Number((s.near_distance_mm || 1000) / 1000).toFixed(2).replace(/\.00$/, '');
-    if ($('zoomFarM')) $('zoomFarM').value = Number((s.far_distance_mm || 10000) / 1000).toFixed(2).replace(/\.00$/, '');
-    if ($('zoomImpulseMs')) $('zoomImpulseMs').value = Number(s.impulse_ms || 100);
-    if ($('zoomSamples')) $('zoomSamples').value = Number(s.samples || 20);
+    if ($('zoomAnchorTagId')) $('zoomAnchorTagId').value = Number(s.anchor_tag_id ?? 7);
+    if ($('zoomAnchorDistanceM')) $('zoomAnchorDistanceM').value = Number((s.anchor_distance_mm ?? 1000) / 1000).toFixed(2).replace(/\.00$/, '');
+    if ($('zoomImpulseMs')) $('zoomImpulseMs').value = Number(s.impulse_ms || 170);
+    if ($('zoomSettleMs')) $('zoomSettleMs').value = Number(s.settle_ms || 250);
+    if ($('zoomSamples')) $('zoomSamples').value = Number(s.samples || 12);
     if ($('zoomCmdAbs')) $('zoomCmdAbs').value = Number(s.cmd_abs || 34);
     if ($('zoomWideHoldMs')) $('zoomWideHoldMs').value = Number(s.wide_hold_ms || 2000);
     if ($('zoomCalibDirection')) {
@@ -1979,15 +1990,15 @@ async function ptzStart() {
   function readZoomCalibSettingsFromUi() {
     return {
       tag_size_mm: Number($('zoomTagSizeMm')?.value || 160),
-      near_distance_mm: Number($('zoomNearM')?.value || 1) * 1000,
-      far_distance_mm: Number($('zoomFarM')?.value || 10) * 1000,
-      impulse_ms: Number($('zoomImpulseMs')?.value || 100),
-      settle_ms: 250,
-      samples: Number($('zoomSamples')?.value || 20),
+      anchor_tag_id: Number($('zoomAnchorTagId')?.value || 7),
+      anchor_distance_mm: Number($('zoomAnchorDistanceM')?.value || 1) * 1000,
+      impulse_ms: Number($('zoomImpulseMs')?.value || 170),
+      settle_ms: Number($('zoomSettleMs')?.value || 250),
+      samples: Number($('zoomSamples')?.value || 12),
       cmd_abs: Number($('zoomCmdAbs')?.value || 34),
       wide_cmd_sign: Number($('zoomWideSign')?.value || 1),
       wide_hold_ms: Number($('zoomWideHoldMs')?.value || 2000),
-      calibration_direction: $('zoomCalibDirection')?.value || 'wide_to_tele',
+      calibration_direction: $('zoomCalibDirection')?.value || 'tele_to_wide',
     };
   }
 
