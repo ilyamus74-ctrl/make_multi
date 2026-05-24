@@ -366,6 +366,7 @@ struct ZoomAprilTagCalibParams {
   int cmd_abs = 34;
   int wide_cmd_sign = 1;
   int wide_hold_ms = 2000;
+  std::string calibration_direction = "wide_to_tele";
 };
 
 static ZoomAprilTagCalibParams g_zoomCalibSettings;
@@ -382,6 +383,7 @@ static void clamp_zoom_calib_params(ZoomAprilTagCalibParams& p, int cmdMaxZoom) 
   p.cmd_abs = std::max(1, std::min(maxZoom, p.cmd_abs));
   p.wide_cmd_sign = (p.wide_cmd_sign < 0) ? -1 : 1;
   p.wide_hold_ms = std::max(300, std::min(10000, p.wide_hold_ms));
+  if (p.calibration_direction != "tele_to_wide") p.calibration_direction = "wide_to_tele";
 }
 
 static const std::chrono::steady_clock::time_point g_processStartedAt = std::chrono::steady_clock::now();
@@ -672,6 +674,7 @@ static std::string zoom_calibration_json() {
   std::lock_guard<std::mutex> lk(g_zoomCalibMtx);
   std::ostringstream os;
   os << "{\"source\":\"startup_server\","
+     << "\"calibration_direction\":\"" << g_zoomCalibSettings.calibration_direction << "\","
      << "\"in_progress\":" << (g_zoomCalibInProgress.load() ? "true" : "false") << ","
      << "\"last_status\":\"" << lastStatus << "\","
      << "\"last_message\":\"" << lastMessage << "\","
@@ -736,6 +739,7 @@ static std::string zoom_calib_settings_json(const ZoomAprilTagCalibParams& p) {
      << ",\"cmd_abs\":" << p.cmd_abs
      << ",\"wide_cmd_sign\":" << p.wide_cmd_sign
      << ",\"wide_hold_ms\":" << p.wide_hold_ms
+     << ",\"calibration_direction\":\"" << p.calibration_direction << "\""
      << "}";
   return os.str();
 }
@@ -752,7 +756,8 @@ static bool save_zoom_calib_settings(const ZoomAprilTagCalibParams& p) {
     << "  \"settle_ms\": " << p.settle_ms << ",\n"
     << "  \"cmd_abs\": " << p.cmd_abs << ",\n"
     << "  \"wide_cmd_sign\": " << p.wide_cmd_sign << ",\n"
-    << "  \"wide_hold_ms\": " << p.wide_hold_ms << "\n"
+    << "  \"wide_hold_ms\": " << p.wide_hold_ms << ",\n"
+    << "  \"calibration_direction\": \"" << p.calibration_direction << "\"\n"
     << "}\n";
   return true;
 }
@@ -772,6 +777,7 @@ static bool load_zoom_calib_settings(ZoomAprilTagCalibParams& p, int cmdMaxZoom)
   if (extract_json_int_field(body, "cmd_abs", &i)) p.cmd_abs = i;
   if (extract_json_int_field(body, "wide_cmd_sign", &i)) p.wide_cmd_sign = i;
   if (extract_json_int_field(body, "wide_hold_ms", &i)) p.wide_hold_ms = i;
+  p.calibration_direction = extract_json_string_field(body, "calibration_direction");
   clamp_zoom_calib_params(p, cmdMaxZoom);
   return true;
 }
@@ -972,8 +978,18 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
   (void)std::system("curl -sS -m 1 -X POST http://127.0.0.1:8090/api/autopilot/stop >/dev/null 2>/dev/null");
   const int cmd = std::max(1, std::min(o.cmd_max_zoom, params.cmd_abs));
   const int wideCmd = params.wide_cmd_sign * cmd;
-  const bool wideOk = send_zoom_stream_via_bridge_ws(wideCmd, params.wide_hold_ms);
-  std::cout << "zoom-apriltag: wide stream cmd=" << wideCmd << " hold_ms=" << params.wide_hold_ms << " ok=" << (wideOk ? 1 : 0) << "\n";
+  const int teleCmd = -params.wide_cmd_sign * cmd;
+  int homeCmd = wideCmd;
+  int stepCmd = teleCmd;
+  double homeZoomRatio = 0.0;
+  if (params.calibration_direction == "tele_to_wide") {
+    homeCmd = teleCmd;
+    stepCmd = wideCmd;
+    homeZoomRatio = 1.0;
+  }
+  const bool wideOk = send_zoom_stream_via_bridge_ws(homeCmd, params.wide_hold_ms);
+  std::cout << "zoom-apriltag: home stream direction=" << params.calibration_direction
+            << " cmd=" << homeCmd << " hold_ms=" << params.wide_hold_ms << " ok=" << (wideOk ? 1 : 0) << "\n";
   if (!wideOk) {
     g_detectEnabled = prevDetect;
     std::lock_guard<std::mutex> slk(g_zoomCalibStatusMtx);
@@ -983,15 +999,15 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
     return false;
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  g_zoomRatio = 0.0;
+  g_zoomRatio = homeZoomRatio;
 
   std::vector<ZoomMarkerMeasurement> rows;
   cv::Mat gray; uint64_t fid = 0;
   if (fetch_latest_gray_frame(&fid, &gray)) rows.push_back(measure_zoom_markers_apriltag(gray, params));
   for (int i = 1; i <= std::max(1, params.samples); ++i) {
-    const int impulseCmd = -params.wide_cmd_sign * cmd;
-    const bool impulseOk = send_zoom_stream_via_bridge_ws(impulseCmd, params.impulse_ms);
-    std::cout << "zoom-apriltag: impulse idx=" << i << " cmd=" << impulseCmd << " hold_ms=" << params.impulse_ms << " ok=" << (impulseOk ? 1 : 0) << "\n";
+    const bool impulseOk = send_zoom_stream_via_bridge_ws(stepCmd, params.impulse_ms);
+    std::cout << "zoom-apriltag: impulse idx=" << i << " direction=" << params.calibration_direction
+              << " cmd=" << stepCmd << " hold_ms=" << params.impulse_ms << " ok=" << (impulseOk ? 1 : 0) << "\n";
     if (!impulseOk) {
       g_detectEnabled = prevDetect;
       std::lock_guard<std::mutex> slk(g_zoomCalibStatusMtx);
@@ -1009,18 +1025,41 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
   }
   g_detectEnabled = prevDetect;
   double minF = 1e9, maxF = 0.0;
-  for (const auto& r : rows) if (r.ok) { minF = std::min(minF, r.focal_px); maxF = std::max(maxF, r.focal_px); }
+  int validRows = 0;
+  int tagsTotal = 0;
+  for (const auto& r : rows) {
+    tagsTotal += r.tags_found;
+    if (r.ok && r.tags_found > 0 && r.focal_px > 0.0) {
+      minF = std::min(minF, r.focal_px);
+      maxF = std::max(maxF, r.focal_px);
+      validRows++;
+    }
+  }
+  const bool hasFocalRange = (validRows > 0 && maxF > minF);
+  const bool noTags = (tagsTotal == 0);
+  const bool tooFewRows = (validRows < 3);
+  const bool noFocalChange = (!hasFocalRange) || ((maxF - minF) < 1e-6);
+  std::string calibStatus = "ok";
+  std::string calibMessage = "apriltag_zoom_table_done";
+  if (noTags) { calibStatus = "failed"; calibMessage = "apriltag_no_tags_detected"; }
+  else if (tooFewRows) { calibStatus = "failed"; calibMessage = "apriltag_too_few_valid_rows"; }
+  else if (noFocalChange) { calibStatus = "failed"; calibMessage = "apriltag_no_focal_change"; }
   std::ostringstream os;
-  os << "{\"method\":\"apriltag_zoom_table\",\"tag_size_mm\":" << params.tag_size_mm
+  os << "{\"method\":\"apriltag_zoom_table\",\"calibration_direction\":\"" << params.calibration_direction
+     << "\",\"tag_size_mm\":" << params.tag_size_mm
      << ",\"near_distance_mm\":" << params.near_distance_mm << ",\"far_distance_mm\":" << params.far_distance_mm
-     << ",\"cmd_abs\":" << cmd << ",\"impulse_ms\":" << params.impulse_ms << ",\"samples\":[";
+     << ",\"cmd_abs\":" << cmd << ",\"home_cmd\":" << homeCmd << ",\"step_cmd\":" << stepCmd
+     << ",\"impulse_ms\":" << params.impulse_ms << ",\"settle_ms\":" << params.settle_ms
+     << ",\"valid_rows\":" << validRows << ",\"tags_total\":" << tagsTotal
+     << ",\"status\":\"" << calibStatus << "\",\"samples\":[";
   for (size_t i = 0; i < rows.size(); ++i) {
     double zr = 0.0;
-    if (rows[i].ok && maxF > minF) zr = std::max(0.0, std::min(1.0, (rows[i].focal_px - minF) / (maxF - minF)));
+    if (rows[i].ok && rows[i].tags_found > 0 && rows[i].focal_px > 0.0 && hasFocalRange) zr = std::max(0.0, std::min(1.0, (rows[i].focal_px - minF) / (maxF - minF)));
     g_zoomCalibProgressRatio = zr;
     if (i) os << ",";
     os << "{\"idx\":" << i << ",\"zoom_ratio\":" << std::fixed << std::setprecision(3) << zr
-       << ",\"cmd\":" << (i == 0 ? 0 : cmd) << ",\"hold_ms\":" << (i == 0 ? 0 : params.impulse_ms)
+       << ",\"cmd\":" << (i == 0 ? 0 : cmd) << ",\"direction\":\"" << params.calibration_direction << "\""
+       << ",\"hold_ms\":" << (i == 0 ? 0 : params.impulse_ms)
        << ",\"focal_px\":" << rows[i].focal_px << ",\"near_px\":" << rows[i].near_px << ",\"far_px\":" << rows[i].far_px
        << ",\"tags_found\":" << rows[i].tags_found << "}";
   }
@@ -1029,8 +1068,8 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
   std::ofstream out(g_zoomAprilTagProfileFile, std::ios::trunc); out << g_zoomAprilTagProfileJson;
   {
     std::lock_guard<std::mutex> slk(g_zoomCalibStatusMtx);
-    g_zoomCalibLastStatus = "ok";
-    g_zoomCalibLastMessage = "apriltag_zoom_table_done";
+    g_zoomCalibLastStatus = calibStatus;
+    g_zoomCalibLastMessage = calibMessage;
     g_zoomCalibLastRunAt = now_utc_iso8601();
   }
   return true;
@@ -2720,6 +2759,7 @@ static void handle_client(int cfd, const Opts& o) {
         extract_json_int_field(bodyReq, "cmd_abs", &p.cmd_abs);
         extract_json_int_field(bodyReq, "wide_cmd_sign", &p.wide_cmd_sign);
         extract_json_int_field(bodyReq, "wide_hold_ms", &p.wide_hold_ms);
+        p.calibration_direction = extract_json_string_field(bodyReq, "calibration_direction");
         clamp_zoom_calib_params(p, o.cmd_max_zoom);
         g_zoomCalibSettings = p;
         save_zoom_calib_settings(g_zoomCalibSettings);
@@ -2782,6 +2822,7 @@ static void handle_client(int cfd, const Opts& o) {
       extract_json_int_field(bodyReq, "cmd_abs", &p.cmd_abs);
       extract_json_int_field(bodyReq, "wide_cmd_sign", &p.wide_cmd_sign);
       extract_json_int_field(bodyReq, "wide_hold_ms", &p.wide_hold_ms);
+      p.calibration_direction = extract_json_string_field(bodyReq, "calibration_direction");
       clamp_zoom_calib_params(p, o.cmd_max_zoom);
       g_zoomCalibSettings = p;
       save_zoom_calib_settings(g_zoomCalibSettings);

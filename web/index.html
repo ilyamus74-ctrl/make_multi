@@ -316,6 +316,12 @@
         <label>Samples <input id="zoomSamples" type="number" value="20"></label>
         <label>Cmd <input id="zoomCmdAbs" type="number" value="34" min="1" max="100"></label>
         <label>Wide hold ms <input id="zoomWideHoldMs" type="number" value="3000" min="500" max="8000"></label>
+        <label>Direction
+          <select id="zoomCalibDirection">
+            <option value="wide_to_tele">WIDE→TELE</option>
+            <option value="tele_to_wide">TELE→WIDE</option>
+          </select>
+        </label>
         <label>Wide sign
           <select id="zoomWideSign">
             <option value="-1" selected>-</option>
@@ -1714,6 +1720,7 @@ async function ptzStart() {
     'zoomSamples',
     'zoomCmdAbs',
     'zoomWideHoldMs',
+    'zoomCalibDirection',
     'zoomWideSign',
   ].forEach(id => {
     if ($(id)) $(id).onchange = scheduleZoomCalibSettingsSave;
@@ -1956,6 +1963,10 @@ async function ptzStart() {
     if ($('zoomSamples')) $('zoomSamples').value = Number(s.samples || 20);
     if ($('zoomCmdAbs')) $('zoomCmdAbs').value = Number(s.cmd_abs || 34);
     if ($('zoomWideHoldMs')) $('zoomWideHoldMs').value = Number(s.wide_hold_ms || 2000);
+    if ($('zoomCalibDirection')) {
+      $('zoomCalibDirection').value =
+        s.calibration_direction === 'tele_to_wide' ? 'tele_to_wide' : 'wide_to_tele';
+    }
     if ($('zoomWideSign')) $('zoomWideSign').value = String(Number(s.wide_cmd_sign || 1) < 0 ? -1 : 1);
     if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings loaded';
   }
@@ -1971,6 +1982,7 @@ async function ptzStart() {
       cmd_abs: Number($('zoomCmdAbs')?.value || 34),
       wide_cmd_sign: Number($('zoomWideSign')?.value || 1),
       wide_hold_ms: Number($('zoomWideHoldMs')?.value || 2000),
+      calibration_direction: $('zoomCalibDirection')?.value || 'wide_to_tele',
     };
   }
 
