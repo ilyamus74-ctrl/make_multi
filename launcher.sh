@@ -63,6 +63,7 @@ BRIDGE_LOG="${BRIDGE_LOG:-$LOG_DIR/bridge.log}"
 AUTOPILOT_ENABLE="${AUTOPILOT_ENABLE:-0}"
 AUTOPILOT_REQUIRED="${AUTOPILOT_REQUIRED:-0}"
 AUTOPILOT_BIN="${AUTOPILOT_BIN:-$ROOT_DIR/.build/ptz_autopilot}"
+KILL_STALE_AUTOPILOT="${KILL_STALE_AUTOPILOT:-1}"
 AUTOPILOT_LOG="${AUTOPILOT_LOG:-$LOG_DIR/autopilot.log}"
 AUTOPILOT_PORT="${AUTOPILOT_PORT:-8090}"
 AUTOPILOT_HZ="${AUTOPILOT_HZ:-20}"
@@ -212,6 +213,9 @@ start_mjpeg() {
 }
 
 start_autopilot() {
+  if [[ "${KILL_STALE_AUTOPILOT:-1}" == "1" ]]; then
+    pkill -9 -f "$ROOT_DIR/.build/ptz_autopilot" 2>/dev/null || true
+  fi
   log "Starting autopilot: $AUTOPILOT_BIN"
   "$AUTOPILOT_BIN" \
     --mjpeg-url "http://127.0.0.1:$MJPEG_PORT" \

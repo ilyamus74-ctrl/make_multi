@@ -23,3 +23,8 @@ AUTOPILOT_TARGET_X=0.5
 AUTOPILOT_TARGET_Y=0.5
 AUTOPILOT_MIN_PAN=4
 AUTOPILOT_MIN_TILT=3
+# Kill stale ptz_autopilot processes before starting a new one.
+KILL_STALE_AUTOPILOT=1
+
+# For instant debug use 1.0. For smooth runtime use 0.25.
+AUTOPILOT_ZOOM_SCALE_SMOOTHING=0.25
