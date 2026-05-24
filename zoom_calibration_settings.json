@@ -7,5 +7,6 @@
   "settle_ms": 250,
   "cmd_abs": 34,
   "wide_cmd_sign": 1,
-  "wide_hold_ms": 2000
+  "wide_hold_ms": 2000,
+  "calibration_direction": "tele_to_wide"
 }
