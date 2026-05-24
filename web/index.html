@@ -306,6 +306,27 @@
         <label>Min T <input id="ptzMinTilt" type="number" min="0" max="20" step="1" value="3"></label>
         <button id="ptzApplyConfigBtn" class="small-btn">APPLY PTZ</button>
       </div>
+      <div class="row" id="ptzSpeedTunePanel">
+        <b>PTZ SPEED TUNE</b>
+        <button id="ptzTuneRehomeWideBtn" class="small-btn">REHOME WIDE</button>
+        <button id="ptzTuneTele1Btn" class="small-btn">TELE +1</button>
+        <button id="ptzTuneTele2Btn" class="small-btn">TELE +2</button>
+        <button id="ptzTuneWide1Btn" class="small-btn">WIDE -1</button>
+        <button id="ptzTuneSavePointBtn" class="small-btn">SAVE SPEED POINT</button>
+        <button id="ptzTuneBuildProfileBtn" class="small-btn">BUILD SPEED CURVE</button>
+        <label>Max steps <input id="ptzTuneMaxSteps" type="number" value="8"></label>
+        <label>KP <input id="ptzTuneKp" type="number" step="0.1"></label>
+        <label>KD <input id="ptzTuneKd" type="number" step="0.1"></label>
+        <label>Max Pan <input id="ptzTuneMaxPan" type="number" step="1"></label>
+        <label>Max Tilt <input id="ptzTuneMaxTilt" type="number" step="1"></label>
+        <label>Max Accel <input id="ptzTuneMaxAccel" type="number" step="1"></label>
+        <label>Min Pan <input id="ptzTuneMinPan" type="number" step="1"></label>
+        <label>Min Tilt <input id="ptzTuneMinTilt" type="number" step="1"></label>
+        <label>Deadzone <input id="ptzTuneDeadzone" type="number" step="0.001"></label>
+        <button id="ptzTuneApplyConfigBtn" class="small-btn">APPLY SPEED</button>
+        <code id="ptzTuneStatus">step=0 zoom=0.00 focal=0 points=0</code>
+        <span style="opacity:.8">Workflow: 1) REHOME WIDE 2) Tune + SAVE SPEED POINT 3) TELE +2 4) Tune + SAVE 5) Repeat until TELE.</span>
+      </div>
       <div class="row" id="zoomAprilTagCalibPanel">
         <b>ZOOM CALIB:</b>
         <button id="zoomRunAprilTagCalibBtn" class="small-btn">RUN APRILTAG ZOOM CALIB</button>
@@ -1310,6 +1331,14 @@ function syncPtzConfigUiFromState(ap) {
   if ($('ptzMinTilt') && Number.isFinite(Number(ap.min_tilt))) {
     $('ptzMinTilt').value = String(Number(ap.min_tilt));
   }
+  if ($('ptzTuneKp')) $('ptzTuneKp').value = Number(ap.kp || 0).toFixed(2);
+  if ($('ptzTuneKd')) $('ptzTuneKd').value = Number(ap.kd || 0).toFixed(2);
+  if ($('ptzTuneMaxPan')) $('ptzTuneMaxPan').value = String(Number(ap.max_pan || 0));
+  if ($('ptzTuneMaxTilt')) $('ptzTuneMaxTilt').value = String(Number(ap.max_tilt || 0));
+  if ($('ptzTuneMaxAccel')) $('ptzTuneMaxAccel').value = String(Number(ap.max_accel || 0));
+  if ($('ptzTuneMinPan')) $('ptzTuneMinPan').value = String(Number(ap.min_pan || 0));
+  if ($('ptzTuneMinTilt')) $('ptzTuneMinTilt').value = String(Number(ap.min_tilt || 0));
+  if ($('ptzTuneDeadzone')) $('ptzTuneDeadzone').value = Number(ap.deadzone || 0).toFixed(3);
 }
 
 async function refreshPtzConfigFromServer() {
@@ -1564,6 +1593,8 @@ async function ptzStart() {
 
   let zoomTestStopTimer = null;
   let zoomTestPulseSeq = 0;
+  let ptzTuneStep = 0;
+  let ptzTuneSavedPoints = 0;
 
   function sleepMs(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -1700,6 +1731,36 @@ async function ptzStart() {
   }
 
 
+
+  async function postZoomStateForTune(zoomRatio, source) {
+    const payload = { zoom_ratio: Math.max(0, Math.min(1, Number(zoomRatio || 0))), zoom_confidence: 1.0, zoom_source: source };
+    return await apiPostJson('/api/zoom/state', payload);
+  }
+  function tuneStatusSet(zoomRatio = 0, focalPx = 0) {
+    $('ptzTuneStatus').textContent = `step=${ptzTuneStep} zoom=${Number(zoomRatio || 0).toFixed(2)} focal=${Math.round(Number(focalPx || 0))} points=${ptzTuneSavedPoints}`;
+  }
+  async function refreshSpeedProfileCount() {
+    const data = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile`);
+    ptzTuneSavedPoints = Array.isArray(data.points) ? data.points.length : 0;
+    return data;
+  }
+  async function tuneMoveSteps(dir, n) {
+    const cmdAbs = Number($('zoomCmdAbs').value || 34);
+    const sign = Number($('zoomWideSign').value || -1);
+    const hold = Number($('zoomImpulseMs').value || 170);
+    for (let i = 0; i < n; i++) {
+      const cmd = dir > 0 ? (-cmdAbs * sign) : (cmdAbs * sign);
+      await zoomTest(cmd, hold);
+      await new Promise(resolve => setTimeout(resolve, 120));
+    }
+    ptzTuneStep = Math.max(0, ptzTuneStep + dir * n);
+    const maxSteps = Math.max(1, Number($('ptzTuneMaxSteps').value || 8));
+    const ratio = Math.max(0, Math.min(1, ptzTuneStep / maxSteps));
+    const zs = await postZoomStateForTune(ratio, dir > 0 ? 'ptz_tune_tele_step' : 'ptz_tune_wide_step');
+    await refreshPtzConfigFromServer();
+    tuneStatusSet(zs.zoom_ratio, zs.focal_px);
+  }
+
   $('zoomRunCalibrationBtn').onclick = async () => {
     await runZoomCalibrationFromUi();
   };
@@ -1727,6 +1788,31 @@ async function ptzStart() {
   $('zoomStopBtn').onclick = () => {
     zoomStopNow().catch(e => ptzLog('ZOOM STOP error', { error: String(e.message || e) }));
   };
+
+  $('ptzTuneRehomeWideBtn').onclick = () => (async () => {
+    await ptzStop();
+    const cmd = Number($('zoomCmdAbs').value || 34) * Number($('zoomWideSign').value || -1);
+    const hold = Number($('zoomWideHoldMs').value || 3000);
+    await zoomTest(cmd, hold);
+    ptzTuneStep = 0;
+    const zs = await postZoomStateForTune(0.0, 'ptz_tune_rehome_wide');
+    await refreshPtzConfigFromServer(); await refreshSpeedProfileCount(); tuneStatusSet(zs.zoom_ratio, zs.focal_px);
+  })().catch(e => ptzLog('PTZ TUNE REHOME error', { error: String(e.message || e) }));
+  $('ptzTuneTele1Btn').onclick = () => tuneMoveSteps(1, 1).catch(e => ptzLog('PTZ TUNE TELE+1 error', { error: String(e.message || e) }));
+  $('ptzTuneTele2Btn').onclick = () => tuneMoveSteps(1, 2).catch(e => ptzLog('PTZ TUNE TELE+2 error', { error: String(e.message || e) }));
+  $('ptzTuneWide1Btn').onclick = () => tuneMoveSteps(-1, 1).catch(e => ptzLog('PTZ TUNE WIDE-1 error', { error: String(e.message || e) }));
+  $('ptzTuneApplyConfigBtn').onclick = () => (async () => {
+    const cfg = { kp:Number($('ptzTuneKp').value||0), kd:Number($('ptzTuneKd').value||0), max_pan:Number($('ptzTuneMaxPan').value||0), max_tilt:Number($('ptzTuneMaxTilt').value||0), max_accel:Number($('ptzTuneMaxAccel').value||0), min_pan:Number($('ptzTuneMinPan').value||0), min_tilt:Number($('ptzTuneMinTilt').value||0), deadzone:Number($('ptzTuneDeadzone').value||0) };
+    const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/config`, cfg); ptzLog('PTZ TUNE APPLY SPEED', { cfg, res }); await refreshPtzConfigFromServer();
+  })().catch(e => ptzLog('PTZ TUNE APPLY error', { error: String(e.message || e) }));
+  $('ptzTuneSavePointBtn').onclick = () => (async () => {
+    const zs = await apiGetJson('/api/zoom/state'); await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`);
+    const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/save_point`, { step: ptzTuneStep, zoom_ratio: Number(zs.zoom_ratio || 0), focal_px: Number(zs.focal_px || 0) });
+    await refreshSpeedProfileCount(); tuneStatusSet(zs.zoom_ratio, zs.focal_px); ptzLog(`SPEED POINT SAVED step=${ptzTuneStep} zoom=${Number(zs.zoom_ratio||0).toFixed(2)}`, res);
+  })().catch(e => ptzLog('PTZ TUNE SAVE error', { error: String(e.message || e) }));
+  $('ptzTuneBuildProfileBtn').onclick = () => (async () => {
+    const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/build`, {}); await refreshSpeedProfileCount(); ptzLog('PTZ TUNE BUILD PROFILE', res);
+  })().catch(e => ptzLog('PTZ TUNE BUILD error', { error: String(e.message || e) }));
 
   if ($('zoomAnchor1mBtn')) $('zoomAnchor1mBtn').onclick = () => { $('zoomAnchorDistanceM').value = 1; scheduleZoomCalibSettingsSave(); };
   if ($('zoomAnchor5mBtn')) $('zoomAnchor5mBtn').onclick = () => { $('zoomAnchorDistanceM').value = 5; scheduleZoomCalibSettingsSave(); };
@@ -1765,6 +1851,7 @@ async function ptzStart() {
   refreshDetectionLimits().catch(e => ptzLog('LIMIT init error', { error: String(e.message || e) }));
   refreshDetectionThrottle().catch(e => ptzLog('THROTTLE init error', { error: String(e.message || e) }));
   refreshPtzConfigFromServer().catch(e => ptzLog('PTZ CONFIG init error', { error: String(e.message || e) }));
+  refreshSpeedProfileCount().then(()=>tuneStatusSet(0,0)).catch(e => ptzLog('PTZ SPEED PROFILE init error', { error: String(e.message || e) }));
   $('mjpegFrame').onload = () => {
     clearStreamRetry();
     telemetryState.lastImgFrameTs = Date.now();

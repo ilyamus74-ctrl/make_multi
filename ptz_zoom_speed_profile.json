@@ -1,0 +1,20 @@
+{
+  "method": "manual_ptz_zoom_speed_profile",
+  "version": 1,
+  "points": [
+    {
+      "step": 0,
+      "zoom_ratio": 0.0,
+      "focal_px": 2000.62,
+      "kp": 30,
+      "ki": 0,
+      "kd": 0.6,
+      "deadzone": 0.035,
+      "max_pan": 24,
+      "max_tilt": 16,
+      "max_accel": 10,
+      "min_pan": 4,
+      "min_tilt": 3
+    }
+  ]
+}
