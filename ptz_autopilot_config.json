@@ -7,7 +7,7 @@
   "max_tilt": 20,
   "max_accel": 4,
   "hz": 10,
-  "invert_pan": false,
+  "invert_pan": true,
   "invert_tilt": false,
   "target_x": 0.5,
   "target_y": 0.5,
