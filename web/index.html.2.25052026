@@ -516,7 +516,34 @@
           Invert Y axis: <input id="invertTilt" type="checkbox" checked>
           Swap microstep buttons: <input id="swapMicroButtons" type="checkbox">
         </div>
+        <div class="row">
+          Detection:
+          <button id="detectorToggleBtn" class="small-btn">Detector: --</button>
+          Model:
+          <select id="detectorModelSelect">
+            <option value="">loading...</option>
+          </select>
+          Active model: <code id="detectorActiveModel">--</code>
 
+          <code id="detectorSwitchState">idle</code>
+        </div>
+        <div class="row">
+          Classes source:
+          <select id="detectorClassesSource">
+            <option value="coco.names">coco.names</option>
+            <option value="coco_80_labels_list.txt">coco_80_labels_list.txt</option>
+            <option value="coco_person_lebels_list.txt">coco_person_lebels_list.txt</option>
+          </select>
+          Primary:
+          <select id="detectorPrimaryClass"></select>
+          <button id="detectorPresetPerson" class="small-btn">Person only</button>
+          <button id="detectorPresetVehicle" class="small-btn">Vehicle</button>
+          <button id="detectorPresetAll" class="small-btn">All COCO</button>
+        </div>
+        <div class="row">
+          Allowed classes:
+          <span id="detectorAllowedClasses" style="display:flex;flex-wrap:wrap;gap:6px;max-width:100%"></span>
+        </div>
         <div class="row">
           PID P: <input id="pidKp" type="number" step="0.1" value="32">
           I: <input id="pidKi" type="number" step="0.01" value="0.0">
@@ -538,6 +565,16 @@
           Max lost sec: <input id="reacquireMaxLostSec" type="number" step="0.5" value="8">
         </div>
         <div class="row">
+          PID target class:
+          <select id="pidTargetClass">
+            <option value="any">any</option>
+            <option value="person">person</option>
+            <option value="car">car</option>
+            <option value="truck">truck</option>
+            <option value="bus">bus</option>
+            <option value="bicycle">bicycle</option>
+            <option value="motorbike">motorbike</option>
+          </select>
           Overlay: <input id="showDetOverlay" type="checkbox" checked>
           Select by tap: <input id="selectTargetByTap" type="checkbox" checked>
           <button id="clearSelectedTarget" class="small-btn">CLEAR TARGET</button>
@@ -578,7 +615,9 @@
   ];
   let detectorEnabled = false;
   let detectorSelectedClasses = [];
+  let detectorClassNames = [];
   let detectorClassSource = 'coco.names';
+  let detectorModelSwitching = false;
   let detectorModelCooldownUntil = 0;
   // axes_raw в строке "Axes" — смотри какие оси двигаются
   // =========================
@@ -1002,7 +1041,7 @@
       return { pan: 0, tilt: 0, errX: 0, errY: 0, fused: 0, mode: 'lost' };
     }
     const fused = Number((det.confidence && det.confidence.fused) || 0);
-    const wantedClass = 'any'; // backend selected_classes already filters detections
+    const wantedClass = String($('pidTargetClass').value || 'any').toLowerCase();
     const filtered = wantedClass === 'any'
       ? items
       : items.filter(item => String(item.cls || '').toLowerCase() === wantedClass);
@@ -1573,6 +1612,12 @@ async function ptzStart() {
         ptzLog('DETECTION TOGGLE error', { error: String(e.message || e) })
       );
   }
+  $('detectorModelSelect').onchange = () => {
+    const model = $('detectorModelSelect').value;
+    if ($('operatorModelSelect')) $('operatorModelSelect').value = model;
+    if ($('operatorModelState')) $('operatorModelState').textContent = `selected: ${model}`;
+    selectDetectorModel(model);
+  };
   $('operatorModelApplyBtn').onclick = () =>
     applyOperatorModelSelection().catch(e =>
       ptzLog('MODEL SWITCH error', { error: String(e.message || e) })
@@ -1589,6 +1634,20 @@ async function ptzStart() {
     applyOperatorDetectEvery().catch(e =>
       ptzLog('DETECT FPS error', { error: String(e.message || e) })
     );
+  $('detectorClassesSource').onchange = async () => {
+    detectorClassSource = $('detectorClassesSource').value || 'coco.names';
+    await refreshDetectorClasses(detectorClassSource, detectorSelectedClasses);
+    await syncDetectorClasses(detectorSelectedClasses);
+  };
+  $('detectorPrimaryClass').onchange = async () => {
+    const idx = Number($('detectorPrimaryClass').value);
+    if (!Number.isInteger(idx) || idx < 0) return;
+    const rest = detectorSelectedClasses.filter(v => v !== idx);
+    await syncDetectorClasses([idx, ...rest]);
+  };
+  $('detectorPresetPerson').onclick = () => applyDetectorPreset('person');
+  $('detectorPresetVehicle').onclick = () => applyDetectorPreset('vehicle');
+  $('detectorPresetAll').onclick = () => applyDetectorPreset('all');
   if ($('detectionApplyClassesBtn')) {
     $('detectionApplyClassesBtn').onclick = () =>
       applyDetectionClasses().catch(e =>
@@ -2320,6 +2379,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     $('reacquireHoldMs').value = readReacquireParams().holdMs;
     saveSettings();
   };
+  $('pidTargetClass').onchange = () => saveSettings();
   window.addEventListener('resize', () => renderDetectionsOverlay());
   $('detOverlay').addEventListener('click', (ev) => pickTargetByCanvasPoint(ev.clientX, ev.clientY));
   ['confL0Enabled','confL1Enabled','confL2Enabled','confL3Enabled','confW0','confW1','confW2','confW3'].forEach(id => {
@@ -2740,7 +2800,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   // Do not redefine it here; the old /api/zoom_test path does not control zoom reliably.
   async function restoreSettings() {
     const raw = localStorage.getItem('pantilt_ui_settings_v2');
-    const defaults = { config_version: 16, mjpegUrl: defaultMjpegUrl(), streamMode: 'iframe', fitMode: 'contain' , controlMode: 'assist', landscapeLock: false, controlProfile: 'indoor', safeLostSec: 2.0, safeRestoreSec: 3.0, invertTiltAxis: INV_TILT_DEFAULT, swapMicroButtons: false, detectorEnabled: false, detectorClassSource: 'coco.names', detectorSelectedClasses: [], pidKp: 32, pidKi: 0, pidKd: 18, pidDeadzone: 4, pidMaxSpeed: 40, pidMaxAccel: 8, pidPanHold: 2, pidPanRelease: 5, reacquirePanStep: 18, reacquireTiltStep: 8, reacquirePanCadence: 8, reacquireTiltCadence: 16, reacquireHoldMs: 700, reacquireMaxLostSec: 8, selectedTargetId: null, showDetOverlay: true, selectTargetByTap: true, zoomTravelSec: DEFAULT_ZOOM_TRAVEL_SEC, zoomState: 0, l0_enabled: true, l1_enabled: true, l2_enabled: true, l3_enabled: true, w0: 0.40, w1: 0.25, w2: 0.20, w3: 0.15 };
+    const defaults = { config_version: 16, mjpegUrl: defaultMjpegUrl(), streamMode: 'iframe', fitMode: 'contain' , controlMode: 'assist', landscapeLock: false, controlProfile: 'indoor', safeLostSec: 2.0, safeRestoreSec: 3.0, invertTiltAxis: INV_TILT_DEFAULT, swapMicroButtons: false, detectorEnabled: false, detectorClassSource: 'coco.names', detectorSelectedClasses: [], pidKp: 32, pidKi: 0, pidKd: 18, pidDeadzone: 4, pidMaxSpeed: 40, pidMaxAccel: 8, pidPanHold: 2, pidPanRelease: 5, reacquirePanStep: 18, reacquireTiltStep: 8, reacquirePanCadence: 8, reacquireTiltCadence: 16, reacquireHoldMs: 700, reacquireMaxLostSec: 8, pidTargetClass: 'any', selectedTargetId: null, showDetOverlay: true, selectTargetByTap: true, zoomTravelSec: DEFAULT_ZOOM_TRAVEL_SEC, zoomState: 0, l0_enabled: true, l1_enabled: true, l2_enabled: true, l3_enabled: true, w0: 0.40, w1: 0.25, w2: 0.20, w3: 0.15 };
     let saved = defaults;
     if (raw) {
       try {
@@ -2761,7 +2821,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     } catch (_) {}
     detectorClassSource = String(saved.detectorClassSource || defaults.detectorClassSource);
     detectorSelectedClasses = Array.isArray(saved.detectorSelectedClasses) ? saved.detectorSelectedClasses.map(v => Number(v)).filter(Number.isFinite) : [];
-    detectorEnabled = parseBool(saved.detectorEnabled, defaults.detectorEnabled);
+    setDetectorToggleState(parseBool(saved.detectorEnabled, defaults.detectorEnabled));
     $('mjpegUrl').value = normalizeStreamUrl(saved.mjpegUrl);
     $('streamMode').value = saved.streamMode;
     $('fitMode').value = saved.fitMode;
@@ -2787,6 +2847,10 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     $('reacquireTiltCadence').value = Number(saved.reacquireTiltCadence ?? defaults.reacquireTiltCadence);
     $('reacquireHoldMs').value = Number(saved.reacquireHoldMs ?? defaults.reacquireHoldMs);
     $('reacquireMaxLostSec').value = Number(saved.reacquireMaxLostSec ?? defaults.reacquireMaxLostSec);
+    const savedTargetClass = String(saved.pidTargetClass || defaults.pidTargetClass);
+    $('pidTargetClass').value = $('pidTargetClass').querySelector(`option[value="${savedTargetClass}"]`)
+      ? savedTargetClass
+      : defaults.pidTargetClass;
     selectedTargetId = Number.isFinite(Number(saved.selectedTargetId)) ? Number(saved.selectedTargetId) : null;
     $('pidSelectedId').textContent = selectedTargetId == null ? 'auto' : String(selectedTargetId);
     $('showDetOverlay').checked = saved.showDetOverlay !== false;
@@ -2833,6 +2897,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       reacquireTiltCadence: Number($('reacquireTiltCadence').value || 16),
       reacquireHoldMs: Number($('reacquireHoldMs').value || 700),
       reacquireMaxLostSec: Number($('reacquireMaxLostSec').value || 8),
+      pidTargetClass: String($('pidTargetClass').value || 'any'),
       selectedTargetId: selectedTargetId == null ? null : selectedTargetId,
       showDetOverlay: !!$('showDetOverlay').checked,
       selectTargetByTap: !!$('selectTargetByTap').checked,
@@ -2840,6 +2905,32 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       zoomTravelSec: getZoomTravelSec(),
       zoomState,
     };
+  }
+
+  function setDetectorToggleState(enabled) {
+    detectorEnabled = !!enabled;
+    const btn = $('detectorToggleBtn');
+    btn.textContent = detectorEnabled ? 'Detector: ON' : 'Detector: OFF';
+    btn.classList.toggle('active', detectorEnabled);
+  }
+
+  function setDetectorMeta(modelName) {
+    $('detectorActiveModel').textContent = modelName || 'none';
+  }
+
+
+  function setDetectorSwitchState(text, isBusy = false) {
+    const el = $('detectorSwitchState');
+    el.textContent = text;
+    el.classList.toggle('active', !!isBusy);
+    $('detectorModelSelect').disabled = !!isBusy;
+  }
+
+  function clampClassIndexList(values) {
+    return Array.from(new Set((Array.isArray(values) ? values : [])
+      .map(v => Number(v))
+      .filter(v => Number.isInteger(v) && v >= 0 && v < detectorClassNames.length)))
+      .sort((a, b) => a - b);
   }
 
   function renderDetectionClassCheckboxes() {
@@ -2871,6 +2962,123 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       cb.checked = wanted.has(Number(cb.dataset.classId));
     });
   }
+
+  function renderDetectorClassControls() {
+    const primary = $('detectorPrimaryClass');
+    const allowed = $('detectorAllowedClasses');
+    primary.innerHTML = '';
+    allowed.innerHTML = '';
+    if (!detectorClassNames.length) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'no classes';
+      primary.appendChild(opt);
+      primary.disabled = true;
+      return;
+    }
+    detectorClassNames.forEach((name, idx) => {
+      const opt = document.createElement('option');
+      opt.value = String(idx);
+      opt.textContent = `${idx}:${name}`;
+      primary.appendChild(opt);
+      const wrap = document.createElement('label');
+      wrap.style.display = 'inline-flex';
+      wrap.style.gap = '3px';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = String(idx);
+      cb.checked = detectorSelectedClasses.includes(idx);
+      cb.onchange = async () => {
+        const now = detectorSelectedClasses.slice();
+        if (cb.checked && !now.includes(idx)) now.push(idx);
+        if (!cb.checked) now.splice(now.indexOf(idx), 1);
+        await syncDetectorClasses(now);
+      };
+      wrap.appendChild(cb);
+      const txt = document.createElement('span');
+      txt.textContent = name;
+      wrap.appendChild(txt);
+      allowed.appendChild(wrap);
+    });
+    primary.disabled = false;
+    if (detectorSelectedClasses.length) primary.value = String(detectorSelectedClasses[0]);
+    else primary.value = '0';
+  }
+
+  async function refreshDetectorClasses(source, selectedHint = null) {
+    detectorClassSource = String(source || detectorClassSource || 'coco.names');
+    $('detectorClassesSource').value = detectorClassSource;
+    try {
+      const res = await fetch(`/api/detector/classes?source=${encodeURIComponent(detectorClassSource)}`, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      detectorClassNames = Array.isArray(data.classes) ? data.classes.map(v => String(v || '')).filter(Boolean) : [];
+      detectorSelectedClasses = clampClassIndexList(selectedHint == null ? detectorSelectedClasses : selectedHint);
+      renderDetectorClassControls();
+    } catch (_) {
+      detectorClassNames = [];
+      detectorSelectedClasses = [];
+      renderDetectorClassControls();
+    }
+  }
+
+  async function syncDetectorClasses(classIds) {
+    const payloadClasses = clampClassIndexList(classIds);
+    try {
+      await fetch('/api/detector/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selected_classes: payloadClasses }),
+      });
+    } catch (_) {}
+    detectorSelectedClasses = payloadClasses;
+    renderDetectorClassControls();
+    saveSettings();
+  }
+
+  function applyDetectorPreset(kind) {
+    if (!detectorClassNames.length) return;
+    const pickByName = name => detectorClassNames.findIndex(v => v.toLowerCase() === name);
+    if (kind === 'person') {
+      const p = pickByName('person');
+      if (p >= 0) syncDetectorClasses([p]);
+      return;
+    }
+    if (kind === 'vehicle') {
+      const ids = ['car', 'truck', 'bus', 'motorbike', 'motorcycle', 'bicycle']
+        .map(pickByName)
+        .filter(v => v >= 0);
+      if (ids.length) syncDetectorClasses(ids);
+      return;
+    }
+    syncDetectorClasses(detectorClassNames.map((_, idx) => idx));
+  }
+
+  function populateDetectorModelSelect(models, currentModel) {
+    const select = $('detectorModelSelect');
+    const normalizedModels = Array.isArray(models) ? models.map(v => String(v || '')).filter(Boolean) : [];
+    select.innerHTML = '';
+    if (!normalizedModels.length) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'no models';
+      select.appendChild(opt);
+      select.value = '';
+      select.disabled = true;
+      return;
+    }
+    normalizedModels.forEach(model => {
+      const opt = document.createElement('option');
+      opt.value = model;
+      opt.textContent = model;
+      select.appendChild(opt);
+    });
+    select.disabled = false;
+    if (currentModel && normalizedModels.includes(currentModel)) {
+      select.value = currentModel;
+    } else {
+      select.value = normalizedModels[0];
+    }
 
     syncOperatorModelSelect(normalizedModels, select.value);
   }
@@ -2915,6 +3123,18 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     updateOperatorMenuSummaries();
   }
 
+  async function refreshDetectorModels(currentModelHint) {
+    try {
+      const res = await fetch('/api/detector/models', { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const currentModel = String(currentModelHint || data.current || '');
+      populateDetectorModelSelect(data.models, currentModel);
+    } catch (_) {
+      populateDetectorModelSelect([], '');
+    }
+  }
+
   function updateDetectionUi(cfg) {
     const enabled = Boolean(cfg.detect_enabled);
     const selected = Array.isArray(cfg.selected_classes) ? cfg.selected_classes.map(Number) : detectorSelectedClasses.slice();
@@ -2932,10 +3152,10 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
   async function refreshDetectorConfig() {
     const cfg = await apiGetJson('/api/detector/config');
-    detectorEnabled = parseBool(cfg.detect_enabled, false);
+    setDetectorToggleState(parseBool(cfg.detect_enabled, false));
     detectorSelectedClasses = Array.isArray(cfg.selected_classes) ? cfg.selected_classes.map(v => Number(v)).filter(Number.isFinite) : [];
     setDetectionClassCheckboxes(detectorSelectedClasses);
-    syncOperatorModelSelect(Array.isArray(cfg.models) ? cfg.models : [], String(cfg.current_model || ''));
+    setDetectorMeta(String(cfg.current_model || ''));
     updateDetectionUi(cfg);
     return cfg;
   }
@@ -2944,6 +3164,17 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     const model = String(modelName || '').trim();
     if (!model) return;
 
+    const now = Date.now();
+    if (now < detectorModelCooldownUntil) {
+      setDetectorSwitchState(`cooldown ${Math.ceil((detectorModelCooldownUntil - now) / 1000)}s`);
+      return;
+    }
+    if ($('controlMode').value === 'auto' && telemetryState.linkMode === 'critical') {
+      setDetectorSwitchState('deferred:auto-critical');
+      return;
+    }
+    detectorModelSwitching = true;
+    setDetectorSwitchState('switching...', true);
     try {
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), 6000);
@@ -2956,8 +3187,16 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       clearTimeout(timer);
       let payload = {};
       try { payload = await res.json(); } catch (_) {}
-      if (payload && payload.model_switch_error === 'cooldown') detectorModelCooldownUntil = Date.now() + 10000;
+      if (payload && payload.model_switch_error === 'cooldown') {
+        detectorModelCooldownUntil = Date.now() + 10000;
+        setDetectorSwitchState('cooldown 10s');
+      } else if (payload && payload.model_switch_error) {
+        setDetectorSwitchState(`rollback:${payload.model_switch_error}`);
+      } else {
+        setDetectorSwitchState('ok');
+      }
     } catch (_) {}
+    detectorModelSwitching = false;
     await refreshDetectorConfig();
   }
 
@@ -2973,6 +3212,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     updateOperatorMenuSummaries();
     ptzLog('MODEL SWITCH requested', { model });
 
+    $('detectorModelSelect').value = model;
     await selectDetectorModel(model);
 
     $('operatorModelState').textContent = `model: ${model}`;
@@ -3215,6 +3455,9 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     }
     $('alertState').textContent = telemetryState.alertText;
     $('linkModeChip').textContent = telemetryState.linkMode.toUpperCase();
+    if (!detectorModelSwitching && Number.isFinite(telemetryState.detFps) && telemetryState.detFps > 0 && telemetryState.detFps < DETECTOR_FPS_WARN_THRESHOLD) {
+      setDetectorSwitchState(`warn: low fps ${telemetryState.detFps.toFixed(1)}`);
+    }
   }
 
   async function setLinkMode(nextMode, reason) {
