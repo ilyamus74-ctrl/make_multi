@@ -59,9 +59,15 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     updatePtzTuneSampleButtonUi?.();
 
     if (zs) {
-      tuneStatusSet?.(Number(zs.zoom_ratio || res.zoom_ratio || 0), Number(zs.focal_px || res.focal_px || 0));
+      tuneStatusSet?.(
+        Number(zs.zoom_ratio || res.zoom_ratio || 0),
+        Number(zs.focal_px || res.focal_px || 0)
+      );
     } else {
-      tuneStatusSet?.(Number(res.zoom_ratio || 0), Number(res.focal_px || 0));
+      tuneStatusSet?.(
+        Number(res.zoom_ratio || 0),
+        Number(res.focal_px || 0)
+      );
     }
 
     ptzLog('PTZ TUNE SAMPLE BACKEND', res);
