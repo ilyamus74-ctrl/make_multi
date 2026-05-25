@@ -3871,6 +3871,10 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       const cmd = btn.dataset.cmd;
       if (!map[cmd]) return;
 
+      if ($('controlMode').value === 'ptz' && !['zin', 'zout', 'stop'].includes(cmd)) {
+        return;
+      }
+
       touchState = map[cmd];
       btn.classList.add('active');
 

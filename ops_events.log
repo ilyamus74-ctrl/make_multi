@@ -2936,3 +2936,13 @@
 2026-05-25T21:06:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779743204917,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":673}}
 2026-05-25T21:06:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779743205271,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":25}}
 2026-05-25T21:11:14Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779743474990,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":17}}
+2026-05-25T21:16:47Z type=video_restored payload={"type":"video_restored","ts_ms":1779743807579,"details":{"lost_for_ms":95}}
+2026-05-25T21:16:48Z type=video_lost payload={"type":"video_lost","ts_ms":1779743807995,"details":{"status":"RECONNECTING"}}
+2026-05-25T21:16:48Z type=video_retry payload={"type":"video_retry","ts_ms":1779743807998,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
+2026-05-25T21:16:48Z type=video_restored payload={"type":"video_restored","ts_ms":1779743808036,"details":{"lost_for_ms":41}}
+2026-05-25T21:17:00Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779743820874,"details":{"mode":"safe","reason":"rtt-high","rtt_ms":278}}
+2026-05-25T21:17:01Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779743821630,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":35}}
+2026-05-25T21:23:16Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779744195027,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":3274}}
+2026-05-25T21:23:17Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779744197844,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":94}}
+2026-05-25T21:26:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779744405403,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":1481}}
+2026-05-25T21:26:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779744405407,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":118}}
