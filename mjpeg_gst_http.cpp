@@ -3124,6 +3124,114 @@ static void handle_client(int cfd, const Opts& o) {
     return;
   }
 
+
+  if (path == "/api/zoom/pulse") {
+    if (method != "POST") {
+      const char* body = "Method Not Allowed";
+      const std::string hdr =
+        "HTTP/1.1 405 Method Not Allowed\r\nAllow: POST\r\nContent-Type: text/plain\r\nConnection: close\r\n"
+        "Content-Length: " + std::to_string(std::strlen(body)) + "\r\n\r\n";
+      send_all(cfd, hdr.data(), hdr.size());
+      send_all(cfd, body, std::strlen(body));
+      ::close(cfd);
+      return;
+    }
+
+    if (g_zoomMoveBusy.exchange(true)) {
+      const std::string body = "{\"ok\":false,\"error\":\"zoom_move_busy\"}";
+      const std::string hdr =
+        "HTTP/1.1 409 Conflict\r\nContent-Type: application/json\r\nCache-Control: no-store\r\n"
+        "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+      send_all(cfd, hdr.data(), hdr.size());
+      send_all(cfd, body.data(), body.size());
+      ::close(cfd);
+      return;
+    }
+
+    std::string direction = trim(extract_json_string_field(bodyReq, "direction"));
+    std::transform(direction.begin(), direction.end(), direction.begin(), [](unsigned char ch){ return static_cast<char>(std::tolower(ch)); });
+    int steps = 1;
+    extract_json_int_field(bodyReq, "steps", &steps);
+    steps = std::max(1, std::min(20, steps));
+    int holdMs = 170;
+    extract_json_int_field(bodyReq, "hold_ms", &holdMs);
+    holdMs = std::max(50, std::min(3000, holdMs));
+    std::string source = trim(extract_json_string_field(bodyReq, "source"));
+    if (source.empty()) source = "keyboard";
+
+    bool ok = true;
+    std::string err;
+    if (direction != "tele" && direction != "wide") {
+      ok = false;
+      err = "invalid_direction";
+    }
+
+    const int fromSample = g_zoomSampleIdx.load();
+    int toSample = fromSample;
+    ZoomProfilePoint point{};
+    if (ok) {
+      const int cmd = (direction == "tele") ? zoom_tele_cmd() : zoom_wide_cmd();
+      for (int i = 0; i < steps; ++i) {
+        if (!zoom_send_stream_cmd(cmd, holdMs, &err)) {
+          ok = false;
+          break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(80));
+      }
+    }
+
+    if (ok) {
+      const int maxIdx = zoom_max_sample_idx();
+      const int sign = (direction == "tele") ? 1 : -1;
+      toSample = std::max(0, std::min(maxIdx, fromSample + sign * steps));
+      if (!zoom_get_profile_point(toSample, &point)) {
+        ok = false;
+        err = "sample_not_found";
+      }
+    }
+
+    if (ok) {
+      g_zoomSampleIdx.store(toSample);
+      g_zoomRatio.store(point.zoom_ratio);
+      g_zoomConfidence.store(1.0);
+      {
+        std::lock_guard<std::mutex> lk(g_zoomMasterProfileMtx);
+        g_zoomSource = "zoom_pulse_" + source;
+      }
+      g_zoomStepsSinceHome.store(g_zoomStepsSinceHome.load() + steps);
+      g_zoomLastMoveMs.store(now_ms());
+      save_zoom_runtime_state();
+    }
+
+    g_zoomMoveBusy.store(false);
+
+    std::ostringstream os;
+    os << "{"
+       << "\"ok\":" << (ok ? "true" : "false")
+       << ",\"direction\":\"" << json_escape(direction) << "\""
+       << ",\"steps\":" << steps
+       << ",\"from_sample\":" << fromSample
+       << ",\"to_sample\":" << toSample
+       << ",\"source\":\"" << json_escape(source) << "\"";
+
+    if (ok) {
+      os << ",\"zoom_ratio\":" << point.zoom_ratio
+         << ",\"focal_px\":" << point.focal_px;
+    } else {
+      os << ",\"error\":\"" << json_escape(err) << "\"";
+    }
+    os << "}";
+
+    const std::string body = os.str();
+    const std::string hdr =
+      "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\n"
+      "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+    send_all(cfd, hdr.data(), hdr.size());
+    send_all(cfd, body.data(), body.size());
+    ::close(cfd);
+    return;
+  }
+
   if (path == "/api/zoom/drift") {
     if (method == "GET") {
       std::ostringstream os;

@@ -1719,6 +1719,7 @@ async function ptzStart() {
     ptzLog('ZOOM TEST stop-burst', { cmd: 0, repeat: 8, reason });
   }
 
+  // DEBUG ONLY: direct browser_ws_stream path. Normal zoom movement must use backend APIs.
   async function zoomTest(cmd, holdMs) {
     const mySeq = ++zoomTestPulseSeq;
 
@@ -2170,10 +2171,17 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
 
   async function keyboardZoomPulse(direction, reason) {
-    const cmd = direction > 0 ? getTeleCmd() : getWideCmd();
     const hold = Number($('zoomImpulseMs')?.value || 170);
-    await zoomTest(cmd, hold);
-    ptzLog('KEYBOARD ZOOM', { reason, cmd, hold });
+    const res = await apiPostJson('/api/zoom/pulse', {
+      direction,
+      steps: 1,
+      hold_ms: hold,
+      source: reason || 'keyboard'
+    });
+    ptzLog('KEYBOARD ZOOM BACKEND', res);
+    await refreshPtzTelemetry?.().catch(() => {});
+    updatePtzTuneSampleButtonUi?.();
+    return res;
   }
 
   if (!window.__ptzZoomHotkeysInstalled) {
@@ -2185,16 +2193,14 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
       const k = String(ev.key || '').toLowerCase();
 
-      // Q/W hotkeys requested for quick zoom testing.
-      // Q = WIDE impulse, W = TELE impulse.
       if (k === 'q') {
         ev.preventDefault();
-        keyboardZoomPulse(-1, 'Q_WIDE').catch(e =>
+        keyboardZoomPulse('wide', 'Q_WIDE').catch(e =>
           ptzLog('KEYBOARD ZOOM error', { key: 'q', error: String(e.message || e) })
         );
       } else if (k === 'w') {
         ev.preventDefault();
-        keyboardZoomPulse(1, 'W_TELE').catch(e =>
+        keyboardZoomPulse('tele', 'W_TELE').catch(e =>
           ptzLog('KEYBOARD ZOOM error', { key: 'w', error: String(e.message || e) })
         );
       }
