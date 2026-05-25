@@ -3925,6 +3925,17 @@ static void handle_client(int cfd, const Opts& o) {
          << ",\"detect_enabled\":" << (g_detectEnabled.load() ? "true" : "false")
          << ",\"current_model\":\"" << json_escape(g_currentModel) << "\""
          << ",\"selected_classes\":[";
+         << ",\"models\":[";
+      if (!g_availableModels.empty()) {
+        for (size_t i = 0; i < g_availableModels.size(); ++i) {
+          if (i) os << ",";
+          os << "\"" << json_escape(g_availableModels[i]) << "\"";
+        }
+      } else if (!g_currentModel.empty()) {
+        os << "\"" << json_escape(g_currentModel) << "\"";
+      }
+      os
+         << "]"
       bool first = true;
       for (int cls : g_selectedClasses) {
         if (!first) os << ",";
