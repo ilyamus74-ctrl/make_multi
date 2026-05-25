@@ -231,6 +231,10 @@
   border-color:#c43;
   opacity:.75;
 }
+
+/* Hide legacy control panel; keep DOM only for old references during migration. */
+/* Touch overlay removed: keep forced hidden if stale cached DOM exists. */
+#touchControls,
 </style>
 </head>
 <body>
@@ -3587,7 +3591,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     manualHoldTilt = tiltNorm;
     manualHoldSource = source;
     manualHoldActive = true;
-    manualHoldLastSentAt = 0;
     if (!manualHoldTimer) {
       manualHoldTimer = setInterval(manualHoldTick, MANUAL_HOLD_INTERVAL_MS);
     }
@@ -3815,100 +3818,87 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
 
 
-  let keyboardHoldStopTimer = null;
-  const KEYBOARD_HOLD_STOP_DELAY_MS = 240;
-
-  function cancelKeyboardHoldStopTimer() {
-    if (keyboardHoldStopTimer) {
-      clearTimeout(keyboardHoldStopTimer);
-      keyboardHoldStopTimer = null;
-    }
-  }
-
-  function scheduleKeyboardHoldStop() {
-    cancelKeyboardHoldStopTimer();
-    keyboardHoldStopTimer = setTimeout(() => {
-      keyboardHoldStopTimer = null;
-      if (manualKeyState.size === 0) {
-        stopManualHold('keyboard_keyup_debounced').catch(() => {});
-      }
-    }, KEYBOARD_HOLD_STOP_DELAY_MS);
-  }
-
-  function keyToManualDirection(e) {
-    const key = String(e.key || '').toLowerCase();
-    if (key === 'arrowleft') return { keyName: 'ArrowLeft', pan: -1, tilt: 0, source: 'keyboard_left' };
-    if (key === 'arrowright') return { keyName: 'ArrowRight', pan: 1, tilt: 0, source: 'keyboard_right' };
-    if (key === 'arrowup') return { keyName: 'ArrowUp', pan: 0, tilt: -1, source: 'keyboard_up' };
-    if (key === 'arrowdown') return { keyName: 'ArrowDown', pan: 0, tilt: 1, source: 'keyboard_down' };
-    return null;
-  }
-
   window.addEventListener('keydown', (e) => {
+
+    if (e.repeat) return;
     if (e.key === 'Escape') {
       panicStop('esc');
       return;
     }
     if (shouldIgnoreKeyboardEvent(e)) return;
-
-    const key = String(e.key || '').toLowerCase();
+    const key = e.key.toLowerCase();
     const code = String(e.code || '');
     const isQ = key === 'q' || code === 'KeyQ';
     const isA = key === 'a' || code === 'KeyA';
 
-    if (isQ || isA) {
-      e.preventDefault();
-      if (e.repeat) return;
-      keyboardState[isQ ? 'zin' : 'zout'] = true;
-      if (isQ) keyboardZoomSampleStep(1, 'Q_TELE');
-      if (isA) keyboardZoomSampleStep(-1, 'A_WIDE');
+    const map = {
+      arrowup: 'up',
+      arrowdown: 'down',
+      arrowleft: 'left',
+      arrowright: 'right',
+    };
+
+    let action = map[key];
+    if (isQ) action = 'zin';
+    if (isA) action = 'zout';
+
+    if (!action) return;
+    e.preventDefault();
+    keyboardState[action] = true;
+
+    if (isQ) {
+      keyboardZoomSampleStep(1, 'Q_TELE');
+      return;
+    }
+    if (isA) {
+      keyboardZoomSampleStep(-1, 'A_WIDE');
       return;
     }
 
-    const dir = keyToManualDirection(e);
-    if (!dir) return;
-
-    e.preventDefault();
-    cancelKeyboardHoldStopTimer();
-
-    keyboardState.up = dir.keyName === 'ArrowUp';
-    keyboardState.down = dir.keyName === 'ArrowDown';
-    keyboardState.left = dir.keyName === 'ArrowLeft';
-    keyboardState.right = dir.keyName === 'ArrowRight';
-
-    // On remote browsers keyup/keydown can flicker. Always refresh hold on keydown,
-    // including repeat events.
-    manualKeyState.clear();
-    manualKeyState.add(dir.keyName);
-    startManualHold(dir.pan, dir.tilt, dir.source);
+    if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(key)) {
+      if (manualKeyState.has(e.key)) return;
+      manualKeyState.add(e.key);
+      if (e.key === 'ArrowLeft') startManualHold(-1, 0, 'keyboard_left');
+      if (e.key === 'ArrowRight') startManualHold(1, 0, 'keyboard_right');
+      if (e.key === 'ArrowUp') startManualHold(0, -1, 'keyboard_up');
+      if (e.key === 'ArrowDown') startManualHold(0, 1, 'keyboard_down');
+    }
+    applyKeyboardDrive();
   });
 
   window.addEventListener('keyup', (e) => {
     if (shouldIgnoreKeyboardEvent(e)) return;
-
-    const key = String(e.key || '').toLowerCase();
+    const key = e.key.toLowerCase();
     const code = String(e.code || '');
     const isQ = key === 'q' || code === 'KeyQ';
     const isA = key === 'a' || code === 'KeyA';
 
+    const map = {
+      arrowup: 'up',
+      arrowdown: 'down',
+      arrowleft: 'left',
+      arrowright: 'right',
+    };
+
+    let action = map[key];
+    if (isQ) action = 'zin';
+    if (isA) action = 'zout';
+
+    if (!action) return;
+    e.preventDefault();
+    keyboardState[action] = false;
+
     if (isQ || isA) {
-      e.preventDefault();
-      keyboardState[isQ ? 'zin' : 'zout'] = false;
       return;
     }
 
-    const dir = keyToManualDirection(e);
-    if (!dir) return;
-
-    e.preventDefault();
-
-    keyboardState.up = false;
-    keyboardState.down = false;
-    keyboardState.left = false;
-    keyboardState.right = false;
-
-    manualKeyState.delete(dir.keyName);
-    scheduleKeyboardHoldStop();
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+      manualKeyState.delete(e.key);
+      if (manualKeyState.size === 0) {
+        stopManualHold('keyboard_keyup').catch(() => {});
+      }
+    }
+    applyKeyboardDrive();
   });
 
 </script>
