@@ -2345,6 +2345,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       pushConfidenceLayerConfig();
     };
   });
+  installUnifiedManualHoldControls();
   initSettings();
   setupPersistedDetails('detectionMenu', 'ui.menu.detection', false);
   setupPersistedDetails('ptzSpeedTuneMenu', 'ui.menu.ptzSpeedTune', false);
