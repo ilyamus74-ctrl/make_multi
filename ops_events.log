@@ -3000,3 +3000,14 @@
 2026-05-25T22:28:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779748125254,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":32}}
 2026-05-25T22:32:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779748365149,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":1194}}
 2026-05-25T22:32:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779748365150,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":19}}
+2026-05-25T22:34:43Z type=video_lost payload={"type":"video_lost","ts_ms":1779748483063,"details":{"status":"RECONNECTING"}}
+2026-05-25T22:34:43Z type=video_retry payload={"type":"video_retry","ts_ms":1779748483064,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
+2026-05-25T22:34:43Z type=video_restored payload={"type":"video_restored","ts_ms":1779748483083,"details":{"lost_for_ms":20}}
+2026-05-25T22:35:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779748544610,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":453}}
+2026-05-25T22:35:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779748545170,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":13}}
+2026-05-25T22:38:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779748725685,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":1001}}
+2026-05-25T22:38:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779748725718,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":31}}
+2026-05-25T22:41:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779748904640,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":754}}
+2026-05-25T22:41:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779748904905,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":18}}
+2026-05-25T22:43:42Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779749022562,"details":{"mode":"safe","reason":"rtt-high","rtt_ms":228}}
+2026-05-25T22:43:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779749024917,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":67}}
