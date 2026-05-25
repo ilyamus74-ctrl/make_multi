@@ -1453,7 +1453,19 @@ async function ptzStart() {
   $('loadStream').onclick = () => loadMjpeg(($('mjpegUrl').value || '').trim());
   $('retryStream').onclick = () => forceRetryStream();
   $('resetCacheBtn').onclick = () => resetUiCache();
-
+  $('settingsToggleBtn').onclick = () => {
+    const spoiler = $('controlsSpoiler');
+    spoiler.open = !spoiler.open;
+    $('settingsToggleBtn').setAttribute('aria-expanded', String(spoiler.open));
+  };
+  $('settingsCollapseBtn').onclick = () => {
+    const spoiler = $('controlsSpoiler');
+    spoiler.open = false;
+    $('settingsToggleBtn').setAttribute('aria-expanded', 'false');
+  };
+  $('controlsSpoiler').addEventListener('toggle', () => {
+    $('settingsToggleBtn').setAttribute('aria-expanded', String($('controlsSpoiler').open));
+  });
   $('fitMode').onchange = () => applyFitMode($('fitMode').value);
   $('controlMode').onchange = () => {
     setControlMode($('controlMode').value);
@@ -2142,6 +2154,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     } catch (_) {}
     return Number(ptzTuneCurrentSample || 0);
   }
+  // Legacy keyboardZoomPulse block removed. Q/A are handled by keyboardZoomSampleStep().
   // PTZ speed tune sample init must never block video stream startup.
   initPtzSpeedTuneSamples().catch(e =>
     ptzLog('PTZ SPEED SAMPLES init error', { error: String(e.message || e) })
