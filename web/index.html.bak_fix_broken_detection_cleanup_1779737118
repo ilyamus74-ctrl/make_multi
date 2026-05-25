@@ -2872,6 +2872,9 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     });
   }
 
+    syncOperatorModelSelect(normalizedModels, select.value);
+  }
+
   function syncOperatorModelSelect(models, currentModel) {
     const select = $('operatorModelSelect');
     if (!select) return;
