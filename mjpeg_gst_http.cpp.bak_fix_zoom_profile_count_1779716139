@@ -2968,7 +2968,7 @@ static void handle_client(int cfd, const Opts& o) {
     const int from = g_zoomSampleIdx.load();
     const int delta = target - from;
 
-    const int maxIdx = std::max(0, zoom_max_sample_idx());
+    const int maxIdx = std::max(0, zoom_profile_count() - 1);
     const bool edgeWide = (target == 0);
     const bool edgeTele = (target == maxIdx);
 
