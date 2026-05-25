@@ -146,7 +146,7 @@ static MovementResult build_scaled_movement_command(const MovementRequest& req){
  r.speed_profile_source=sr.source; r.left_profile_idx=sr.left_profile_idx; r.right_profile_idx=sr.right_profile_idx; r.interpolation_t=sr.t;
  r.profile_idx=sp.profile_idx; r.effective_max_pan=std::max(1,sp.max_pan>0?sp.max_pan:cfg.max_pan); r.effective_max_tilt=std::max(1,sp.max_tilt>0?sp.max_tilt:cfg.max_tilt); r.effective_max_accel=std::max(1,sp.max_accel>0?sp.max_accel:cfg.max_accel);
  int minp=std::max(0,sp.min_pan); int mint=std::max(0,sp.min_tilt); r.base_pan=(int)std::lround(pn*r.effective_max_pan); r.base_tilt=(int)std::lround(tn*r.effective_max_tilt); int fp=r.base_pan, ft=r.base_tilt; if(pn!=0.0 && std::abs(fp)<minp) fp=(pn>0)?minp:-minp; if(tn!=0.0 && std::abs(ft)<mint) ft=(tn>0)?mint:-mint; int lastp=0,lastt=0; { std::lock_guard<std::mutex> lk(g.m); lastp=g.manual_cmd_pan; lastt=g.manual_cmd_tilt; }
- if(cfg.invert_pan) fp=-fp; if(cfg.invert_tilt) ft=-ft; fp=clampi(fp,lastp-r.effective_max_accel,lastp+r.effective_max_accel); ft=clampi(ft,lastt-r.effective_max_accel,lastt+r.effective_max_accel); fp=clampi(fp,-cfg.max_pan,cfg.max_pan); ft=clampi(ft,-cfg.max_tilt,cfg.max_tilt); r.final_pan=fp; r.final_tilt=ft; return r; }
+ fp=clampi(fp,lastp-r.effective_max_accel,lastp+r.effective_max_accel); ft=clampi(ft,lastt-r.effective_max_accel,lastt+r.effective_max_accel); if(cfg.invert_pan) fp=-fp; if(cfg.invert_tilt) ft=-ft; fp=clampi(fp,-cfg.max_pan,cfg.max_pan); ft=clampi(ft,-cfg.max_tilt,cfg.max_tilt); r.final_pan=fp; r.final_tilt=ft; return r; }
 
 static bool parse_tracker(const std::string&j,TrackerState&ts){
   ts.mode=json_str(j,"mode");
