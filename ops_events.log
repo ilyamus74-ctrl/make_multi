@@ -2926,3 +2926,13 @@
 2026-05-25T20:54:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779742485269,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":70}}
 2026-05-25T20:58:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779742724580,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":819}}
 2026-05-25T20:58:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779742724823,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":46}}
+2026-05-25T21:03:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779743024568,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":null}}
+2026-05-25T21:03:45Z type=video_restored payload={"type":"video_restored","ts_ms":1779743025672,"details":{"lost_for_ms":58}}
+2026-05-25T21:03:46Z type=video_lost payload={"type":"video_lost","ts_ms":1779743026803,"details":{"status":"RECONNECTING"}}
+2026-05-25T21:03:46Z type=video_retry payload={"type":"video_retry","ts_ms":1779743026807,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
+2026-05-25T21:03:47Z type=video_restored payload={"type":"video_restored","ts_ms":1779743026872,"details":{"lost_for_ms":69}}
+2026-05-25T21:04:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779743084201,"details":{"mode":"safe","reason":"rtt-high","rtt_ms":356}}
+2026-05-25T21:04:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779743084880,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":36}}
+2026-05-25T21:06:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779743204917,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":673}}
+2026-05-25T21:06:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779743205271,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":25}}
+2026-05-25T21:11:14Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779743474990,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":17}}

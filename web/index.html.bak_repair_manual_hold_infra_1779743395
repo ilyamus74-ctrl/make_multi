@@ -807,7 +807,7 @@
     try {
       fetch(`${autopilotBaseUrl()}/api/autopilot/stop`, { method: 'POST' });
     } catch (_) {}
-    manualInputStop('panic_stop').catch(() => {});
+    manualDrive(0, 0, 0);
     setTimeout(() => {
       $('emergencyStop').classList.remove('active');
     }, 450);
@@ -2345,7 +2345,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       pushConfidenceLayerConfig();
     };
   });
-  installUnifiedManualHoldControls();
   initSettings();
   setupPersistedDetails('detectionMenu', 'ui.menu.detection', false);
   setupPersistedDetails('ptzSpeedTuneMenu', 'ui.menu.ptzSpeedTune', false);
