@@ -1,0 +1,57 @@
+zoom-calib: startup mode=enabled, uart=/dev/ttyUSB0, baud=115200
+Zoom calibration profile (fallback) generated at startup: zoom_calibration.cfg (cmd_max_zoom=34, hold_ms=4000)
+load lable /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/models/coco_80_labels_list.txt
+model input num: 1, output num: 6
+input tensors:
+  index=0, name=images, n_dims=4, dims=[1, 800, 800, 3], n_elems=1920000, size=3840000, fmt=NHWC, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+output tensors:
+  index=0, name=reg64_s8, n_dims=4, dims=[1, 64, 100, 100], n_elems=640000, size=1280000, fmt=NCHW, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=1, name=cls80_s8, n_dims=4, dims=[1, 80, 100, 100], n_elems=800000, size=1600000, fmt=NCHW, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=2, name=reg64_s16, n_dims=4, dims=[1, 64, 50, 50], n_elems=160000, size=320000, fmt=NCHW, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=3, name=cls80_s16, n_dims=4, dims=[1, 80, 50, 50], n_elems=200000, size=400000, fmt=NCHW, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=4, name=reg64_s32, n_dims=4, dims=[1, 64, 25, 25], n_elems=40000, size=80000, fmt=NCHW, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+  index=5, name=cls80_s32, n_dims=4, dims=[1, 80, 25, 25], n_elems=50000, size=100000, fmt=NCHW, type=FP16, qnt_type=AFFINE, zp=0, scale=1.000000
+model is NHWC input fmt
+model input height=800, width=800, channel=3
+Loaded model: model_rknn/yolov8s_800x800_9out_fp32.rknn
+zoom-calib: done (time+image), travel_sec=2.067 wide_sec=1.518 tele_sec=2.067 min_stop_sec=4.161 max_stop_sec=4.161
+HTTP MJPEG on 0.0.0.0:8080  ( / , /stream, /api/models, /model/select )
+zoom-recalib: drift update (mean_diff=19.555, travel_sec=2.066)
+zoom-recalib: drift update (mean_diff=0.288, travel_sec=2.070)
+zoom-recalib: drift update (mean_diff=0.235, travel_sec=2.074)
+zoom-recalib: drift update (mean_diff=0.349, travel_sec=2.078)
+zoom-recalib: drift update (mean_diff=0.264, travel_sec=2.083)
+zoom-recalib: drift update (mean_diff=0.268, travel_sec=2.087)
+zoom-recalib: drift update (mean_diff=0.297, travel_sec=2.091)
+zoom-recalib: drift update (mean_diff=0.272, travel_sec=2.095)
+zoom-recalib: drift update (mean_diff=0.284, travel_sec=2.099)
+zoom-recalib: drift update (mean_diff=0.314, travel_sec=2.103)
+zoom-recalib: drift update (mean_diff=0.264, travel_sec=2.108)
+zoom-recalib: drift update (mean_diff=0.254, travel_sec=2.112)
+zoom-recalib: drift update (mean_diff=0.254, travel_sec=2.116)
+zoom-recalib: drift update (mean_diff=0.276, travel_sec=2.120)
+zoom-recalib: drift update (mean_diff=0.273, travel_sec=2.125)
+zoom-recalib: drift update (mean_diff=0.334, travel_sec=2.129)
+zoom-recalib: drift update (mean_diff=0.257, travel_sec=2.133)
+zoom-recalib: drift update (mean_diff=0.255, travel_sec=2.137)
+zoom-recalib: drift update (mean_diff=0.271, travel_sec=2.142)
+zoom-recalib: drift update (mean_diff=0.390, travel_sec=2.146)
+zoom-recalib: drift update (mean_diff=0.227, travel_sec=2.150)
+zoom-recalib: drift update (mean_diff=0.235, travel_sec=2.154)
+zoom-recalib: drift update (mean_diff=0.247, travel_sec=2.159)
+zoom-recalib: drift update (mean_diff=0.441, travel_sec=2.163)
+zoom-recalib: drift update (mean_diff=0.257, travel_sec=2.167)
+zoom-recalib: drift update (mean_diff=0.265, travel_sec=2.172)
+zoom-recalib: drift update (mean_diff=0.255, travel_sec=2.176)
+zoom-recalib: drift update (mean_diff=0.257, travel_sec=2.180)
+zoom-recalib: drift update (mean_diff=0.281, travel_sec=2.185)
+zoom-recalib: drift update (mean_diff=0.263, travel_sec=2.189)
+zoom-recalib: drift update (mean_diff=0.264, travel_sec=2.194)
+zoom-recalib: drift update (mean_diff=0.273, travel_sec=2.198)
+zoom-recalib: drift update (mean_diff=0.236, travel_sec=2.202)
+zoom-recalib: drift update (mean_diff=0.247, travel_sec=2.207)
+zoom-recalib: drift update (mean_diff=0.262, travel_sec=2.211)
+zoom-recalib: drift update (mean_diff=0.265, travel_sec=2.216)
+zoom-recalib: drift update (mean_diff=0.272, travel_sec=2.220)
+zoom-recalib: drift update (mean_diff=0.277, travel_sec=2.224)
+zoom-recal
