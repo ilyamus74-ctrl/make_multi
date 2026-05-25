@@ -352,8 +352,13 @@
         <summary>PTZ SPEED TUNE <code id="ptzSpeedTuneSummary">step=0 points=0</code></summary>
         <div class="menu-body" id="ptzSpeedTunePanel">
         <div><b>ZOOM SAMPLES:</b> <div id="ptzTuneSamplesRow" class="sample-row"></div></div>
-        <button id="ptzTuneRehomeCurrentSampleBtn" class="small-btn" title="Backend nearest-edge rehome and return to current sample">REHOME CURRENT</button>
-
+        <details id="ptzTuneAdvancedManualZoom"><summary>Advanced manual zoom steps</summary><div>
+        <button id="ptzTuneRehomeWideBtn" class="small-btn">REHOME WIDE</button>
+        <button id="ptzTuneRehomeCurrentSampleBtn" class="small-btn">REHOME CURRENT SAMPLE</button>
+        <button id="ptzTuneTele1Btn" class="small-btn">TELE +1</button>
+        <button id="ptzTuneTele2Btn" class="small-btn">TELE +2</button>
+        <button id="ptzTuneWide1Btn" class="small-btn">WIDE -1</button>
+        </div></details>
         <button id="ptzTuneSavePointBtn" class="small-btn">SAVE SPEED POINT</button>
         <button id="ptzTuneLoadPointBtn" class="small-btn">LOAD SPEED POINT</button>
         <button id="ptzTuneBuildProfileBtn" class="small-btn">BUILD SPEED CURVE</button>
@@ -1899,11 +1904,37 @@ async function ptzStart() {
   function setPtzTuneSampleButtonsDisabled(disabled){ document.querySelectorAll('.sample-btn[data-sample-idx]').forEach(btn=>{ btn.disabled=Boolean(disabled); }); if($('ptzTuneRehomeWideBtn')) $('ptzTuneRehomeWideBtn').disabled=Boolean(disabled); if($('ptzTuneRehomeCurrentSampleBtn')) $('ptzTuneRehomeCurrentSampleBtn').disabled=Boolean(disabled);} 
   async function ptzTuneLoadSpeedForSample(sampleIdx){ const res=await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/apply_nearest`, {profile_idx:Number(sampleIdx)}); if(res&&res.ok){ const point=res.point||res.applied_point||res.config||res; fillPtzTuneFieldsFromConfig(point); const st=await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`); fillPtzTuneFieldsFromConfig(st);} return res;}
   
+async function ptzTuneMoveRelativeSamples(delta) {
+  delta = Math.round(Number(delta || 0));
+  if (delta === 0) return;
 
+  const cmd = delta > 0 ? getTeleCmd() : getWideCmd();
+  const impulseMs = Number($('zoomImpulseMs')?.value || 170);
+  const steps = Math.abs(delta);
 
+  for (let i = 0; i < steps; i++) {
+    await zoomTest(cmd, impulseMs);
+    await sleepMs(80);
+  }
+}
 
+async function ptzTuneSetZoomStateForSample(sampleIdx, source) {
+  const target = (ptzTuneZoomSamples || []).find(p => Number(p.profile_idx) === Number(sampleIdx));
+  if (!target) throw new Error(`zoom sample not found: ${sampleIdx}`);
 
+  ptzTuneCurrentSample = Number(sampleIdx);
 
+  const res = await apiPostJson('/api/zoom/state', {
+    zoom_ratio: Number(target.zoom_ratio || 0),
+    zoom_confidence: 1,
+    zoom_source: source || `ptz_tune_sample_${sampleIdx}`,
+    zoom_sample_idx: Number(sampleIdx)
+  });
+
+  await refreshPtzTelemetry().catch(() => {});
+  updatePtzTuneSampleButtonUi();
+  return res;
+}
 
 
 
@@ -1973,8 +2004,23 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
 }
 
-  
-
+  async function tuneMoveSteps(dir, n) {
+    const cmdAbs = Number($('zoomCmdAbs').value || 34);
+    const sign = Number($('zoomWideSign').value || -1);
+    const hold = Number($('zoomImpulseMs').value || 170);
+    for (let i = 0; i < n; i++) {
+      const cmd = dir > 0 ? (-cmdAbs * sign) : (cmdAbs * sign);
+      await zoomTest(cmd, hold);
+      await new Promise(resolve => setTimeout(resolve, 120));
+    }
+    ptzTuneStep = Math.max(0, ptzTuneStep + dir * n);
+    const maxSteps = Math.max(1, Number(ptzTuneZoomSamples.length - 1 || 8));
+    const ratio = Math.max(0, Math.min(1, ptzTuneStep / maxSteps));
+    const zs = await postZoomStateForTune(ratio, dir > 0 ? 'ptz_tune_tele_step' : 'ptz_tune_wide_step');
+    await refreshPtzConfigFromServer();
+    await ptzTuneLoadSpeedForSample(ptzTuneCurrentSample).catch(() => {});
+    tuneStatusSet(zs.zoom_ratio, zs.focal_px);
+  }
 
   $('zoomRunCalibrationBtn').onclick = async () => {
     await runZoomCalibrationFromUi();
@@ -2004,34 +2050,15 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     zoomStopNow().catch(e => ptzLog('ZOOM STOP error', { error: String(e.message || e) }));
   };
 
-  if ($('ptzTuneRehomeCurrentSampleBtn')) $('ptzTuneRehomeCurrentSampleBtn').onclick = () => (async () => {
-    const sampleIdx = Number(ptzTuneCurrentSample || 0);
-
-    const res = await apiPostJson('/api/zoom/rehome_current_sample', {
-      profile_idx: sampleIdx,
-      nearest_edge: true
-    });
-
-    if (!res || res.ok === false) {
-      throw new Error(res?.error || 'backend_rehome_failed');
-    }
-
-    ptzTuneCurrentSample = Number(res.target_sample ?? sampleIdx);
-
-    try {
-      const zs = await apiGetJson('/api/zoom/state');
-      const idx = Number(zs.zoom_sample_idx);
-      if (Number.isFinite(idx)) ptzTuneCurrentSample = idx;
-      tuneStatusSet?.(Number(zs.zoom_ratio || 0), Number(zs.focal_px || 0));
-    } catch (_) {}
-
-    await ptzTuneLoadSpeedForSample(ptzTuneCurrentSample).catch(() => {});
-    await refreshPtzTelemetry?.().catch(() => {});
-    updatePtzTuneSampleButtonUi?.();
-
-    ptzLog('PTZ TUNE REHOME CURRENT BACKEND', res);
-  })().catch(e => ptzLog('PTZ TUNE REHOME CURRENT error', { error: String(e.message || e) }));
-
+  $('ptzTuneRehomeWideBtn').onclick = () =>
+    ptzTuneGoToSample(0, {forceAbsolute:true})
+      .catch(e => ptzLog('PTZ TUNE REHOME error', { error: String(e.message || e) }));
+  if ($('ptzTuneRehomeCurrentSampleBtn')) $('ptzTuneRehomeCurrentSampleBtn').onclick = () =>
+    ptzTuneRehomeNearestEdgeAndReturn(ptzTuneCurrentSample, 'manual_rehome_current')
+      .catch(e => ptzLog('PTZ TUNE REHOME CURRENT error', { error: String(e.message || e) }));
+  $('ptzTuneTele1Btn').onclick = () => tuneMoveSteps(1, 1).catch(e => ptzLog('PTZ TUNE TELE+1 error', { error: String(e.message || e) }));
+  $('ptzTuneTele2Btn').onclick = () => tuneMoveSteps(1, 2).catch(e => ptzLog('PTZ TUNE TELE+2 error', { error: String(e.message || e) }));
+  $('ptzTuneWide1Btn').onclick = () => tuneMoveSteps(-1, 1).catch(e => ptzLog('PTZ TUNE WIDE-1 error', { error: String(e.message || e) }));
   $('ptzTuneApplyConfigBtn').onclick = () => (async () => {
     const cfg = { kp:Number($('ptzTuneKp').value||0), kd:Number($('ptzTuneKd').value||0), max_pan:Number($('ptzTuneMaxPan').value||0), max_tilt:Number($('ptzTuneMaxTilt').value||0), max_accel:Number($('ptzTuneMaxAccel').value||0), min_pan:Number($('ptzTuneMinPan').value||0), min_tilt:Number($('ptzTuneMinTilt').value||0), deadzone:Number($('ptzTuneDeadzone').value||0) };
     const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/config`, cfg); ptzLog('PTZ TUNE APPLY SPEED', { cfg, res }); await refreshPtzConfigFromServer();
