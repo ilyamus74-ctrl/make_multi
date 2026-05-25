@@ -2196,18 +2196,47 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     return tag === 'input' || tag === 'textarea' || tag === 'select' || Boolean(el.isContentEditable);
   }
 
+  let keyboardZoomBusy = false;
+  let keyboardZoomLastTs = 0;
+  const KEYBOARD_ZOOM_MIN_INTERVAL_MS = 350;
+
   async function keyboardZoomPulse(direction, reason) {
-    const hold = Number($('zoomImpulseMs')?.value || 170);
-    const res = await apiPostJson('/api/zoom/pulse', {
-      direction,
-      steps: 1,
-      hold_ms: hold,
-      source: reason || 'keyboard'
-    });
-    ptzLog('KEYBOARD ZOOM BACKEND', res);
-    await refreshPtzTelemetry?.().catch(() => {});
-    updatePtzTuneSampleButtonUi?.();
-    return res;
+    const now = Date.now();
+
+    if (keyboardZoomBusy) {
+      ptzLog('KEYBOARD ZOOM skipped busy', { direction, reason });
+      return { ok: false, skipped: true, reason: 'frontend_busy' };
+    }
+
+    if (now - keyboardZoomLastTs < KEYBOARD_ZOOM_MIN_INTERVAL_MS) {
+      return { ok: false, skipped: true, reason: 'frontend_throttle' };
+    }
+
+    keyboardZoomBusy = true;
+    keyboardZoomLastTs = now;
+
+    try {
+      const hold = Number($('zoomImpulseMs')?.value || 170);
+      const res = await apiPostJson('/api/zoom/pulse', {
+        direction,
+        steps: 1,
+        hold_ms: hold,
+        source: reason || 'keyboard'
+      });
+      ptzLog('KEYBOARD ZOOM BACKEND', res);
+      await refreshPtzTelemetry?.().catch(() => {});
+      updatePtzTuneSampleButtonUi?.();
+      return res;
+    } catch (e) {
+      ptzLog('KEYBOARD ZOOM error', {
+        direction,
+        reason,
+        error: String(e.message || e)
+      });
+      return { ok: false, error: String(e.message || e) };
+    } finally {
+      keyboardZoomBusy = false;
+    }
   }
 
   if (!window.__ptzZoomHotkeysInstalled) {
@@ -3719,15 +3748,39 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
   async function backendManualDrive(pan, tilt, source = 'web', holdMs = 250) {
     const res = await apiPostJson(`${autopilotBaseUrl()}/api/control/manual_drive`, { pan, tilt, source, hold_ms: holdMs });
+    manualBackendActive = true;
     ptzLog('MANUAL DRIVE BACKEND', res);
     await refreshPtzTelemetry?.().catch(() => {});
     return res;
   }
+
+  let manualBackendActive = false;
+  let manualStopInFlight = false;
+  let manualLastStopTs = 0;
+  const MANUAL_STOP_MIN_INTERVAL_MS = 150;
+
   async function backendManualStop(source = 'web') {
-    const res = await apiPostJson(`${autopilotBaseUrl()}/api/control/stop`, { source });
-    ptzLog('MANUAL STOP BACKEND', res);
-    await refreshPtzTelemetry?.().catch(() => {});
-    return res;
+    const now = Date.now();
+
+    if (!manualBackendActive) {
+      return { ok: true, skipped: true, reason: 'manual_not_active' };
+    }
+
+    if (manualStopInFlight || now - manualLastStopTs < MANUAL_STOP_MIN_INTERVAL_MS) {
+      return { ok: true, skipped: true, reason: 'stop_debounce' };
+    }
+
+    manualStopInFlight = true;
+    manualLastStopTs = now;
+    try {
+      const res = await apiPostJson(`${autopilotBaseUrl()}/api/control/stop`, { source });
+      manualBackendActive = false;
+      ptzLog('MANUAL STOP BACKEND', res);
+      await refreshPtzTelemetry?.().catch(() => {});
+      return res;
+    } finally {
+      manualStopInFlight = false;
+    }
   }
 
   function clamp01(v) {

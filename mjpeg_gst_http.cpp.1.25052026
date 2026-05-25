@@ -2968,17 +2968,7 @@ static void handle_client(int cfd, const Opts& o) {
     const int from = g_zoomSampleIdx.load();
     const int delta = target - from;
 
-    const int maxIdx = std::max(0, zoom_profile_count() - 1);
-    const bool edgeWide = (target == 0);
-    const bool edgeTele = (target == maxIdx);
-
-    if (ok && edgeWide) {
-      ok = zoom_send_stream_cmd(zoom_wide_cmd(), zoom_wide_hold_ms(), &err);
-      mode = "edge_wide";
-    } else if (ok && edgeTele) {
-      ok = zoom_send_stream_cmd(zoom_tele_cmd(), zoom_wide_hold_ms(), &err);
-      mode = "edge_tele";
-    } else if (ok && mode == "absolute_wide") {
+    if (ok && mode == "absolute_wide") {
       ok = zoom_send_stream_cmd(zoom_wide_cmd(), zoom_wide_hold_ms(), &err);
       if (ok && target > 0) ok = zoom_move_steps(target, &err);
     } else if (ok) {
@@ -2992,20 +2982,16 @@ static void handle_client(int cfd, const Opts& o) {
 
       {
         std::lock_guard<std::mutex> lk(g_zoomMasterProfileMtx);
-        if (mode == "edge_wide") g_zoomSource = "go_to_sample_edge_wide";
-        else if (mode == "edge_tele") g_zoomSource = "go_to_sample_edge_tele";
-        else if (mode == "absolute_wide") g_zoomSource = "go_to_sample_absolute_wide";
-        else g_zoomSource = "go_to_sample_relative";
+        g_zoomSource = (mode == "absolute_wide")
+          ? "go_to_sample_absolute_wide"
+          : "go_to_sample_relative";
       }
 
-      if (mode == "edge_wide" || mode == "edge_tele") {
-        g_zoomStepsSinceHome.store(0);
-        g_zoomLastHomeMs.store(now_ms());
-      } else if (mode == "absolute_wide") {
+      if (mode == "absolute_wide") {
         g_zoomStepsSinceHome.store(std::max(0, target));
         g_zoomLastHomeMs.store(now_ms());
       } else {
-      g_zoomStepsSinceHome.store(g_zoomStepsSinceHome.load() + std::abs(delta));
+        g_zoomStepsSinceHome.store(g_zoomStepsSinceHome.load() + std::abs(delta));
       }
 
       g_zoomLastMoveMs.store(now_ms());
@@ -3026,8 +3012,6 @@ static void handle_client(int cfd, const Opts& o) {
       os << ",\"zoom_ratio\":" << point.zoom_ratio
          << ",\"focal_px\":" << point.focal_px
          << ",\"steps_since_home\":" << g_zoomStepsSinceHome.load();
-      if (mode == "edge_wide") os << ",\"edge\":\"wide\"";
-      else if (mode == "edge_tele") os << ",\"edge\":\"tele\"";
     } else {
       os << ",\"error\":\"" << json_escape(err) << "\"";
     }
