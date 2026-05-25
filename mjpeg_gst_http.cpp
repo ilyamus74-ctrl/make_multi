@@ -337,7 +337,7 @@ static std::atomic<bool> g_zoomCalibInProgress{false};
 static std::atomic<double> g_zoomRatio{0.0};
 static std::atomic<double> g_zoomConfidence{0.0};
 static std::string g_zoomSource = "unknown";
-struct ZoomProfilePoint { double zoom_ratio = 0.0; double focal_px = 0.0; };
+struct ZoomProfilePoint { int profile_idx = 0; double zoom_ratio = 0.0; double focal_px = 0.0; };
 struct ZoomMasterProfile {
   bool loaded = false;
   std::string status = "missing";
@@ -348,6 +348,8 @@ struct ZoomMasterProfile {
 static std::mutex g_zoomMasterProfileMtx;
 static ZoomMasterProfile g_zoomMasterProfile;
 static std::string g_zoomMasterProfileFile = "zoom_apriltag_master_profile.json";
+static std::atomic<int> g_zoomSampleIdx{0};
+static std::atomic<int> g_zoomSampleCount{0};
 static std::mutex g_zoomCalibStatusMtx;
 static std::string g_zoomCalibLastStatus = "idle";
 static std::string g_zoomCalibLastMessage = "not_started";
@@ -1244,12 +1246,15 @@ static bool load_zoom_master_profile() {
   extract_json_double_field(payload, "focal_min_px", &next.focal_min_px);
   extract_json_double_field(payload, "focal_max_px", &next.focal_max_px);
   auto objs = extract_json_object_array(payload, "profile_points");
+  int autoIdx = 0;
   for (const auto& obj : objs) {
     ZoomProfilePoint p;
+    if (!extract_json_int_field(obj, "profile_idx", &p.profile_idx)) p.profile_idx = autoIdx;
     extract_json_double_field(obj, "zoom_ratio", &p.zoom_ratio);
     extract_json_double_field(obj, "focal_px", &p.focal_px);
     p.zoom_ratio = std::max(0.0, std::min(1.0, p.zoom_ratio));
     if (p.focal_px > 0.0) next.points.push_back(p);
+    ++autoIdx;
   }
   std::sort(next.points.begin(), next.points.end(), [](const ZoomProfilePoint& a, const ZoomProfilePoint& b){ return a.zoom_ratio < b.zoom_ratio; });
   next.loaded = (next.focal_min_px > 0.0 && next.focal_max_px >= next.focal_min_px);
@@ -1261,6 +1266,8 @@ static bool load_zoom_master_profile() {
   if (!next.loaded) next.status = "missing";
   std::lock_guard<std::mutex> lk(g_zoomMasterProfileMtx);
   g_zoomMasterProfile = next;
+  g_zoomSampleCount.store((int)next.points.size());
+  g_zoomSampleIdx.store(0);
   return next.loaded;
 }
 
@@ -2831,6 +2838,8 @@ static void handle_client(int cfd, const Opts& o) {
         prof = g_zoomMasterProfile;
       }
       std::ostringstream os;
+      const int sampleIdx = g_zoomSampleIdx.load();
+      const int sampleCount = g_zoomSampleCount.load();
       os << "{\"ok\":true"
          << ",\"profile_loaded\":" << (prof.loaded ? "true" : "false")
          << ",\"profile_status\":\"" << json_escape(prof.status) << "\""
@@ -2840,6 +2849,8 @@ static void handle_client(int cfd, const Opts& o) {
          << ",\"focal_px\":" << focalPx
          << ",\"focal_min_px\":" << prof.focal_min_px
          << ",\"focal_max_px\":" << prof.focal_max_px
+         << ",\"zoom_sample_idx\":" << sampleIdx
+         << ",\"zoom_sample_count\":" << sampleCount
          << "}";
       const std::string body = os.str();
       const std::string hdr = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
@@ -2852,10 +2863,45 @@ static void handle_client(int cfd, const Opts& o) {
       g_zoomRatio = std::max(0.0, std::min(1.0, zr));
       g_zoomConfidence = std::max(0.0, std::min(1.0, zc));
       if (!src.empty()) { std::lock_guard<std::mutex> lk(g_zoomMasterProfileMtx); g_zoomSource = src; }
+      int sampleIdx = g_zoomSampleIdx.load();
+      if (extract_json_int_field(bodyReq, "zoom_sample_idx", &sampleIdx)) {
+        const int sampleCount = std::max(0, g_zoomSampleCount.load());
+        if (sampleCount > 0) sampleIdx = std::max(0, std::min(sampleCount - 1, sampleIdx));
+        else sampleIdx = std::max(0, sampleIdx);
+        g_zoomSampleIdx.store(sampleIdx);
+      }
       const std::string body = "{\"ok\":true}";
       const std::string hdr = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
       send_all(cfd, hdr.data(), hdr.size()); send_all(cfd, body.data(), body.size()); ::close(cfd); return;
     }
+  }
+
+  if (path == "/api/zoom/master_profile" && method == "GET") {
+    ZoomMasterProfile prof;
+    {
+      std::lock_guard<std::mutex> lk(g_zoomMasterProfileMtx);
+      prof = g_zoomMasterProfile;
+    }
+    if (!prof.loaded) load_zoom_master_profile();
+    {
+      std::lock_guard<std::mutex> lk(g_zoomMasterProfileMtx);
+      prof = g_zoomMasterProfile;
+    }
+    std::ostringstream os;
+    if (!prof.loaded) {
+      os << "{\"ok\":false,\"profile_loaded\":false,\"error\":\"zoom_master_profile_missing\"}";
+    } else {
+      os << "{\"ok\":true,\"profile_loaded\":true,\"profile_points\":[";
+      for (size_t i = 0; i < prof.points.size(); ++i) {
+        if (i) os << ",";
+        const auto& p = prof.points[i];
+        os << "{\"profile_idx\":" << p.profile_idx << ",\"zoom_ratio\":" << p.zoom_ratio << ",\"focal_px\":" << p.focal_px << "}";
+      }
+      os << "]}";
+    }
+    const std::string body = os.str();
+    const std::string hdr = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+    send_all(cfd, hdr.data(), hdr.size()); send_all(cfd, body.data(), body.size()); ::close(cfd); return;
   }
 
   if (path == "/api/tracker/select" && method == "POST") {

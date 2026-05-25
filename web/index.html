@@ -217,7 +217,13 @@
       .stream-settings{gap:6px}
       .stream-settings input[type=text]{width:170px !important}
     }
-  </style>
+.sample-row { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+.sample-btn { min-width:34px; padding:4px 7px; }
+.sample-btn.active { border:2px solid #fff; font-weight:700; }
+.sample-btn.saved { box-shadow: inset 0 -3px 0 rgba(0,255,0,.55); }
+.sample-btn.missing { opacity:.65; }
+
+</style>
 </head>
 <body>
   <div class="layout">
@@ -343,14 +349,17 @@
       <details id="ptzSpeedTuneMenu" class="operator-menu compact">
         <summary>PTZ SPEED TUNE <code id="ptzSpeedTuneSummary">step=0 points=0</code></summary>
         <div class="menu-body" id="ptzSpeedTunePanel">
+        <div><b>ZOOM SAMPLES:</b> <div id="ptzTuneSamplesRow" class="sample-row"></div></div>
+        <details id="ptzTuneAdvancedManualZoom"><summary>Advanced manual zoom steps</summary><div>
         <button id="ptzTuneRehomeWideBtn" class="small-btn">REHOME WIDE</button>
         <button id="ptzTuneTele1Btn" class="small-btn">TELE +1</button>
         <button id="ptzTuneTele2Btn" class="small-btn">TELE +2</button>
         <button id="ptzTuneWide1Btn" class="small-btn">WIDE -1</button>
+        </div></details>
         <button id="ptzTuneSavePointBtn" class="small-btn">SAVE SPEED POINT</button>
         <button id="ptzTuneLoadPointBtn" class="small-btn">LOAD SPEED POINT</button>
         <button id="ptzTuneBuildProfileBtn" class="small-btn">BUILD SPEED CURVE</button>
-        <label>Max steps <input id="ptzTuneMaxSteps" type="number" value="8"></label>
+
         <label>KP <input id="ptzTuneKp" type="number" step="0.1"></label>
         <label>KD <input id="ptzTuneKd" type="number" step="0.1"></label>
         <label>Max Pan <input id="ptzTuneMaxPan" type="number" step="1"></label>
@@ -361,7 +370,7 @@
         <label>Deadzone <input id="ptzTuneDeadzone" type="number" step="0.001"></label>
         <button id="ptzTuneApplyConfigBtn" class="small-btn">APPLY SPEED</button>
         <code id="ptzTuneStatus">step=0 zoom=0.00 focal=0 points=0</code>
-        <span style="opacity:.8">Workflow: 1) REHOME WIDE 2) Tune + SAVE SPEED POINT 3) TELE +2 4) Tune + SAVE 5) Repeat until TELE.</span>
+        <span style="opacity:.8">Workflow: click sample → tune/apply → SAVE SPEED POINT for sample.</span>
         </div>
       </details>
       <details id="zoomCalibMenu" class="operator-menu compact">
@@ -1645,6 +1654,9 @@ async function ptzStart() {
   let zoomTestPulseSeq = 0;
   let ptzTuneStep = 0;
   let ptzTuneSavedPoints = 0;
+  let ptzTuneCurrentSample = 0;
+  let ptzTuneZoomSamples = [];
+  let ptzTuneSpeedProfile = null;
 
   function sleepMs(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -1867,18 +1879,30 @@ async function ptzStart() {
     await refreshPtzTelemetry();
     return { ok: true, point, res };
   }
+
+  async function loadZoomSamplesForPtzTune(){ return await apiGetJson('/api/zoom/master_profile'); }
+  function getWideCmd(){ return Number($('zoomWideSign')?.value || 1) * Number($('zoomCmdAbs')?.value || 34); }
+  function getTeleCmd(){ return -getWideCmd(); }
+  function renderPtzTuneSampleButtons(points){ const row=$('ptzTuneSamplesRow'); if(!row) return; row.innerHTML=''; for(const p of points){ const idx=Number(p.profile_idx); const btn=document.createElement('button'); btn.className='small-btn sample-btn'; btn.dataset.sampleIdx=String(idx); btn.textContent=String(idx); btn.title=`sample=${idx} zoom=${Number(p.zoom_ratio).toFixed(3)} focal=${Math.round(Number(p.focal_px))}`; btn.onclick=()=>ptzTuneGoToSample(idx); row.appendChild(btn);} }
+  function updatePtzTuneSampleButtonUi(){ const saved=new Set((ptzTuneSpeedProfile?.points||[]).map(p=>Number(p.profile_idx ?? p.step))); document.querySelectorAll('.sample-btn[data-sample-idx]').forEach(btn=>{ const idx=Number(btn.dataset.sampleIdx); btn.classList.toggle('active', idx===Number(ptzTuneCurrentSample)); btn.classList.toggle('saved', saved.has(idx)); btn.classList.toggle('missing', !saved.has(idx));}); }
+  async function ptzTuneLoadSpeedForSample(sampleIdx){ const res=await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/apply_nearest`, {profile_idx:Number(sampleIdx)}); if(res&&res.ok){ const point=res.point||res.applied_point||res.config||res; fillPtzTuneFieldsFromConfig(point); const st=await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`); fillPtzTuneFieldsFromConfig(st);} return res;}
+  async function ptzTuneRehomeWidePhysical(){ await zoomTest(getWideCmd(), Number($('zoomWideHoldMs')?.value||2000)); ptzTuneCurrentSample=0; const p=ptzTuneZoomSamples.find(x=>Number(x.profile_idx)===0)||ptzTuneZoomSamples[0]||{zoom_ratio:0,focal_px:0,profile_idx:0}; await apiPostJson('/api/zoom/state',{zoom_ratio:Number(p.zoom_ratio||0),zoom_confidence:1,zoom_source:'ptz_tune_sample_rehome_wide',zoom_sample_idx:Number(p.profile_idx||0)});}
+  async function ptzTuneGoToSample(sampleIdx){ const target=(ptzTuneZoomSamples||[]).find(p=>Number(p.profile_idx)===Number(sampleIdx)); if(!target){ ptzLog('PTZ TUNE SAMPLE error',{error:'sample_not_found',sampleIdx}); return; } await ptzTuneRehomeWidePhysical(); for(let i=0;i<Math.max(0,Number(sampleIdx));i++){ await zoomTest(getTeleCmd(), Number($('zoomImpulseMs')?.value||170)); await sleepMs(80);} ptzTuneCurrentSample=Number(sampleIdx); await apiPostJson('/api/zoom/state',{zoom_ratio:Number(target.zoom_ratio||0),zoom_confidence:1,zoom_source:`ptz_tune_sample_${sampleIdx}`,zoom_sample_idx:Number(sampleIdx)}); await ptzTuneLoadSpeedForSample(sampleIdx); await refreshPtzTelemetry(); updatePtzTuneSampleButtonUi(); }
+  async function ptzTuneSaveSpeedPoint(){ const z=await apiGetJson('/api/zoom/state'); const sampleIdx=Number(z.zoom_sample_idx ?? ptzTuneCurrentSample ?? 0); const target=ptzTuneZoomSamples.find(p=>Number(p.profile_idx)===sampleIdx)||{profile_idx:sampleIdx,zoom_ratio:z.zoom_ratio,focal_px:z.focal_px}; const res=await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/save_point`,{profile_idx:sampleIdx,step:sampleIdx,zoom_ratio:Number(target.zoom_ratio ?? z.zoom_ratio ?? 0),focal_px:Number(target.focal_px ?? z.focal_px ?? 0)}); await refreshPtzTuneSpeedProfile(); updatePtzTuneSampleButtonUi(); return res; }
+  async function refreshPtzTuneSpeedProfile(){ ptzTuneSpeedProfile=await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile`); ptzTuneSavedPoints=Array.isArray(ptzTuneSpeedProfile.points)?ptzTuneSpeedProfile.points.length:0; return ptzTuneSpeedProfile;}
+  async function initPtzSpeedTuneSamples(){ const mp=await loadZoomSamplesForPtzTune().catch(()=>null); if(mp&&Array.isArray(mp.profile_points)){ ptzTuneZoomSamples=mp.profile_points.map(p=>({profile_idx:Number(p.profile_idx),zoom_ratio:Number(p.zoom_ratio),focal_px:Number(p.focal_px)})).filter(p=>Number.isFinite(p.profile_idx)).sort((a,b)=>a.profile_idx-b.profile_idx); renderPtzTuneSampleButtons(ptzTuneZoomSamples);} await refreshPtzTuneSpeedProfile(); const z=await apiGetJson('/api/zoom/state').catch(()=>null); ptzTuneCurrentSample=(z&&Number.isFinite(Number(z.zoom_sample_idx)))?Number(z.zoom_sample_idx):0; await ptzTuneLoadSpeedForSample(ptzTuneCurrentSample).catch(()=>{}); updatePtzTuneSampleButtonUi(); }
+
   async function initPtzSpeedTunePanel() {
-    await refreshSpeedProfileCount();
+    await refreshPtzTuneSpeedProfile();
     const z = await apiGetJson('/api/zoom/state').catch(() => null);
     let zr = 0;
     let fp = 0;
     if (z) {
-      const maxSteps = Math.max(1, Number($('ptzTuneMaxSteps')?.value || 8));
       zr = Number(z.zoom_ratio || 0);
       fp = Number(z.focal_px || 0);
-      ptzTuneStep = Math.round(zr * maxSteps);
+      ptzTuneCurrentSample = Number(z.zoom_sample_idx || 0);
     }
-    await ptzTuneLoadPointForCurrentStep().catch(() => {});
+    await ptzTuneLoadSpeedForSample(ptzTuneCurrentSample).catch(() => {});
     tuneStatusSet(zr, fp);
   }
   async function tuneMoveSteps(dir, n) {
@@ -1891,11 +1915,11 @@ async function ptzStart() {
       await new Promise(resolve => setTimeout(resolve, 120));
     }
     ptzTuneStep = Math.max(0, ptzTuneStep + dir * n);
-    const maxSteps = Math.max(1, Number($('ptzTuneMaxSteps').value || 8));
+    const maxSteps = Math.max(1, Number(ptzTuneZoomSamples.length - 1 || 8));
     const ratio = Math.max(0, Math.min(1, ptzTuneStep / maxSteps));
     const zs = await postZoomStateForTune(ratio, dir > 0 ? 'ptz_tune_tele_step' : 'ptz_tune_wide_step');
     await refreshPtzConfigFromServer();
-    await ptzTuneLoadPointForCurrentStep().catch(() => {});
+    await ptzTuneLoadSpeedForSample(ptzTuneCurrentSample).catch(() => {});
     tuneStatusSet(zs.zoom_ratio, zs.focal_px);
   }
 
@@ -1935,8 +1959,8 @@ async function ptzStart() {
     ptzTuneStep = 0;
     const zs = await postZoomStateForTune(0.0, 'ptz_tune_rehome_wide');
     await refreshPtzConfigFromServer();
-    await ptzTuneLoadPointForCurrentStep().catch(() => {});
-    await refreshSpeedProfileCount();
+    await ptzTuneLoadSpeedForSample(ptzTuneCurrentSample).catch(() => {});
+    await refreshPtzTuneSpeedProfile();
     tuneStatusSet(zs.zoom_ratio, zs.focal_px);
   })().catch(e => ptzLog('PTZ TUNE REHOME error', { error: String(e.message || e) }));
   $('ptzTuneTele1Btn').onclick = () => tuneMoveSteps(1, 1).catch(e => ptzLog('PTZ TUNE TELE+1 error', { error: String(e.message || e) }));
@@ -1949,15 +1973,16 @@ async function ptzStart() {
   $('ptzTuneSavePointBtn').onclick = () => (async () => {
     const zs = await apiGetJson('/api/zoom/state'); await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`);
     const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/save_point`, { step: ptzTuneStep, zoom_ratio: Number(zs.zoom_ratio || 0), focal_px: Number(zs.focal_px || 0) });
-    await refreshSpeedProfileCount(); tuneStatusSet(zs.zoom_ratio, zs.focal_px); ptzLog(`SPEED POINT SAVED step=${ptzTuneStep} zoom=${Number(zs.zoom_ratio||0).toFixed(2)}`, res);
+    await refreshPtzTuneSpeedProfile(); tuneStatusSet(zs.zoom_ratio, zs.focal_px); ptzLog(`SPEED POINT SAVED step=${ptzTuneStep} zoom=${Number(zs.zoom_ratio||0).toFixed(2)}`, res);
   })().catch(e => ptzLog('PTZ TUNE SAVE error', { error: String(e.message || e) }));
   $('ptzTuneBuildProfileBtn').onclick = () => (async () => {
-    const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/build`, {}); await refreshSpeedProfileCount(); ptzLog('PTZ TUNE BUILD PROFILE', res);
+    const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/build`, {}); await refreshPtzTuneSpeedProfile(); ptzLog('PTZ TUNE BUILD PROFILE', res);
   })().catch(e => ptzLog('PTZ TUNE BUILD error', { error: String(e.message || e) }));
   $('ptzTuneLoadPointBtn').onclick = () =>
-    ptzTuneLoadPointForCurrentStep().catch(e =>
+    ptzTuneLoadSpeedForSample(ptzTuneCurrentSample).catch(e =>
       ptzLog('PTZ SPEED LOAD POINT error', { error: String(e.message || e) })
     );
+  await initPtzSpeedTuneSamples();
 
   if ($('zoomAnchor1mBtn')) $('zoomAnchor1mBtn').onclick = () => { $('zoomAnchorDistanceM').value = 1; scheduleZoomCalibSettingsSave(); };
   if ($('zoomAnchor5mBtn')) $('zoomAnchor5mBtn').onclick = () => { $('zoomAnchorDistanceM').value = 5; scheduleZoomCalibSettingsSave(); };
