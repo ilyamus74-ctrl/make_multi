@@ -1982,10 +1982,7 @@ async function ptzStart() {
     ptzTuneLoadSpeedForSample(ptzTuneCurrentSample).catch(e =>
       ptzLog('PTZ SPEED LOAD POINT error', { error: String(e.message || e) })
     );
-  // PTZ speed tune sample init must never block video stream startup.
-  initPtzSpeedTuneSamples().catch(e =>
-    ptzLog('PTZ SPEED SAMPLES init error', { error: String(e.message || e) })
-  );
+  await initPtzSpeedTuneSamples();
 
   if ($('zoomAnchor1mBtn')) $('zoomAnchor1mBtn').onclick = () => { $('zoomAnchorDistanceM').value = 1; scheduleZoomCalibSettingsSave(); };
   if ($('zoomAnchor5mBtn')) $('zoomAnchor5mBtn').onclick = () => { $('zoomAnchorDistanceM').value = 5; scheduleZoomCalibSettingsSave(); };
@@ -2028,7 +2025,7 @@ async function ptzStart() {
   refreshDetectionLimits().catch(e => ptzLog('LIMIT init error', { error: String(e.message || e) }));
   refreshDetectionThrottle().catch(e => ptzLog('THROTTLE init error', { error: String(e.message || e) }));
   refreshPtzConfigFromServer().catch(e => ptzLog('PTZ CONFIG init error', { error: String(e.message || e) }));
-  setTimeout(() => initPtzSpeedTunePanel().catch(e => ptzLog('PTZ SPEED PANEL init error', { error: String(e.message || e) })), 0);
+  initPtzSpeedTunePanel().catch(e => ptzLog('PTZ SPEED PANEL init error', { error: String(e.message || e) }));
   $('mjpegFrame').onload = () => {
     clearStreamRetry();
     telemetryState.lastImgFrameTs = Date.now();
