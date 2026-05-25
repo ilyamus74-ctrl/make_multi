@@ -225,29 +225,6 @@
 .sample-btn.clamped { box-shadow: inset 0 -3px 0 rgba(255,165,0,.9); }
 .sample-btn.missing { opacity:.65; box-shadow: inset 0 -3px 0 rgba(140,140,140,.6); }
 
-.class-grid {
-  display:flex;
-  flex-wrap:wrap;
-  gap:6px 12px;
-  align-items:center;
-  margin:6px 0;
-}
-.class-check {
-  font-size:12px;
-  opacity:.9;
-  white-space:nowrap;
-  padding:3px 5px;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:6px;
-}
-#detectionToggleBtn.detect-on {
-  border-color:#3aa657;
-  box-shadow:0 0 0 1px rgba(58,166,87,.4);
-}
-#detectionToggleBtn.detect-off {
-  border-color:#c43;
-  opacity:.75;
-}
 </style>
 </head>
 <body>
@@ -331,6 +308,9 @@
         <button id="ptzSelectFirstBtn" class="small-btn">SELECT FIRST</button>
         <button id="ptzStartBtn" class="small-btn">START PTZ</button>
         <button id="ptzStopBtn" class="small-btn">STOP PTZ</button>
+        <button id="ptzRoiPersonBtn" class="small-btn">PERSON</button>
+        <button id="ptzRoiVehicleBtn" class="small-btn">VEHICLE</button>
+        <button id="ptzRoiFullBtn" class="small-btn">FULL FRAME</button>
         <code id="ptzStateLine">idle</code>
       </div>
       <details id="detectionMenu" class="operator-menu">
@@ -357,20 +337,6 @@
           </select>
           <button id="operatorDetectEveryApplyBtn" class="small-btn">APPLY</button>
           <code id="operatorDetectEveryState">detect: --</code>
-
-          <div class="det-row">
-            <button id="detectionToggleBtn" class="small-btn">DETECTION: --</button>
-            <code id="detectionEnabledState">detect: --</code>
-          </div>
-          <div class="det-section-title">Objects</div>
-          <div id="detectionClassGrid" class="class-grid"></div>
-          <div class="det-row">
-            <button id="detectionApplyClassesBtn" class="small-btn">APPLY OBJECTS</button>
-            <button id="detectionPresetBirdPlaneBtn" class="small-btn">BIRD + AIRPLANE</button>
-            <button id="detectionAllClassesBtn" class="small-btn">ALL OBJECTS</button>
-          </div>
-          <code id="detectionClassesState">classes: all</code>
-          <span style="opacity:.8">Detection ON/OFF runs YOLO. Objects choose what YOLO keeps. Search area is FULL FRAME by default.</span>
         </div>
       </details>
       <div class="row" id="ptzConfigPanel">
@@ -607,12 +573,6 @@
   const INV_TILT_DEFAULT = true;
   const INV_ZOOM  = false;
   const DEFAULT_ZOOM_TRAVEL_SEC = 12;
-  const DETECTION_CLASS_OPTIONS = [
-    { id: 0,  name: 'person' }, { id: 1,  name: 'bicycle' }, { id: 2,  name: 'car' },
-    { id: 3,  name: 'motorcycle' }, { id: 4,  name: 'airplane' }, { id: 5,  name: 'bus' },
-    { id: 6,  name: 'train' }, { id: 7,  name: 'truck' }, { id: 8,  name: 'boat' },
-    { id: 14, name: 'bird' }, { id: 15, name: 'cat' }, { id: 16, name: 'dog' }
-  ];
   let detectorEnabled = false;
   let detectorSelectedClasses = [];
   let detectorClassNames = [];
@@ -1479,6 +1439,27 @@ async function ptzStart() {
     await new Promise(resolve => setTimeout(resolve, 300));
     await ptzPrecheck();
   }
+  async function ptzSetRoiPerson() {
+    const payload = { detection_mode: 'roi', rois: [{ id: 'person_test', enabled: true, x: 0, y: 0, w: 1920, h: 1080, every_n_frames: 1, classes: [0] }] };
+    const res = await apiPostJson('/api/detection/roi_config', payload);
+    ptzLog('ROI PERSON', res);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await ptzPrecheck();
+  }
+  async function ptzSetRoiVehicle() {
+    const payload = { detection_mode: 'roi', rois: [{ id: 'vehicle_test', enabled: true, x: 500, y: 220, w: 900, h: 500, every_n_frames: 1, classes: [2, 5, 7] }] };
+    const res = await apiPostJson('/api/detection/roi_config', payload);
+    ptzLog('ROI VEHICLE', res);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await ptzPrecheck();
+  }
+  async function ptzSetFullFrame() {
+    const payload = { detection_mode: 'full_frame', rois: [] };
+    const res = await apiPostJson('/api/detection/roi_config', payload);
+    ptzLog('ROI FULL FRAME', res);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await ptzPrecheck();
+  }
   async function refreshPtzTelemetry() {
     try {
       const det = await apiGetJson('/api/detections');
@@ -1584,6 +1565,9 @@ async function ptzStart() {
         }));
     }
   });
+  $('ptzRoiPersonBtn').onclick = () => ptzSetRoiPerson().catch(e => ptzLog('ROI PERSON error', { error: String(e.message || e) }));
+  $('ptzRoiVehicleBtn').onclick = () => ptzSetRoiVehicle().catch(e => ptzLog('ROI VEHICLE error', { error: String(e.message || e) }));
+  $('ptzRoiFullBtn').onclick = () => ptzSetFullFrame().catch(e => ptzLog('ROI FULL error', { error: String(e.message || e) }));
   $('modePtzBtn').onclick = enterPtzMode;
   $('controlProfile').onchange = () => {
     applyProfile($('controlProfile').value);
@@ -1606,12 +1590,7 @@ async function ptzStart() {
     updateMicrostepLegend();
     saveSettings();
   };
-  if ($('detectionToggleBtn')) {
-    $('detectionToggleBtn').onclick = () =>
-      toggleDetectionEnabled().catch(e =>
-        ptzLog('DETECTION TOGGLE error', { error: String(e.message || e) })
-      );
-  }
+  $('detectorToggleBtn').onclick = () => toggleDetectorEnabled();
   $('detectorModelSelect').onchange = () => {
     const model = $('detectorModelSelect').value;
     if ($('operatorModelSelect')) $('operatorModelSelect').value = model;
@@ -1648,24 +1627,7 @@ async function ptzStart() {
   $('detectorPresetPerson').onclick = () => applyDetectorPreset('person');
   $('detectorPresetVehicle').onclick = () => applyDetectorPreset('vehicle');
   $('detectorPresetAll').onclick = () => applyDetectorPreset('all');
-  if ($('detectionApplyClassesBtn')) {
-    $('detectionApplyClassesBtn').onclick = () =>
-      applyDetectionClasses().catch(e =>
-        ptzLog('DETECTION CLASSES error', { error: String(e.message || e) })
-      );
-  }
-  if ($('detectionPresetBirdPlaneBtn')) {
-    $('detectionPresetBirdPlaneBtn').onclick = () =>
-      setBirdPlaneDetection().catch(e =>
-        ptzLog('DETECTION PRESET error', { error: String(e.message || e) })
-      );
-  }
-  if ($('detectionAllClassesBtn')) {
-    $('detectionAllClassesBtn').onclick = () =>
-      setAllDetectionClasses().catch(e =>
-        ptzLog('DETECTION ALL error', { error: String(e.message || e) })
-      );
-  }
+
 
   $('zoomTravelSec').onchange = () => {
     $('zoomTravelSec').value = getZoomTravelSec().toFixed(1);
@@ -1861,10 +1823,10 @@ async function ptzStart() {
     if ($('ptzSpeedTuneSummary') && $('ptzTuneStatus')) $('ptzSpeedTuneSummary').textContent = $('ptzTuneStatus').textContent || '';
     if ($('zoomCalibMenuSummary') && $('zoomAprilTagCalibStatus')) $('zoomCalibMenuSummary').textContent = $('zoomAprilTagCalibStatus').textContent || '';
     if ($('detectionMenuSummary')) {
-      const enabled = $('detectionEnabledState')?.textContent?.includes('ON');
-      const classes = ($('detectionClassesState')?.textContent || 'classes: all').replace(/^classes:\s*/,'');
-      const detSummary = enabled ? `DETECTION ON | ${classes === 'all' ? 'all objects' : classes}` : 'DETECTION OFF | stream only';
-      $('detectionMenuSummary').textContent = detSummary;
+      const modelText = $('operatorModelState')?.textContent || $('operatorModelSelect')?.value || 'model';
+      const limitText = $('operatorLimitState')?.textContent || '';
+      const fpsText = $('operatorDetectEveryState')?.textContent || '';
+      $('detectionMenuSummary').textContent = `${modelText} ${limitText} ${fpsText}`.trim();
     }
   }
   async function refreshSpeedProfileCount() {
@@ -2549,12 +2511,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       ptzLog('ZOOM CALIB SETTINGS load error', { error: String(e.message || e) })
     );
     await refreshZoomCalibrationProfile();
-    renderDetectionClassCheckboxes();
-    try {
-      await refreshDetectorConfig();
-    } catch (e) {
-      ptzLog('DETECTOR CONFIG load error', { error: String(e.message || e) });
-    }
+    await refreshDetectorConfig();
     applyFitMode($('fitMode').value);
     loadMjpeg($('mjpegUrl').value);
   }
@@ -2821,7 +2778,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     } catch (_) {}
     detectorClassSource = String(saved.detectorClassSource || defaults.detectorClassSource);
     detectorSelectedClasses = Array.isArray(saved.detectorSelectedClasses) ? saved.detectorSelectedClasses.map(v => Number(v)).filter(Number.isFinite) : [];
-    setDetectorToggleState(parseBool(saved.detectorEnabled, defaults.detectorEnabled));
+    await syncDetectorEnabled(parseBool(saved.detectorEnabled, defaults.detectorEnabled));
     $('mjpegUrl').value = normalizeStreamUrl(saved.mjpegUrl);
     $('streamMode').value = saved.streamMode;
     $('fitMode').value = saved.fitMode;
@@ -2931,36 +2888,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       .map(v => Number(v))
       .filter(v => Number.isInteger(v) && v >= 0 && v < detectorClassNames.length)))
       .sort((a, b) => a - b);
-  }
-
-  function renderDetectionClassCheckboxes() {
-    const root = $('detectionClassGrid');
-    if (!root) return;
-    root.innerHTML = '';
-    for (const cls of DETECTION_CLASS_OPTIONS) {
-      const label = document.createElement('label');
-      label.className = 'class-check';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.value = String(cls.id);
-      cb.dataset.classId = String(cls.id);
-      label.appendChild(cb);
-      label.appendChild(document.createTextNode(` ${cls.name} (${cls.id})`));
-      root.appendChild(label);
-    }
-  }
-
-  function readSelectedDetectionClassesFromUi() {
-    return [...document.querySelectorAll('#detectionClassGrid input[type="checkbox"]:checked')]
-      .map(cb => Number(cb.dataset.classId))
-      .filter(Number.isFinite);
-  }
-
-  function setDetectionClassCheckboxes(ids) {
-    const wanted = new Set((ids || []).map(Number));
-    document.querySelectorAll('#detectionClassGrid input[type="checkbox"]').forEach(cb => {
-      cb.checked = wanted.has(Number(cb.dataset.classId));
-    });
   }
 
   function renderDetectorClassControls() {
@@ -3135,29 +3062,25 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     }
   }
 
-  function updateDetectionUi(cfg) {
-    const enabled = Boolean(cfg.detect_enabled);
-    const selected = Array.isArray(cfg.selected_classes) ? cfg.selected_classes.map(Number) : detectorSelectedClasses.slice();
-    const btn = $('detectionToggleBtn');
-    if (btn) {
-      btn.textContent = enabled ? 'DETECTION: ON' : 'DETECTION: OFF';
-      btn.classList.toggle('detect-on', enabled);
-      btn.classList.toggle('detect-off', !enabled);
-    }
-    if ($('detectionEnabledState')) $('detectionEnabledState').textContent = enabled ? 'detect: ON' : 'detect: OFF';
-    const classText = selected.length ? selected.map(id => DETECTION_CLASS_OPTIONS.find(c => c.id === id)?.name || String(id)).join(', ') : 'all';
-    if ($('detectionClassesState')) $('detectionClassesState').textContent = `classes: ${classText}`;
-    updateOperatorMenuSummaries?.();
-  }
-
   async function refreshDetectorConfig() {
-    const cfg = await apiGetJson('/api/detector/config');
-    setDetectorToggleState(parseBool(cfg.detect_enabled, false));
-    detectorSelectedClasses = Array.isArray(cfg.selected_classes) ? cfg.selected_classes.map(v => Number(v)).filter(Number.isFinite) : [];
-    setDetectionClassCheckboxes(detectorSelectedClasses);
-    setDetectorMeta(String(cfg.current_model || ''));
-    updateDetectionUi(cfg);
-    return cfg;
+    try {
+      const res = await fetch('/api/detector/config', { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const cfg = await res.json();
+      setDetectorToggleState(parseBool(cfg.detect_enabled, false));
+      const currentModel = String(cfg.current_model || '');
+      detectorSelectedClasses = Array.isArray(cfg.selected_classes) ? cfg.selected_classes.map(v => Number(v)).filter(Number.isFinite) : [];
+      setDetectorMeta(currentModel);
+      await refreshDetectorModels(currentModel);
+      await refreshDetectorClasses(detectorClassSource, detectorSelectedClasses);
+      if (!detectorModelSwitching) setDetectorSwitchState('idle');
+      saveSettings();
+    } catch (_) {
+      setDetectorMeta('unavailable');
+      await refreshDetectorModels('');
+      await refreshDetectorClasses(detectorClassSource, []);
+      setDetectorSwitchState('unavailable');
+    }
   }
 
   async function selectDetectorModel(modelName) {
@@ -3253,41 +3176,21 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     ptzLog('DETECTION THROTTLE', res);
     updateOperatorMenuSummaries();
   }
-  async function toggleDetectionEnabled() {
-    const cfg = await apiGetJson('/api/detector/config');
-    const currentSelected = readSelectedDetectionClassesFromUi();
-    const res = await apiPostJson('/api/detector/config', { detect_enabled: !Boolean(cfg.detect_enabled), selected_classes: currentSelected });
-    ptzLog('DETECTION TOGGLE', res);
-    await refreshDetectorConfig();
-    await refreshPtzTelemetry?.().catch(() => {});
+  async function syncDetectorEnabled(enabled) {
+    const wantEnabled = !!enabled;
+    try {
+      await fetch('/api/detector/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ detect_enabled: wantEnabled }),
+      });
+    } catch (_) {}
+    setDetectorToggleState(wantEnabled);
   }
 
-  async function applyDetectionClasses() {
-    const cfg = await apiGetJson('/api/detector/config');
-    const selected = readSelectedDetectionClassesFromUi();
-    const res = await apiPostJson('/api/detector/config', { detect_enabled: Boolean(cfg.detect_enabled), selected_classes: selected });
-    await apiPostJson('/api/detection/roi_config', { detection_mode: 'full_frame', rois: [] }).catch(() => {});
-    ptzLog('DETECTION CLASSES', { ...res, selected_classes: selected });
+  async function toggleDetectorEnabled() {
+    await syncDetectorEnabled(!detectorEnabled);
     await refreshDetectorConfig();
-    await refreshPtzTelemetry?.().catch(() => {});
-  }
-
-  async function setBirdPlaneDetection() {
-    setDetectionClassCheckboxes([4, 14]);
-    const res = await apiPostJson('/api/detector/config', { detect_enabled: true, selected_classes: [4, 14] });
-    await apiPostJson('/api/detection/roi_config', { detection_mode: 'full_frame', rois: [] }).catch(() => {});
-    ptzLog('DETECTION PRESET BIRD+AIRPLANE', res);
-    await refreshDetectorConfig();
-    await refreshPtzTelemetry?.().catch(() => {});
-  }
-
-  async function setAllDetectionClasses() {
-    setDetectionClassCheckboxes([]);
-    const res = await apiPostJson('/api/detector/config', { detect_enabled: true, selected_classes: [] });
-    await apiPostJson('/api/detection/roi_config', { detection_mode: 'full_frame', rois: [] }).catch(() => {});
-    ptzLog('DETECTION ALL CLASSES', res);
-    await refreshDetectorConfig();
-    await refreshPtzTelemetry?.().catch(() => {});
   }
 
   async function saveSettings() {
