@@ -252,18 +252,6 @@
   border-color:#c43;
   opacity:.75;
 }
-
-/* Hide legacy control panel; keep DOM only for old references during migration. */
-#controlsSpoiler,
-#settingsToggleBtn {
-  display: none !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-  height: 0 !important;
-  max-height: 0 !important;
-  overflow: hidden !important;
-}
-
 </style>
 </head>
 <body>
@@ -3661,33 +3649,20 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
 
   function manualDrive(pan, tilt, zoom) {
-    // Legacy compatibility wrapper.
-    // Do not send raw J from frontend anymore.
-    // Normal pan/tilt must go through backend manual_drive.
     if (zoomAprilTagCalibrationActive || zoomCalibInProgress) {
       pan = 0;
       tilt = 0;
       zoom = 0;
     }
-
+    if ($('auto').checked || $('controlMode').value === 'manual') connectWs();
+    if (!ws || ws.readyState !== 1) return;
     const safeLimited = applySafeModeLimits(pan, tilt, zoom);
     const limited = applyCommandLimits(safeLimited.pan, safeLimited.tilt, safeLimited.zoom);
+    seq = (seq + 1) & 0xFFFF;
+    sendLine(`J ${seq} ${limited.pan} ${limited.tilt}`);
+    sendLine(`Z ${limited.zoom}`);
 
-    const panNorm = Math.max(-1, Math.min(1, Number(limited.pan || 0) / 100.0));
-    const tiltNorm = Math.max(-1, Math.min(1, Number(limited.tilt || 0) / 100.0));
-
-    if (Math.abs(panNorm) > 0.001 || Math.abs(tiltNorm) > 0.001) {
-      manualInputDrive(panNorm, tiltNorm, 'legacy_manualDrive', 500).catch(e =>
-        ptzLog('LEGACY manualDrive backend error', { error: String(e.message || e) })
-      );
-    } else {
-      manualInputStop('legacy_manualDrive_stop').catch(() => {});
-    }
-
-    // Zoom-only still uses existing Z path for now.
-    if (Number(limited.zoom || 0) !== 0) {
-      sendZoomOnly(limited.zoom);
-    }
+    updateZoomStateFromCommand(limited.zoom);
   }
 
   async function backendManualDrive(pan, tilt, source = 'web', holdMs = 250) {
@@ -3897,23 +3872,23 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       touchState = map[cmd];
       btn.classList.add('active');
 
-      if (cmd === 'zin' || cmd === 'zout') {
+      if ($('controlMode').value === 'ptz') {
         sendZoomOnly(touchState.zoom);
-        return;
-      }
-
-      if (cmd === 'stop') {
-        stopManualHold('touch_stop_button').catch(() => {});
-        sendZoomOnly(0);
         return;
       }
 
       const [panNorm, tiltNorm] = directionForTouchCmd(cmd);
       startManualHold(panNorm, tiltNorm, `touch_${cmd}`);
+      sendZoomOnly(touchState.zoom);
     };
     const onEnd = (btn) => {
       btn.classList.remove('active');
       touchState = { pan: 0, tilt: 0, zoom: 0 };
+
+      if ($('controlMode').value === 'ptz') {
+        sendZoomOnly(0);
+        return;
+      }
 
       stopManualHold('touch_stop').catch(() => {});
       sendZoomOnly(0);
@@ -4046,30 +4021,24 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     }
     if (shouldIgnoreKeyboardEvent(e)) return;
     const key = e.key.toLowerCase();
-    const code = String(e.code || '');
-    const isQ = key === 'q' || code === 'KeyQ';
-    const isA = key === 'a' || code === 'KeyA';
-
     const map = {
       arrowup: 'up',
       arrowdown: 'down',
       arrowleft: 'left',
       arrowright: 'right',
+      q: 'zin',
+      a: 'zout',
     };
-
-    let action = map[key];
-    if (isQ) action = 'zin';
-    if (isA) action = 'zout';
-
+    const action = map[key];
     if (!action) return;
     e.preventDefault();
     keyboardState[action] = true;
 
-    if (isQ) {
+    if (key === 'q') {
       keyboardZoomSampleStep(-1, 'Q_WIDE');
       return;
     }
-    if (isA) {
+    if (key === 'a') {
       keyboardZoomSampleStep(1, 'A_TELE');
       return;
     }
@@ -4088,26 +4057,20 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   window.addEventListener('keyup', (e) => {
     if (shouldIgnoreKeyboardEvent(e)) return;
     const key = e.key.toLowerCase();
-    const code = String(e.code || '');
-    const isQ = key === 'q' || code === 'KeyQ';
-    const isA = key === 'a' || code === 'KeyA';
-
     const map = {
       arrowup: 'up',
       arrowdown: 'down',
       arrowleft: 'left',
       arrowright: 'right',
+      q: 'zin',
+      a: 'zout',
     };
-
-    let action = map[key];
-    if (isQ) action = 'zin';
-    if (isA) action = 'zout';
-
+    const action = map[key];
     if (!action) return;
     e.preventDefault();
     keyboardState[action] = false;
 
-    if (isQ || isA) {
+    if (key === 'q' || key === 'a') {
       return;
     }
 

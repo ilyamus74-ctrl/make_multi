@@ -2962,3 +2962,15 @@
 2026-05-25T21:38:33Z type=video_restored payload={"type":"video_restored","ts_ms":1779745113262,"details":{"lost_for_ms":32}}
 2026-05-25T21:38:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779745124582,"details":{"mode":"safe","reason":"rtt-high","rtt_ms":436}}
 2026-05-25T21:38:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779745125177,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":30}}
+2026-05-25T21:41:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779745305109,"details":{"mode":"safe","reason":"rtt-high","rtt_ms":227}}
+2026-05-25T21:41:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779745305909,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":12}}
+2026-05-25T21:42:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779745365041,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":916}}
+2026-05-25T21:42:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779745365191,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":37}}
+2026-05-25T21:45:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779745545282,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":1956}}
+2026-05-25T21:45:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779745545355,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":30}}
+2026-05-25T21:50:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779745844775,"details":{"mode":"safe","reason":"rtt-high","rtt_ms":1447}}
+2026-05-25T21:50:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779745845354,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":26}}
+2026-05-25T21:53:06Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779745986361,"details":{"mode":"critical","reason":"rtt-critical","rtt_ms":3630}}
+2026-05-25T21:53:06Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779745986364,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":111}}
+2026-05-25T21:53:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779746024329,"details":{"mode":"safe","reason":"rtt-high","rtt_ms":666}}
+2026-05-25T21:53:44Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779746024689,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":10}}
