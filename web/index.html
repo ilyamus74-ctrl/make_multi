@@ -43,6 +43,38 @@
     .controls-spoiler[open] summary{margin-bottom:6px}
     .hint{font-size:12px;color:#666;margin-top:8px}
     .row{margin:8px 0}
+    .operator-menu {
+      width: 100%;
+      margin-top: 4px;
+      border: 1px solid var(--controls-border);
+      border-radius: 8px;
+      background: rgba(0,0,0,.28);
+    }
+    .operator-menu > summary {
+      cursor: pointer;
+      padding: 5px 8px;
+      font-weight: 700;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .operator-menu .menu-body {
+      padding: 6px 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .operator-menu[open] > summary { background: rgba(255,255,255,.08); }
+    .operator-menu code,
+    .operator-menu input,
+    .operator-menu select,
+    .operator-menu button { font-size: 12px; }
+    .operator-menu.compact .menu-body {
+      max-height: 160px;
+      overflow: auto;
+    }
     .ok{color:#0a0}.bad{color:#a00}.warn{color:#a60}
     code{background:#eee;padding:2px 6px;border-radius:6px}
     input{width:90px}
@@ -271,32 +303,34 @@
         <button id="ptzRoiPersonBtn" class="small-btn">PERSON</button>
         <button id="ptzRoiVehicleBtn" class="small-btn">VEHICLE</button>
         <button id="ptzRoiFullBtn" class="small-btn">FULL FRAME</button>
-        <span style="opacity:.55">|</span>
-        <b>MODEL:</b>
-        <select id="operatorModelSelect" class="small-select"></select>
-        <button id="operatorModelApplyBtn" class="small-btn">APPLY MODEL</button>
-        <code id="operatorModelState">model: --</code>
-        <span style="opacity:.55">|</span>
-        <b>LIMIT:</b>
-        <select id="operatorDetectionLimit" class="small-select">
-          <option value="5">weak: 5</option>
-          <option value="10" selected>normal: 10</option>
-          <option value="20">strong: 20</option>
-        </select>
-        <button id="operatorLimitApplyBtn" class="small-btn">APPLY LIMIT</button>
-        <code id="operatorLimitState">limit: --</code>
-        <span style="opacity:.55">|</span>
-        <b>DETECT FPS:</b>
-        <select id="operatorDetectEvery" class="small-select">
-          <option value="1">every frame</option>
-          <option value="2">1/2</option>
-          <option value="3" selected>1/3</option>
-          <option value="5">1/5</option>
-        </select>
-        <button id="operatorDetectEveryApplyBtn" class="small-btn">APPLY</button>
-        <code id="operatorDetectEveryState">detect: --</code>
         <code id="ptzStateLine">idle</code>
       </div>
+      <details id="detectionMenu" class="operator-menu">
+        <summary>DETECTION <code id="detectionMenuSummary">model / limit / fps</code></summary>
+        <div class="menu-body">
+          <b>MODEL:</b>
+          <select id="operatorModelSelect" class="small-select"></select>
+          <button id="operatorModelApplyBtn" class="small-btn">APPLY MODEL</button>
+          <code id="operatorModelState">model: --</code>
+          <b>LIMIT:</b>
+          <select id="operatorDetectionLimit" class="small-select">
+            <option value="5">weak: 5</option>
+            <option value="10" selected>normal: 10</option>
+            <option value="20">strong: 20</option>
+          </select>
+          <button id="operatorLimitApplyBtn" class="small-btn">APPLY LIMIT</button>
+          <code id="operatorLimitState">limit: --</code>
+          <b>DETECT FPS:</b>
+          <select id="operatorDetectEvery" class="small-select">
+            <option value="1">every frame</option>
+            <option value="2">1/2</option>
+            <option value="3" selected>1/3</option>
+            <option value="5">1/5</option>
+          </select>
+          <button id="operatorDetectEveryApplyBtn" class="small-btn">APPLY</button>
+          <code id="operatorDetectEveryState">detect: --</code>
+        </div>
+      </details>
       <div class="row" id="ptzConfigPanel">
         <label>PTZ Y⇅ <input id="ptzInvertTilt" type="checkbox"></label>
         <label>PTZ X⇄ <input id="ptzInvertPan" type="checkbox"></label>
@@ -306,8 +340,9 @@
         <label>Min T <input id="ptzMinTilt" type="number" min="0" max="20" step="1" value="3"></label>
         <button id="ptzApplyConfigBtn" class="small-btn">APPLY PTZ</button>
       </div>
-      <div class="row" id="ptzSpeedTunePanel">
-        <b>PTZ SPEED TUNE</b>
+      <details id="ptzSpeedTuneMenu" class="operator-menu compact">
+        <summary>PTZ SPEED TUNE <code id="ptzSpeedTuneSummary">step=0 points=0</code></summary>
+        <div class="menu-body" id="ptzSpeedTunePanel">
         <button id="ptzTuneRehomeWideBtn" class="small-btn">REHOME WIDE</button>
         <button id="ptzTuneTele1Btn" class="small-btn">TELE +1</button>
         <button id="ptzTuneTele2Btn" class="small-btn">TELE +2</button>
@@ -327,9 +362,11 @@
         <button id="ptzTuneApplyConfigBtn" class="small-btn">APPLY SPEED</button>
         <code id="ptzTuneStatus">step=0 zoom=0.00 focal=0 points=0</code>
         <span style="opacity:.8">Workflow: 1) REHOME WIDE 2) Tune + SAVE SPEED POINT 3) TELE +2 4) Tune + SAVE 5) Repeat until TELE.</span>
-      </div>
-      <div class="row" id="zoomAprilTagCalibPanel">
-        <b>ZOOM CALIB:</b>
+        </div>
+      </details>
+      <details id="zoomCalibMenu" class="operator-menu compact">
+        <summary>ZOOM CALIB <code id="zoomCalibMenuSummary">anchor / profile</code></summary>
+        <div class="menu-body" id="zoomAprilTagCalibPanel">
         <button id="zoomRunAprilTagCalibBtn" class="small-btn">RUN APRILTAG ZOOM CALIB</button>
         <button id="zoomBuildMasterProfileBtn" class="small-btn">BUILD MASTER PROFILE</button>
         <button id="apriltagTestBtn" class="small-btn">TEST APRILTAG</button>
@@ -361,10 +398,14 @@
         <button id="zoomStopBtn" class="small-btn">STOP ZOOM</button>
         <code id="zoomAprilTagCalibStatus">idle</code>
         <span style="opacity:.8">Manual 3-run flow: set Anchor distance 1m/5m/10m, move marker, press RUN each time.</span>
-      </div>
-      <div class="row">
-        <details><summary>PTZ log</summary><textarea id="ptzDebugLog" style="width:100%;height:48px;font-family:monospace;font-size:12px"></textarea></details>
-      </div>
+        </div>
+      </details>
+      <details id="ptzLogMenu" class="operator-menu compact">
+        <summary>PTZ LOG</summary>
+        <div class="menu-body">
+          <textarea id="ptzDebugLog" style="width:100%;height:48px;font-family:monospace;font-size:12px"></textarea>
+        </div>
+      </details>
 
       <details id="controlsSpoiler" class="controls-spoiler">
         <summary class="visually-hidden">Управление и настройки</summary>
@@ -1423,6 +1464,7 @@ async function ptzStart() {
       $('ptzStateLine').textContent = `DET=${detCount} | TRACK=${tr.mode} id=${tr.selected_track_id} valid=${tr.selected_box_valid} | PTZ=${ap.enabled}/${ap.mode} cmd=${ap.cmd_pan},${ap.cmd_tilt} | Z=${Number(ap.zoom_ratio||0).toFixed(2)} F=${Math.round(Number(ap.zoom_focal_px||0))} S=${Number(ap.zoom_speed_scale||1).toFixed(2)} | base=${ap.base_cmd_pan||0},${ap.base_cmd_tilt||0} scaled=${ap.cmd_pan},${ap.cmd_tilt} | CONF=${fused.toFixed(2)}`;
       $('pidCmd').textContent = `PTZ ${ap.cmd_pan},${ap.cmd_tilt}`;
       $('pidTarget').textContent = `PTZ id=${tr.selected_track_id} ${tr.mode}`;
+      updateOperatorMenuSummaries();
     } catch (e) {
       $('ptzStateLine').textContent = `PTZ offline: ${String(e.message || e)}`;
     }
@@ -1746,6 +1788,26 @@ async function ptzStart() {
   }
   function tuneStatusSet(zoomRatio = 0, focalPx = 0) {
     $('ptzTuneStatus').textContent = `step=${ptzTuneStep} zoom=${Number(zoomRatio || 0).toFixed(2)} focal=${Math.round(Number(focalPx || 0))} points=${ptzTuneSavedPoints}`;
+    updateOperatorMenuSummaries();
+  }
+  function setupPersistedDetails(id, storageKey, defaultOpen = false) {
+    const el = $(id);
+    if (!el) return;
+    const saved = localStorage.getItem(storageKey);
+    el.open = saved == null ? defaultOpen : saved === '1';
+    el.addEventListener('toggle', () => {
+      localStorage.setItem(storageKey, el.open ? '1' : '0');
+    });
+  }
+  function updateOperatorMenuSummaries() {
+    if ($('ptzSpeedTuneSummary') && $('ptzTuneStatus')) $('ptzSpeedTuneSummary').textContent = $('ptzTuneStatus').textContent || '';
+    if ($('zoomCalibMenuSummary') && $('zoomAprilTagCalibStatus')) $('zoomCalibMenuSummary').textContent = $('zoomAprilTagCalibStatus').textContent || '';
+    if ($('detectionMenuSummary')) {
+      const modelText = $('operatorModelState')?.textContent || $('operatorModelSelect')?.value || 'model';
+      const limitText = $('operatorLimitState')?.textContent || '';
+      const fpsText = $('operatorDetectEveryState')?.textContent || '';
+      $('detectionMenuSummary').textContent = `${modelText} ${limitText} ${fpsText}`.trim();
+    }
   }
   async function refreshSpeedProfileCount() {
     const data = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile`);
@@ -1931,6 +1993,10 @@ async function ptzStart() {
     };
   });
   initSettings();
+  setupPersistedDetails('detectionMenu', 'ui.menu.detection', false);
+  setupPersistedDetails('ptzSpeedTuneMenu', 'ui.menu.ptzSpeedTune', false);
+  setupPersistedDetails('zoomCalibMenu', 'ui.menu.zoomCalib', false);
+  setupPersistedDetails('ptzLogMenu', 'ui.menu.ptzLog', false);
   refreshDetectionLimits().catch(e => ptzLog('LIMIT init error', { error: String(e.message || e) }));
   refreshDetectionThrottle().catch(e => ptzLog('THROTTLE init error', { error: String(e.message || e) }));
   refreshPtzConfigFromServer().catch(e => ptzLog('PTZ CONFIG init error', { error: String(e.message || e) }));
@@ -2603,6 +2669,7 @@ async function ptzStart() {
       select.appendChild(opt);
       select.disabled = true;
       $('operatorModelState').textContent = 'model: unavailable';
+      updateOperatorMenuSummaries();
       return;
     }
 
@@ -2622,6 +2689,7 @@ async function ptzStart() {
     }
 
     $('operatorModelState').textContent = `model: ${select.value}`;
+    updateOperatorMenuSummaries();
   }
 
   async function refreshDetectorModels(currentModelHint) {
@@ -2706,12 +2774,14 @@ async function ptzStart() {
     } catch (_) {}
 
     $('operatorModelState').textContent = `switching: ${model}`;
+    updateOperatorMenuSummaries();
     ptzLog('MODEL SWITCH requested', { model });
 
     $('detectorModelSelect').value = model;
     await selectDetectorModel(model);
 
     $('operatorModelState').textContent = `model: ${model}`;
+    updateOperatorMenuSummaries();
     ptzLog('MODEL SWITCH done', { model });
 
     await ptzPrecheck();
@@ -2720,12 +2790,14 @@ async function ptzStart() {
     const lim = await apiGetJson('/api/detection/limits');
     $('operatorDetectionLimit').value = String(lim.max_detections || 10);
     $('operatorLimitState').textContent = `limit: ${lim.max_detections}/${lim.max_raw_candidates}`;
+    updateOperatorMenuSummaries();
   }
 
   async function refreshDetectionThrottle() {
     const th = await apiGetJson('/api/detection/throttle');
     $('operatorDetectEvery').value = String(th.detect_every_n_frames || 1);
     $('operatorDetectEveryState').textContent = `detect: 1/${th.detect_every_n_frames || 1}`;
+    updateOperatorMenuSummaries();
   }
   async function applyOperatorDetectionLimit() {
     const maxDet = Number($('operatorDetectionLimit').value || 10);
@@ -2736,6 +2808,7 @@ async function ptzStart() {
     });
     $('operatorLimitState').textContent = `limit: ${res.max_detections}/${res.max_raw_candidates}`;
     ptzLog('DETECTION LIMIT', res);
+    updateOperatorMenuSummaries();
   }
 
   async function applyOperatorDetectEvery() {
@@ -2743,6 +2816,7 @@ async function ptzStart() {
     const res = await apiPostJson('/api/detection/throttle', { detect_every_n_frames: detectEvery });
     $('operatorDetectEveryState').textContent = `detect: 1/${res.detect_every_n_frames}`;
     ptzLog('DETECTION THROTTLE', res);
+    updateOperatorMenuSummaries();
   }
   async function syncDetectorEnabled(enabled) {
     const wantEnabled = !!enabled;
