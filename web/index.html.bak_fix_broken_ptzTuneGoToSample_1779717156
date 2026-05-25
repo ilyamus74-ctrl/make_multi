@@ -1934,7 +1934,6 @@ async function ptzTuneSetZoomStateForSample(sampleIdx, source) {
   return res;
 }
 
-
 async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   sampleIdx = Math.round(Number(sampleIdx || 0));
 
@@ -1964,6 +1963,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
     ptzTuneCurrentSample = Number(res.to_sample ?? res.target_sample ?? sampleIdx);
 
+    // Sync exact backend state after movement.
     let zs = null;
     try {
       zs = await apiGetJson('/api/zoom/state');
@@ -1993,8 +1993,55 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     ptzTuneZoomMoveBusy = false;
     setPtzTuneSampleButtonsDisabled?.(false);
   }
-}
+}) {
+  sampleIdx = Math.round(Number(sampleIdx || 0));
 
+  const target = (ptzTuneZoomSamples || []).find(p => Number(p.profile_idx) === Number(sampleIdx));
+  if (!target) {
+    ptzLog('PTZ TUNE SAMPLE error', { error: 'sample_not_found', sampleIdx });
+    return;
+  }
+
+  if (ptzTuneZoomMoveBusy) {
+    ptzLog('PTZ TUNE SAMPLE busy', { sampleIdx });
+    return;
+  }
+
+  ptzTuneZoomMoveBusy = true;
+
+  try {
+    await ptzStop().catch(() => {});
+
+    const current = Number(ptzTuneCurrentSample || 0);
+    const delta = sampleIdx - current;
+
+    if (opts.forceAbsolute) {
+      await ptzTuneRehomeWidePhysical();
+      if (sampleIdx > 0) await ptzTuneMoveRelativeSamples(sampleIdx);
+    } else {
+      await ptzTuneMoveRelativeSamples(delta);
+    }
+
+    await ptzTuneSetZoomStateForSample(sampleIdx, `ptz_tune_browser_${current}_to_${sampleIdx}`);
+    await ptzTuneLoadSpeedForSample(sampleIdx).catch(() => {});
+    await refreshPtzTelemetry().catch(() => {});
+    updatePtzTuneSampleButtonUi();
+
+    ptzLog('PTZ TUNE SAMPLE moved', {
+      mode: opts.forceAbsolute ? 'browser_absolute_wide' : 'browser_relative',
+      from: current,
+      to: sampleIdx,
+      delta
+    });
+  } catch (e) {
+    ptzLog('PTZ TUNE SAMPLE move error', {
+      sampleIdx,
+      error: String(e.message || e)
+    });
+  } finally {
+    ptzTuneZoomMoveBusy = false;
+  }
+}
   async function tuneMoveSteps(dir, n) {
     const cmdAbs = Number($('zoomCmdAbs').value || 34);
     const sign = Number($('zoomWideSign').value || -1);
