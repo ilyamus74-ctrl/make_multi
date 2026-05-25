@@ -1312,7 +1312,28 @@ static int zoom_wide_cmd(){ std::lock_guard<std::mutex> lk(g_zoomCalibMtx); retu
 static int zoom_tele_cmd(){ return -zoom_wide_cmd(); }
 static bool zoom_get_profile_point(int profile_idx, ZoomProfilePoint* out){ std::lock_guard<std::mutex> lk(g_zoomMasterProfileMtx); for (const auto& p: g_zoomMasterProfile.points){ if (p.profile_idx==profile_idx){ if(out)*out=p; return true; } } return false; }
 static int zoom_max_sample_idx(){ std::lock_guard<std::mutex> lk(g_zoomMasterProfileMtx); int m=0; for (const auto& p: g_zoomMasterProfile.points) m=std::max(m,p.profile_idx); return m; }
-static void save_zoom_runtime_state(){ std::lock_guard<std::mutex> lk(g_zoomRuntimeMtx); std::ofstream out(g_zoomRuntimeStateFile, std::ios::trunc); if(!out.good()) return; out << "{"version":1,"zoom_sample_idx":"<<g_zoomSampleIdx.load()<<","zoom_ratio":"<<g_zoomRatio.load()<<","focal_px":"<<zoom_profile_focal_for_ratio(g_zoomRatio.load())<<","zoom_confidence":"<<g_zoomConfidence.load()<<","zoom_source":""<<json_escape(g_zoomSource)<<"","steps_since_home":"<<g_zoomStepsSinceHome.load()<<","last_home_at_ms":"<<g_zoomLastHomeMs.load()<<","last_move_at_ms":"<<g_zoomLastMoveMs.load()<<"}"; }
+static void save_zoom_runtime_state(){
+  std::lock_guard<std::mutex> lk(g_zoomRuntimeMtx);
+
+  std::ofstream out(g_zoomRuntimeStateFile, std::ios::trunc);
+  if(!out.good()) return;
+
+  const double zr = g_zoomRatio.load();
+  const double fp = zoom_profile_focal_for_ratio(zr);
+
+  out << "{"
+      << "\"version\":1"
+      << ",\"zoom_sample_idx\":" << g_zoomSampleIdx.load()
+      << ",\"zoom_ratio\":" << zr
+      << ",\"focal_px\":" << fp
+      << ",\"zoom_confidence\":" << g_zoomConfidence.load()
+      << ",\"zoom_source\":\"" << json_escape(g_zoomSource) << "\""
+      << ",\"steps_since_home\":" << g_zoomStepsSinceHome.load()
+      << ",\"last_home_at_ms\":" << g_zoomLastHomeMs.load()
+      << ",\"last_move_at_ms\":" << g_zoomLastMoveMs.load()
+      << "}";
+}
+
 static void load_zoom_runtime_state(){ std::ifstream in(g_zoomRuntimeStateFile); if(!in.good()) return; std::ostringstream ss; ss<<in.rdbuf(); std::string j=ss.str(); int i=0; double d=0; if(extract_json_int_field(j,"zoom_sample_idx",&i)) g_zoomSampleIdx=i; if(extract_json_double_field(j,"zoom_ratio",&d)) g_zoomRatio=std::max(0.0,std::min(1.0,d)); if(extract_json_double_field(j,"zoom_confidence",&d)) g_zoomConfidence=std::max(0.0,std::min(1.0,d)); std::string src=extract_json_string_field(j,"zoom_source"); if(!src.empty()){ std::lock_guard<std::mutex> lk(g_zoomMasterProfileMtx); g_zoomSource=src; } if(extract_json_int_field(j,"steps_since_home",&i)) g_zoomStepsSinceHome=i; if(extract_json_int_field(j,"last_home_at_ms", &i)) g_zoomLastHomeMs=i; if(extract_json_int_field(j,"last_move_at_ms", &i)) g_zoomLastMoveMs=i; }
 static bool zoom_send_stream_cmd(int cmd, int hold_ms, std::string* err){ if(!send_zoom_stream_via_bridge_ws(cmd,hold_ms)){ if(err)*err="bridge_ws_stream_failed"; return false;} return true; }
 static bool zoom_stop_burst(std::string* err){ if(!send_zoom_stream_via_bridge_ws(0,0)){ if(err)*err="bridge_ws_stop_failed"; return false;} return true; }
