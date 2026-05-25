@@ -3717,6 +3717,19 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     updateZoomStateFromCommand(limited.zoom);
   }
 
+  async function backendManualDrive(pan, tilt, source = 'web', holdMs = 250) {
+    const res = await apiPostJson(`${autopilotBaseUrl()}/api/control/manual_drive`, { pan, tilt, source, hold_ms: holdMs });
+    ptzLog('MANUAL DRIVE BACKEND', res);
+    await refreshPtzTelemetry?.().catch(() => {});
+    return res;
+  }
+  async function backendManualStop(source = 'web') {
+    const res = await apiPostJson(`${autopilotBaseUrl()}/api/control/stop`, { source });
+    ptzLog('MANUAL STOP BACKEND', res);
+    await refreshPtzTelemetry?.().catch(() => {});
+    return res;
+  }
+
   function clamp01(v) {
     return Math.max(0, Math.min(1, v));
   }
@@ -3815,6 +3828,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
         return;
       }
 
+      backendManualDrive(touchState.pan / 35, touchState.tilt / 35, 'ptz_pad').catch(() => {});
       manualDrive(touchState.pan, touchState.tilt, touchState.zoom);
     };
     const onEnd = (btn) => {
@@ -3826,6 +3840,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
         return;
       }
 
+      backendManualStop('ptz_pad').catch(() => {});
       manualDrive(0, 0, 0);
     };
     document.querySelectorAll('#touchControls .touch-btn').forEach((btn) => {
@@ -3839,10 +3854,12 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   bindTouchControls();
   window.addEventListener('pointerup', () => {
     touchState = { pan: 0, tilt: 0, zoom: 0 };
+    backendManualStop('pointerup').catch(() => {});
     manualDrive(0, 0, 0);
   });
   window.addEventListener('blur', () => {
     keyboardState = { up: false, down: false, left: false, right: false, zin: false, zout: false };
+    backendManualStop('blur').catch(() => {});
     manualDrive(0, 0, 0);
   });
   document.addEventListener('visibilitychange', () => {
@@ -3902,6 +3919,9 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       return;
     }
 
+
+    if (pan === 0 && tilt === 0) backendManualStop('keyboard').catch(() => {});
+    else backendManualDrive(pan / 35, tilt / 35, 'keyboard').catch(() => {});
     manualDrive(pan, tilt, zoom);
   }
 
