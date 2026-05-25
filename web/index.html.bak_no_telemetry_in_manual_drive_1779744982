@@ -3669,6 +3669,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     const res = await apiPostJson(`${autopilotBaseUrl()}/api/control/manual_drive`, { pan, tilt, source, hold_ms: holdMs });
     manualBackendActive = true;
     maybeLogManualDrive(res, source);
+    await refreshPtzTelemetry?.().catch(() => {});
     return res;
   }
 
@@ -3707,6 +3708,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       const res = await apiPostJson(`${autopilotBaseUrl()}/api/control/stop`, { source });
       manualBackendActive = false;
       ptzLog('MANUAL STOP BACKEND', res);
+      await refreshPtzTelemetry?.().catch(() => {});
       return res;
     } finally {
       manualStopInFlight = false;
@@ -3977,41 +3979,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     sendZoomOnly(zoom);
   }
 
-  async function keyboardZoomSampleStep(delta, source) {
-    try {
-      const zs = await apiGetJson('/api/zoom/state');
-      const cur = Number(zs.zoom_sample_idx || 0);
-      const count = Number(zs.zoom_sample_count || 0);
-      const maxIdx = count > 0 ? count - 1 : cur;
-      const target = Math.max(0, Math.min(maxIdx, cur + delta));
-
-      if (target === cur) {
-        ptzLog('KEYBOARD ZOOM SAMPLE skipped edge', { source, cur, target });
-        return;
-      }
-
-      const res = await apiPostJson('/api/zoom/go_to_sample', {
-        profile_idx: target,
-        mode: 'relative'
-      });
-
-      ptzLog('KEYBOARD ZOOM SAMPLE', { source, from: cur, to: target, res });
-
-      if (typeof ptzTuneCurrentSample !== 'undefined') {
-        ptzTuneCurrentSample = target;
-      }
-
-      try {
-        await ptzTuneLoadSpeedForSample?.(target);
-      } catch (_) {}
-
-      updatePtzTuneSampleButtonUi?.();
-    } catch (e) {
-      ptzLog('KEYBOARD ZOOM SAMPLE error', { source, error: String(e.message || e) });
-    }
-  }
-
-
   window.addEventListener('keydown', (e) => {
 
     if (e.repeat) return;
@@ -4033,15 +4000,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     if (!action) return;
     e.preventDefault();
     keyboardState[action] = true;
-
-    if (key === 'q') {
-      keyboardZoomSampleStep(-1, 'Q_WIDE');
-      return;
-    }
-    if (key === 'a') {
-      keyboardZoomSampleStep(1, 'A_TELE');
-      return;
-    }
 
     if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown'].includes(key)) {
       if (manualKeyState.has(e.key)) return;
@@ -4069,11 +4027,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     if (!action) return;
     e.preventDefault();
     keyboardState[action] = false;
-
-    if (key === 'q' || key === 'a') {
-      return;
-    }
-
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
       manualKeyState.delete(e.key);
       if (manualKeyState.size === 0) {
