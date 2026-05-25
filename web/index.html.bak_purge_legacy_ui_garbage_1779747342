@@ -171,7 +171,19 @@
       border:2px solid #fff;
       box-shadow:0 0 0 2px rgba(46,125,50,0.55);
     }
-.touch-btn{
+    .touch-controls{
+      position:absolute;
+      right:10px;
+      bottom:calc(10px + var(--controls-bottom-offset, 0px));
+      z-index:4;
+      display:grid;
+      gap:6px;
+      grid-template-columns:56px 56px 56px;
+      grid-template-rows:56px 56px 56px;
+      touch-action:none;
+      user-select:none;
+    }
+    .touch-btn{
       border:1px solid var(--controls-border);
       border-radius:12px;
       background:var(--controls-bg);
@@ -182,7 +194,12 @@
     .touch-btn:active,.touch-btn.active{background:rgba(70,130,220,0.8)}
     .touch-btn.zoom{font-size:16px}
     .touch-hidden{display:none}
-.overlay-legend{
+    .touch-controls.disabled .touch-btn{
+      opacity:0.45;
+      pointer-events:none;
+    }
+
+    .overlay-legend{
       position:absolute;
       left:10px;
       top:64px;
@@ -201,6 +218,10 @@
       .stream-settings input[type=text]{width:170px !important}
     }
     .sample-row { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+    #controlsSpoiler,
+    #settingsToggleBtn{
+      display:none !important;
+    }
 .sample-btn { min-width:34px; padding:4px 7px; }
 .sample-btn.active { border:2px solid #fff; font-weight:700; }
 .sample-btn.saved-user { box-shadow: inset 0 -3px 0 rgba(0,255,0,.75); }
@@ -233,8 +254,26 @@
 }
 
 /* Hide legacy control panel; keep DOM only for old references during migration. */
+#controlsSpoiler,
+#settingsToggleBtn {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+}
+
+
 /* Touch overlay removed: keep forced hidden if stale cached DOM exists. */
 #touchControls,
+.touch-controls {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
 </style>
 </head>
 <body>
@@ -253,7 +292,8 @@
       </div>
       <canvas id="detOverlay" class="det-overlay"></canvas>
       <div class="floating-row" style="position:absolute;left:10px;bottom:10px;z-index:4;background:var(--controls-bg);border:1px solid var(--controls-border);border-radius:8px;padding:6px 10px;flex-wrap:wrap;max-height:96px;overflow:auto;align-items:center;">
-Stream:
+        <button id="settingsToggleBtn" class="small-btn gear-btn" title="Управление и настройки" aria-label="Управление и настройки" aria-controls="controlsSpoiler" aria-expanded="false">⚙️</button>
+        Stream:
         <span id="streamStateChip" class="stream-chip reconnecting">RECONNECTING</span>
         <span id="controlModeChip" class="mode-chip">MODE: MANUAL</span>
         <span class="mode-switch">
@@ -423,98 +463,117 @@ Stream:
         </div>
       </details>
 
-      
-      <!-- Legacy UI removed. Hidden stubs keep old JS references from crashing during migration. -->
-      <div id="legacyCompatStubs" hidden aria-hidden="true" style="display:none!important">
-        <span id="ws" class="ok">CONNECTED</span>
-        <code id="wsurl">-</code>
-        <span id="gp" class="bad">NOT FOUND</span>
-        <code id="tx">-</code>
-        <code id="ack">-</code>
-        <span id="axes">-</span>
-        <span id="zoomStick">-</span>
+      <details id="controlsSpoiler" class="controls-spoiler">
+        <summary class="visually-hidden">Управление и настройки</summary>
+        <div class="row">
+          <button id="settingsCollapseBtn" class="small-btn">Свернуть настройки</button>
+        </div>
+        <div class="row">WS: <span id="ws" class="bad">DISCONNECTED</span> (<code id="wsurl">-</code>)</div>
+        <div class="row">Gamepad: <span id="gp" class="bad">NOT FOUND</span></div>
 
-        <code id="zoomStateValue">0.00</code>
-        <input id="zoomTravelSec" type="number" value="12">
-        <button id="zoomMarkWide"></button>
-        <button id="zoomMarkTele"></button>
-        <button id="zoomRunCalibrationBtn"></button>
-        <code id="zoomCalibStatus">idle</code>
+        <div class="row">TX: <code id="tx">-</code> | ACK: <code id="ack">-</code></div>
+        <div class="row">Axes: <span id="axes">-</span></div>
+        <div class="row">Zoom stick: <span id="zoomStick">-</span></div>
+        <div class="row">
+          Zoom state: <code id="zoomStateValue">0.00</code>
+          Travel sec: <input id="zoomTravelSec" type="number" step="0.5" value="12">
+          <button id="zoomMarkWide">MARK WIDE</button>
+          <button id="zoomMarkTele">MARK TELE</button>
+          <button id="zoomRunCalibrationBtn">RUN CALIBRATION</button>
+          <code id="zoomCalibStatus">idle</code>
+        </div>
 
-        <code id="msBtn">-</code>
-        <span id="msLegend">X← B→ A↓ Y↑</span>
+        <div class="row">Микрошаг: <code id="msBtn">-</code> &nbsp;(<span id="msLegend">X←  B→  A↓  Y↑</span>)</div>
 
-        <select id="controlMode">
-          <option value="manual" selected>MANUAL</option>
-          <option value="assist">ASSIST</option>
-          <option value="auto">AUTO</option>
-          <option value="ptz">PTZ</option>
-        </select>
-        <input id="auto" type="checkbox" checked>
-        <input id="port" type="number" value="8765">
-        <input id="path" type="text" value="/ws">
-        <input id="hz" type="number" value="50">
-        <input id="dz" type="number" value="5">
+        <div class="row">
+          Mode:
+          <select id="controlMode">
+            <option value="manual">MANUAL</option>
+            <option value="assist">ASSIST</option>
+            <option value="auto">AUTO</option>
+            <option value="ptz">PTZ</option>
+          </select>
+          Auto-connect: <input id="auto" type="checkbox" checked>
+          WS port: <input id="port" type="number" value="8765">
+          WS path: <input id="path" type="text" value="/ws">
+          Rate Hz: <input id="hz" type="number" value="50">
+          Deadzone %: <input id="dz" type="number" value="5">
+        </div>
+        <div class="row">
+          Profile:
+          <select id="controlProfile">
+            <option value="indoor">indoor</option>
+            <option value="outdoor">outdoor</option>
+            <option value="night">night</option>
+          </select>
+          Lost lock sec: <input id="safeLostSec" type="number" step="0.5" value="2">
+          Restore sec: <input id="safeRestoreSec" type="number" step="0.5" value="3">
+        </div>
 
-        <select id="controlProfile">
-          <option value="indoor" selected>indoor</option>
-          <option value="outdoor">outdoor</option>
-          <option value="night">night</option>
-        </select>
-        <input id="safeLostSec" type="number" value="2">
-        <input id="safeRestoreSec" type="number" value="3">
+        <div class="row">
+          Confidence layers:
+          L0 <input id="confL0Enabled" type="checkbox" checked>
+          w <input id="confW0" type="number" step="0.05" min="0" max="1" value="0.50">
+          L1 <input id="confL1Enabled" type="checkbox" checked>
+          w <input id="confW1" type="number" step="0.05" min="0" max="1" value="0.30">
+          L2 <input id="confL2Enabled" type="checkbox" checked>
+          w <input id="confW2" type="number" step="0.05" min="0" max="1" value="0.20">
+          L3 <input id="confL3Enabled" type="checkbox" checked>
+          w <input id="confW3" type="number" step="0.05" min="0" max="1" value="0.25">
+        </div>
+        <div class="row">
+          Confidence debug:
+          req/applied rev <code id="confDbgRevision">--/--</code>
+          fused raw→cfg <code id="confDbgFused">--→--</code>
+          layers <code id="confDbgLayers">L0-- L1-- L2-- L3--</code>
+        </div>
+        <div class="row">
+          Invert Y axis: <input id="invertTilt" type="checkbox" checked>
+          Swap microstep buttons: <input id="swapMicroButtons" type="checkbox">
+        </div>
 
-        <input id="confL0Enabled" type="checkbox" checked>
-        <input id="confW0" type="number" value="0.50">
-        <input id="confL1Enabled" type="checkbox" checked>
-        <input id="confW1" type="number" value="0.30">
-        <input id="confL2Enabled" type="checkbox" checked>
-        <input id="confW2" type="number" value="0.20">
-        <input id="confL3Enabled" type="checkbox" checked>
-        <input id="confW3" type="number" value="0.25">
-
-        <code id="confDbgRevision">--/--</code>
-        <code id="confDbgFused">--→--</code>
-        <code id="confDbgLayers">L0-- L1-- L2-- L3--</code>
-
-        <input id="invertTilt" type="checkbox" checked>
-        <input id="swapMicroButtons" type="checkbox">
-
-        <input id="pidKp" type="number" value="32">
-        <input id="pidKi" type="number" value="0">
-        <input id="pidKd" type="number" value="18">
-        <input id="pidDeadzone" type="number" value="4">
-        <input id="pidMaxSpeed" type="number" value="40">
-        <input id="pidMaxAccel" type="number" value="8">
-        <input id="pidPanHold" type="number" value="2">
-        <input id="pidPanRelease" type="number" value="5">
-
-        <input id="reacquirePanStep" type="number" value="18">
-        <input id="reacquireTiltStep" type="number" value="8">
-        <input id="reacquirePanCadence" type="number" value="8">
-        <input id="reacquireTiltCadence" type="number" value="16">
-        <input id="reacquireHoldMs" type="number" value="700">
-        <input id="reacquireMaxLostSec" type="number" value="8">
-
-        <input id="showDetOverlay" type="checkbox" checked>
-        <input id="selectTargetByTap" type="checkbox" checked>
-        <button id="clearSelectedTarget"></button>
-
-        <code id="pidTarget">none</code>
-        <code id="pidSelectedId">auto</code>
-        <code id="pidCmd">0,0</code>
-
-        <button id="home"></button>
-        <button id="stop"></button>
-        <button id="center"></button>
-        <button id="connect"></button>
-        <button id="disconnect"></button>
-        <button id="exportSettings"></button>
-        <button id="importSettings"></button>
-        <button id="exportDiagnostics"></button>
-        <input id="importSettingsFile" type="file">
-      </div>
-
+        <div class="row">
+          PID P: <input id="pidKp" type="number" step="0.1" value="32">
+          I: <input id="pidKi" type="number" step="0.01" value="0.0">
+          D: <input id="pidKd" type="number" step="0.1" value="18">
+          DZ%: <input id="pidDeadzone" type="number" step="0.5" value="4">
+          Max%: <input id="pidMaxSpeed" type="number" step="1" value="40">
+          Accel%/tick: <input id="pidMaxAccel" type="number" step="1" value="8">
+        </div>
+        <div class="row">
+          Pan hold%: <input id="pidPanHold" type="number" step="1" value="2">
+          Pan release%: <input id="pidPanRelease" type="number" step="1" value="5">
+        </div>
+        <div class="row">
+          Reacquire pan step%: <input id="reacquirePanStep" type="number" step="1" value="18">
+          Reacquire tilt step%: <input id="reacquireTiltStep" type="number" step="1" value="8">
+          Pan cadence ticks: <input id="reacquirePanCadence" type="number" step="1" value="8">
+          Tilt cadence ticks: <input id="reacquireTiltCadence" type="number" step="1" value="16">
+          Hold ms: <input id="reacquireHoldMs" type="number" step="50" value="700">
+          Max lost sec: <input id="reacquireMaxLostSec" type="number" step="0.5" value="8">
+        </div>
+        <div class="row">
+          Overlay: <input id="showDetOverlay" type="checkbox" checked>
+          Select by tap: <input id="selectTargetByTap" type="checkbox" checked>
+          <button id="clearSelectedTarget" class="small-btn">CLEAR TARGET</button>
+        </div>
+        <div class="row">
+          PID target: <code id="pidTarget">none</code>
+          Selected ID: <code id="pidSelectedId">auto</code>
+          PID cmd: <code id="pidCmd">0,0</code>
+        </div>
+        <div class="row">
+          <button id="home">HOME</button>
+          <button id="stop">STOP</button>
+          <button id="center">SCENTER</button>
+          <button id="connect">CONNECT</button>
+          <button id="disconnect">DISCONNECT</button>
+          <button id="exportSettings">EXPORT PROFILE</button>
+          <button id="importSettings">IMPORT PROFILE</button>
+          <button id="exportDiagnostics">EXPORT DIAG</button>
+          <input id="importSettingsFile" type="file" accept="application/json" class="hidden">
+        </div>
+      </details>
     </div>
   </div>
 <script>
@@ -2154,7 +2213,112 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     } catch (_) {}
     return Number(ptzTuneCurrentSample || 0);
   }
-  // Legacy keyboardZoomPulse block removed. Q/A are handled by keyboardZoomSampleStep().
+
+  async function keyboardZoomPulse(direction, reason) {
+    const now = Date.now();
+
+    if (keyboardZoomBusy) {
+      return { ok: false, skipped: true, reason: 'frontend_busy' };
+    }
+
+    if (now - keyboardZoomLastTs < KEYBOARD_ZOOM_MIN_INTERVAL_MS) {
+      return { ok: false, skipped: true, reason: 'frontend_throttle' };
+    }
+
+    const currentSample = await getCurrentZoomSampleSafe();
+    const maxSample = typeof ptzTuneMaxSampleIdx === 'function' ? ptzTuneMaxSampleIdx() : currentSample;
+
+    // Do not physically twitch servo when already at mechanical edge.
+    if (direction === 'wide' && currentSample <= 0) {
+      ptzLog('KEYBOARD ZOOM skipped edge', { direction, sample: currentSample });
+      return { ok: false, skipped: true, reason: 'edge_wide' };
+    }
+
+    if (direction === 'tele' && currentSample >= maxSample) {
+      ptzLog('KEYBOARD ZOOM skipped edge', { direction, sample: currentSample, maxSample });
+      return { ok: false, skipped: true, reason: 'edge_tele' };
+    }
+
+    keyboardZoomBusy = true;
+    keyboardZoomLastTs = now;
+
+    try {
+      const hold = Number($('zoomImpulseMs')?.value || 170);
+      const res = await apiPostJson('/api/zoom/pulse', {
+        direction,
+        steps: 1,
+        hold_ms: hold,
+        source: reason || 'keyboard'
+      });
+
+      ptzLog('KEYBOARD ZOOM BACKEND', res);
+
+      try {
+        const zs = await apiGetJson('/api/zoom/state');
+        const idx = Number(zs.zoom_sample_idx);
+        if (Number.isFinite(idx)) ptzTuneCurrentSample = idx;
+        tuneStatusSet?.(Number(zs.zoom_ratio || 0), Number(zs.focal_px || 0));
+      } catch (_) {}
+
+      await refreshPtzTelemetry?.().catch(() => {});
+      updatePtzTuneSampleButtonUi?.();
+
+      return res;
+    } catch (e) {
+      ptzLog('KEYBOARD ZOOM error', {
+        direction,
+        reason,
+        error: String(e.message || e)
+      });
+      return { ok: false, error: String(e.message || e) };
+    } finally {
+      keyboardZoomBusy = false;
+    }
+  }
+
+  if (!window.__ptzZoomHotkeysInstalled) {
+    window.__ptzZoomHotkeysInstalled = true;
+
+    window.addEventListener('keydown', (ev) => {
+      if (isTypingTarget(ev.target)) return;
+
+      const k = String(ev.key || '').toLowerCase();
+      if (k !== 'q' && k !== 'w') return;
+
+      ev.preventDefault();
+
+      // Robust key latch. Some browsers/remote desktops can generate repeated
+      // keydown events without reliable ev.repeat behavior.
+      if (keyboardZoomPressedKeys.has(k)) return;
+      keyboardZoomPressedKeys.add(k);
+
+      if (k === 'q') {
+        keyboardZoomPulse('wide', 'Q_WIDE').catch(e =>
+          ptzLog('KEYBOARD ZOOM error', { key: 'q', error: String(e.message || e) })
+        );
+      } else if (k === 'w') {
+        keyboardZoomPulse('tele', 'W_TELE').catch(e =>
+          ptzLog('KEYBOARD ZOOM error', { key: 'w', error: String(e.message || e) })
+        );
+      }
+    }, true);
+
+    window.addEventListener('keyup', (ev) => {
+      const k = String(ev.key || '').toLowerCase();
+      if (k === 'q' || k === 'w') {
+        keyboardZoomPressedKeys.delete(k);
+      }
+    }, true);
+
+    window.addEventListener('blur', () => {
+      keyboardZoomPressedKeys.clear();
+    });
+  }
+
+  // SAMPLE_INIT_HOTKEYS_REPAIR_END
+
+
+
   // PTZ speed tune sample init must never block video stream startup.
   initPtzSpeedTuneSamples().catch(e =>
     ptzLog('PTZ SPEED SAMPLES init error', { error: String(e.message || e) })
@@ -2242,6 +2406,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     $('ptzModePtzBtn')?.classList.toggle('active', selectedMode === 'ptz');
     $('modeAssistBtn').classList.toggle('active', selectedMode === 'assist');
     $('modeAutoBtn').classList.toggle('active', isAuto);
+    $('touchControls').classList.toggle('disabled', isAuto);
     $('controlModeChip').textContent = zoomAprilTagCalibrationActive && selectedMode === 'ptz'
       ? 'ACTIVE MODE: PTZ / CALIB SAFE'
       : `ACTIVE MODE: ${mode}`;
@@ -3715,10 +3880,50 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
 
   function bindTouchControls() {
-    // On-screen touch controls were removed. Keyboard/manual backend control remains.
+    const map = {
+      up:    { pan: 0, tilt: 35, zoom: 0 },
+      down:  { pan: 0, tilt: -35, zoom: 0 },
+      left:  { pan: -35, tilt: 0, zoom: 0 },
+      right: { pan: 35, tilt: 0, zoom: 0 },
+      zin:   { pan: 0, tilt: 0, zoom: -45 },
+      zout:  { pan: 0, tilt: 0, zoom: 45 },
+      stop:  { pan: 0, tilt: 0, zoom: 0 },
+    };
+    const onStart = (btn) => {
+      const cmd = btn.dataset.cmd;
+      if (!map[cmd]) return;
+
+      touchState = map[cmd];
+      btn.classList.add('active');
+
+      if (cmd === 'zin' || cmd === 'zout') {
+        sendZoomOnly(touchState.zoom);
+        return;
+      }
+
+      if (cmd === 'stop') {
+        stopManualHold('touch_stop_button').catch(() => {});
+        sendZoomOnly(0);
+        return;
+      }
+
+      const [panNorm, tiltNorm] = directionForTouchCmd(cmd);
+      startManualHold(panNorm, tiltNorm, `touch_${cmd}`);
+    };
+    const onEnd = (btn) => {
+      btn.classList.remove('active');
+      touchState = { pan: 0, tilt: 0, zoom: 0 };
+
+      stopManualHold('touch_stop').catch(() => {});
+      sendZoomOnly(0);
+    };
+    document.querySelectorAll('#touchControls .touch-btn').forEach((btn) => {
+      btn.addEventListener('pointerdown', () => onStart(btn));
+      btn.addEventListener('pointerup', () => onEnd(btn));
+      btn.addEventListener('pointercancel', () => onEnd(btn));
+      btn.addEventListener('pointerleave', () => onEnd(btn));
+    });
   }
-
-
 
   bindTouchControls();
   window.addEventListener('pointerup', () => {

@@ -3719,7 +3719,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
 
 
-
   bindTouchControls();
   window.addEventListener('pointerup', () => {
     touchState = { pan: 0, tilt: 0, zoom: 0 };
