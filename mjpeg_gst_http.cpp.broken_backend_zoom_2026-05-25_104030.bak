@@ -1312,11 +1312,11 @@ static int zoom_wide_cmd(){ std::lock_guard<std::mutex> lk(g_zoomCalibMtx); retu
 static int zoom_tele_cmd(){ return -zoom_wide_cmd(); }
 static bool zoom_get_profile_point(int profile_idx, ZoomProfilePoint* out){ std::lock_guard<std::mutex> lk(g_zoomMasterProfileMtx); for (const auto& p: g_zoomMasterProfile.points){ if (p.profile_idx==profile_idx){ if(out)*out=p; return true; } } return false; }
 static int zoom_max_sample_idx(){ std::lock_guard<std::mutex> lk(g_zoomMasterProfileMtx); int m=0; for (const auto& p: g_zoomMasterProfile.points) m=std::max(m,p.profile_idx); return m; }
-static void save_zoom_runtime_state() {
+static void save_zoom_runtime_state(){
   std::lock_guard<std::mutex> lk(g_zoomRuntimeMtx);
 
   std::ofstream out(g_zoomRuntimeStateFile, std::ios::trunc);
-  if (!out.good()) return;
+  if(!out.good()) return;
 
   const double zr = g_zoomRatio.load();
   const double fp = zoom_profile_focal_for_ratio(zr);
