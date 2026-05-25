@@ -1280,9 +1280,9 @@ ctx.fillText(lbl, tx + 4, ty - 4);
     const panNorm = limited.pan / 100.0;
     const tiltNorm = limited.tilt / 100.0;
     if (Math.abs(limited.pan) > 0 || Math.abs(limited.tilt) > 0) {
-      await backendManualDrive(panNorm, tiltNorm, 'manual_tick', 250);
+      await manualInputDrive(panNorm, tiltNorm, 'gamepad', 250);
     } else {
-      await backendManualStop('manual_tick');
+      await manualInputStop('gamepad');
     }
   }
   function getMicrostepVector(gp) {
@@ -1296,12 +1296,10 @@ ctx.fillText(lbl, tx + 4, ty - 4);
         if (logicalBtn === BTN_X) return { active: true, pan: -MICROSTEP_VAL, tilt: 0, name: 'X' };
         if (logicalBtn === BTN_B) return { active: true, pan: +MICROSTEP_VAL, tilt: 0, name: 'B' };
         if (logicalBtn === BTN_A) {
-          const tilt = invertTiltAxis ? -MICROSTEP_VAL : MICROSTEP_VAL;
-          return { active: true, pan: 0, tilt, name: 'A' };
+          return { active: true, pan: 0, tilt: MICROSTEP_VAL, name: 'A' };
         }
         if (logicalBtn === BTN_Y) {
-          const tilt = invertTiltAxis ? MICROSTEP_VAL : -MICROSTEP_VAL;
-          return { active: true, pan: 0, tilt, name: 'Y' };
+          return { active: true, pan: 0, tilt: -MICROSTEP_VAL, name: 'Y' };
         }
       }
      }
@@ -1347,6 +1345,12 @@ ctx.fillText(lbl, tx + 4, ty - 4);
     await ptzPrecheck();
   }
 
+let ptzConfigUserEditingUntil = 0;
+
+function markPtzConfigUserEditing() {
+  ptzConfigUserEditingUntil = Date.now() + 1000;
+}
+
 function readPtzConfigFromUi() {
   return {
     kp: 18,
@@ -1370,8 +1374,10 @@ function readPtzConfigFromUi() {
 function syncPtzConfigUiFromState(ap) {
   if (!ap || ap.ok !== true) return;
 
-  if ($('ptzInvertTilt')) $('ptzInvertTilt').checked = Boolean(ap.invert_tilt);
-  if ($('ptzInvertPan')) $('ptzInvertPan').checked = Boolean(ap.invert_pan);
+  if (Date.now() >= ptzConfigUserEditingUntil) {
+    if ($('ptzInvertTilt')) $('ptzInvertTilt').checked = Boolean(ap.invert_tilt);
+    if ($('ptzInvertPan')) $('ptzInvertPan').checked = Boolean(ap.invert_pan);
+  }
 
   if ($('ptzTargetX') && Number.isFinite(Number(ap.target_x))) {
     $('ptzTargetX').value = Number(ap.target_x).toFixed(2);
@@ -1413,6 +1419,7 @@ async function ptzApplyConfig() {
   const cfg = readPtzConfigFromUi();
   const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/config`, cfg);
   ptzLog('PTZ CONFIG', { cfg, res });
+  syncPtzConfigUiFromState(res);
   await ptzPrecheck();
 }
 
@@ -1542,11 +1549,17 @@ async function ptzStart() {
 
   ['ptzInvertTilt','ptzInvertPan','ptzTargetX','ptzTargetY','ptzMinPan','ptzMinTilt'].forEach(id => {
     if ($(id)) {
-      $(id).onchange = () =>
-        ptzApplyConfig().catch(e => ptzLog('PTZ CONFIG onchange error', {
-          field: id,
-          error: String(e.message || e)
-        }));
+      $(id).onchange = async () => {
+        markPtzConfigUserEditing();
+        try {
+          await ptzApplyConfig();
+        } catch (e) {
+          ptzLog('PTZ CONFIG onchange error', {
+            field: id,
+            error: String(e.message || e)
+          });
+        }
+      };
     }
   });
   $('modePtzBtn').onclick = enterPtzMode;
@@ -3689,6 +3702,21 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     }
   }
 
+  async function manualInputDrive(panNorm, tiltNorm, source = 'manual_ui', holdMs = 250) {
+    panNorm = Math.max(-1, Math.min(1, Number(panNorm || 0)));
+    tiltNorm = Math.max(-1, Math.min(1, Number(tiltNorm || 0)));
+
+    if (Math.abs(panNorm) < 0.001 && Math.abs(tiltNorm) < 0.001) {
+      return manualInputStop(source);
+    }
+
+    return backendManualDrive(panNorm, tiltNorm, source, holdMs);
+  }
+
+  async function manualInputStop(source = 'manual_ui') {
+    return backendManualStop(source);
+  }
+
   function clamp01(v) {
     return Math.max(0, Math.min(1, v));
   }
@@ -3787,8 +3815,8 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
         return;
       }
 
-      backendManualDrive(touchState.pan / 35, touchState.tilt / 35, 'ptz_pad').catch(() => {});
-      manualDrive(touchState.pan, touchState.tilt, touchState.zoom);
+      manualInputDrive(touchState.pan / 35, touchState.tilt / 35, 'ptz_pad', 250).catch(() => {});
+      sendZoomOnly(touchState.zoom);
     };
     const onEnd = (btn) => {
       btn.classList.remove('active');
@@ -3799,8 +3827,8 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
         return;
       }
 
-      backendManualStop('ptz_pad').catch(() => {});
-      manualDrive(0, 0, 0);
+      manualInputStop('ptz_pad').catch(() => {});
+      sendZoomOnly(0);
     };
     document.querySelectorAll('#touchControls .touch-btn').forEach((btn) => {
       btn.addEventListener('pointerdown', () => onStart(btn));
@@ -3813,13 +3841,13 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   bindTouchControls();
   window.addEventListener('pointerup', () => {
     touchState = { pan: 0, tilt: 0, zoom: 0 };
-    backendManualStop('pointerup').catch(() => {});
-    manualDrive(0, 0, 0);
+    manualInputStop('pointerup').catch(() => {});
+    sendZoomOnly(0);
   });
   window.addEventListener('blur', () => {
     keyboardState = { up: false, down: false, left: false, right: false, zin: false, zout: false };
-    backendManualStop('blur').catch(() => {});
-    manualDrive(0, 0, 0);
+    manualInputStop('blur').catch(() => {});
+    sendZoomOnly(0);
   });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) panicStop('hidden-tab');
@@ -3866,22 +3894,17 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
 
   function applyKeyboardDrive() {
-    const pan = (keyboardState.right ? 35 : 0) + (keyboardState.left ? -35 : 0);
-    let tilt = (keyboardState.up ? -35 : 0) + (keyboardState.down ? 35 : 0);
-    if (invertTiltAxis) tilt = -tilt;
+    const pan = (keyboardState.right ? 1 : 0) + (keyboardState.left ? -1 : 0);
+    const tilt = (keyboardState.up ? -1 : 0) + (keyboardState.down ? 1 : 0);
     const zoom = (keyboardState.zin ? -45 : 0) + (keyboardState.zout ? 45 : 0);
 
     if ($('controlMode').value === 'ptz') {
-      // In PTZ mode server autopilot owns pan/tilt.
-      // Keyboard Q/A is still allowed for optical zoom, but must not send J 0 0.
       sendZoomOnly(zoom);
       return;
     }
-
-
-    if (pan === 0 && tilt === 0) backendManualStop('keyboard').catch(() => {});
-    else backendManualDrive(pan / 35, tilt / 35, 'keyboard').catch(() => {});
-    manualDrive(pan, tilt, zoom);
+    if (pan === 0 && tilt === 0) manualInputStop('keyboard').catch(() => {});
+    else manualInputDrive(pan, tilt, 'keyboard', 250).catch(() => {});
+    sendZoomOnly(zoom);
   }
 
   window.addEventListener('keydown', (e) => {
