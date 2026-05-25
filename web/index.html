@@ -3766,41 +3766,17 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
 </script>
 
+
+
 <!-- FORCE_VIDEO_BOOTSTRAP_START -->
 <script>
 (function () {
-  function log(msg, obj) {
-    try { console.log('[video-bootstrap]', msg, obj || ''); } catch (_) {}
-  }
-
   function streamUrl() {
     return 'http://' + location.hostname + ':8080/stream?ts=' + Date.now();
   }
 
-  function pickImage() {
-    var ids = ['mjpegFrame', 'mjpegImg'];
-    var candidates = [];
-
-    for (var i = 0; i < ids.length; i++) {
-      var el = document.getElementById(ids[i]);
-      if (el && String(el.tagName || '').toUpperCase() === 'IMG') {
-        candidates.push(el);
-      }
-    }
-
-    if (!candidates.length) return null;
-
-    for (var j = 0; j < candidates.length; j++) {
-      var e = candidates[j];
-      var r = e.getBoundingClientRect ? e.getBoundingClientRect() : null;
-      if (r && r.width > 10 && r.height > 10) return e;
-    }
-
-    return candidates[0];
-  }
-
   function setStatus(text) {
-    var ids = ['streamStatus', 'streamStatusChip', 'mjpegStatus'];
+    var ids = ['streamStateChip', 'streamStatus', 'streamStatusChip', 'mjpegStatus'];
     for (var i = 0; i < ids.length; i++) {
       var el = document.getElementById(ids[i]);
       if (el) {
@@ -3810,19 +3786,40 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     }
   }
 
-  function bootVideo() {
-    var img = pickImage();
-    if (!img) {
-      log('no image element yet');
-      return;
+  function forceImgStream() {
+    var img = document.getElementById('mjpegImg');
+    var frame = document.getElementById('mjpegFrame');
+    var mode = document.getElementById('streamMode');
+    var urlInput = document.getElementById('mjpegUrl');
+
+    if (mode) mode.value = 'img';
+    if (urlInput && !urlInput.value) urlInput.value = streamUrl();
+
+    if (frame) {
+      frame.removeAttribute('src');
+      frame.classList.add('hidden');
+      frame.style.display = 'none';
+      frame.style.visibility = 'hidden';
+      frame.style.opacity = '0';
+      frame.style.pointerEvents = 'none';
     }
+
+    if (!img) return;
+
+    img.classList.remove('hidden');
+    img.style.display = 'block';
+    img.style.visibility = 'visible';
+    img.style.opacity = '1';
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'contain';
+    img.style.background = '#111';
 
     var current = String(img.getAttribute('src') || img.src || '');
     if (!current || current.indexOf('/stream') < 0) {
-      var url = streamUrl();
-      img.src = url;
-      setStatus('STREAM BOOT');
-      log('stream src set', url);
+      img.src = streamUrl();
+      setStatus('STREAM IMG');
+      try { console.log('[video-bootstrap] img src set', img.src); } catch (_) {}
     }
 
     img.onerror = function () {
@@ -3838,20 +3835,25 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootVideo);
+    document.addEventListener('DOMContentLoaded', forceImgStream);
   } else {
-    bootVideo();
+    forceImgStream();
   }
 
-  setTimeout(bootVideo, 500);
-  setTimeout(bootVideo, 1500);
+  setTimeout(forceImgStream, 300);
+  setTimeout(forceImgStream, 1000);
+  setTimeout(forceImgStream, 2500);
 
-  // Safety: if some JS later clears src, restore it.
   setInterval(function () {
-    var img = pickImage();
+    var img = document.getElementById('mjpegImg');
     if (!img) return;
+
     var current = String(img.getAttribute('src') || img.src || '');
-    if (!current || current.indexOf('/stream') < 0) bootVideo();
+    var hidden = img.classList.contains('hidden') || img.style.display === 'none';
+
+    if (!current || current.indexOf('/stream') < 0 || hidden) {
+      forceImgStream();
+    }
   }, 5000);
 })();
 </script>

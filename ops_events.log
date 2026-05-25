@@ -2660,3 +2660,15 @@
 2026-05-25T10:33:18Z type=video_lost payload={"type":"video_lost","ts_ms":1779705198077,"details":{"status":"RECONNECTING"}}
 2026-05-25T10:33:18Z type=video_retry payload={"type":"video_retry","ts_ms":1779705198078,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
 2026-05-25T10:33:18Z type=video_restored payload={"type":"video_restored","ts_ms":1779705198095,"details":{"lost_for_ms":18}}
+2026-05-25T10:57:21Z type=video_retry payload={"type":"video_retry","ts_ms":1779706641565,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
+2026-05-25T10:57:22Z type=video_retry payload={"type":"video_retry","ts_ms":1779706642575,"details":{"attempt":2,"delay_ms":2000,"mode":"auto"}}
+2026-05-25T10:57:23Z type=video_retry payload={"type":"video_retry","ts_ms":1779706643901,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
+2026-05-25T10:57:24Z type=video_retry payload={"type":"video_retry","ts_ms":1779706644939,"details":{"attempt":2,"delay_ms":2000,"mode":"auto"}}
+2026-05-25T10:57:26Z type=video_retry payload={"type":"video_retry","ts_ms":1779706646969,"details":{"attempt":3,"delay_ms":5000,"mode":"auto"}}
+2026-05-25T10:57:27Z type=video_retry payload={"type":"video_retry","ts_ms":1779706647345,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
+2026-05-25T10:57:28Z type=video_retry payload={"type":"video_retry","ts_ms":1779706648089,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
+2026-05-25T10:57:29Z type=video_retry payload={"type":"video_retry","ts_ms":1779706649098,"details":{"attempt":2,"delay_ms":2000,"mode":"auto"}}
+2026-05-25T10:57:31Z type=video_retry payload={"type":"video_retry","ts_ms":1779706651088,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
+2026-05-25T10:57:32Z type=video_retry payload={"type":"video_retry","ts_ms":1779706652176,"details":{"attempt":2,"delay_ms":2000,"mode":"auto"}}
+2026-05-25T10:57:34Z type=video_retry payload={"type":"video_retry","ts_ms":1779706654213,"details":{"attempt":3,"delay_ms":5000,"mode":"auto"}}
+2026-05-25T10:57:39Z type=video_retry payload={"type":"video_retry","ts_ms":1779706659216,"details":{"attempt":4,"delay_ms":10000,"mode":"auto"}}
