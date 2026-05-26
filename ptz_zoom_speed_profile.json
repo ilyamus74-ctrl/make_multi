@@ -3,17 +3,17 @@
   "version": 2,
   "source_zoom_profile": "zoom_apriltag_master_profile.json",
   "points": [
-    {"profile_idx":0,"step":0,"zoom_ratio":0,"focal_px":2000.62,"kp":45,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":15,"max_accel":4,"min_pan":3,"min_tilt":1,"source":"user"},
-    {"profile_idx":12,"step":12,"zoom_ratio":1,"focal_px":34204.5,"kp":22,"ki":0,"kd":2,"deadzone":0.14,"max_pan":22,"max_tilt":12,"max_accel":41,"min_pan":1,"min_tilt":1,"source":"user"},
-    {"profile_idx":11,"step":11,"zoom_ratio":0.795,"focal_px":27603.7,"kp":22,"ki":0,"kd":2,"deadzone":0.14,"max_pan":22,"max_tilt":12,"max_accel":1,"min_pan":1,"min_tilt":1,"source":"user"},
-    {"profile_idx":10,"step":10,"zoom_ratio":0.5,"focal_px":18102.5,"kp":30,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":16,"max_accel":4,"min_pan":1,"min_tilt":1,"source":"user"},
-    {"profile_idx":9,"step":9,"zoom_ratio":0.469,"focal_px":17088.5,"kp":30,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":16,"max_accel":1,"min_pan":3,"min_tilt":1,"source":"user"},
-    {"profile_idx":8,"step":8,"zoom_ratio":0.249,"focal_px":10013,"kp":20,"ki":0,"kd":2,"deadzone":0.14,"max_pan":36,"max_tilt":18,"max_accel":4,"min_pan":3,"min_tilt":1,"source":"user"},
-    {"profile_idx":1,"step":1,"zoom_ratio":0.004,"focal_px":2137.65,"kp":45,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":15,"max_accel":4,"min_pan":3,"min_tilt":1,"source":"user"},
-    {"profile_idx":3,"step":3,"zoom_ratio":0.023,"focal_px":2725.28,"kp":35,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":15,"max_accel":4,"min_pan":3,"min_tilt":1,"source":"user"},
-    {"profile_idx":5,"step":5,"zoom_ratio":0.057,"focal_px":3825.53,"kp":30,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":20,"max_accel":2,"min_pan":3,"min_tilt":1,"source":"user"},
-    {"profile_idx":4,"step":4,"zoom_ratio":0.333333,"focal_px":0,"kp":35,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":15,"max_accel":4,"min_pan":3,"min_tilt":1,"source":"user"},
-    {"profile_idx":6,"step":6,"zoom_ratio":0.116,"focal_px":5731.98,"kp":30,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":20,"max_accel":2,"min_pan":3,"min_tilt":1,"source":"user"},
-    {"profile_idx":7,"step":7,"zoom_ratio":0.238,"focal_px":9676.62,"kp":30,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":20,"max_accel":2,"min_pan":3,"min_tilt":1,"source":"user"}
+    {"profile_idx":0,"step":0,"zoom_ratio":0,"focal_px":2000.62,"kp":45,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":15,"max_accel":4,"min_pan":3,"min_tilt":1,"j_pulse_ms":120,"source":"user"},
+    {"profile_idx":12,"step":12,"zoom_ratio":1,"focal_px":34204.5,"kp":22,"ki":0,"kd":2,"deadzone":0.14,"max_pan":22,"max_tilt":12,"max_accel":41,"min_pan":1,"min_tilt":1,"j_pulse_ms":11,"source":"user"},
+    {"profile_idx":11,"step":11,"zoom_ratio":0.795,"focal_px":27603.7,"kp":22,"ki":0,"kd":2,"deadzone":0.14,"max_pan":22,"max_tilt":12,"max_accel":1,"min_pan":1,"min_tilt":1,"j_pulse_ms":70,"source":"user"},
+    {"profile_idx":10,"step":10,"zoom_ratio":0.5,"focal_px":18102.5,"kp":30,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":16,"max_accel":4,"min_pan":1,"min_tilt":1,"j_pulse_ms":70,"source":"user"},
+    {"profile_idx":9,"step":9,"zoom_ratio":0.469,"focal_px":17088.5,"kp":30,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":16,"max_accel":1,"min_pan":3,"min_tilt":1,"j_pulse_ms":70,"source":"user"},
+    {"profile_idx":8,"step":8,"zoom_ratio":0.249,"focal_px":10013,"kp":20,"ki":0,"kd":2,"deadzone":0.14,"max_pan":36,"max_tilt":18,"max_accel":4,"min_pan":3,"min_tilt":1,"j_pulse_ms":70,"source":"user"},
+    {"profile_idx":1,"step":1,"zoom_ratio":0.004,"focal_px":2137.65,"kp":45,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":15,"max_accel":4,"min_pan":3,"min_tilt":1,"j_pulse_ms":70,"source":"user"},
+    {"profile_idx":3,"step":3,"zoom_ratio":0.023,"focal_px":2725.28,"kp":35,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":15,"max_accel":4,"min_pan":3,"min_tilt":1,"j_pulse_ms":70,"source":"user"},
+    {"profile_idx":5,"step":5,"zoom_ratio":0.057,"focal_px":3825.53,"kp":30,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":20,"max_accel":2,"min_pan":3,"min_tilt":1,"j_pulse_ms":70,"source":"user"},
+    {"profile_idx":4,"step":4,"zoom_ratio":0.333333,"focal_px":0,"kp":35,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":15,"max_accel":4,"min_pan":3,"min_tilt":1,"j_pulse_ms":70,"source":"user"},
+    {"profile_idx":6,"step":6,"zoom_ratio":0.116,"focal_px":5731.98,"kp":30,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":20,"max_accel":2,"min_pan":3,"min_tilt":1,"j_pulse_ms":70,"source":"user"},
+    {"profile_idx":7,"step":7,"zoom_ratio":0.238,"focal_px":9676.62,"kp":30,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":20,"max_accel":2,"min_pan":3,"min_tilt":1,"j_pulse_ms":70,"source":"user"}
   ]
 }
