@@ -2183,7 +2183,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   refreshDetectionLimits().catch(e => ptzLog('LIMIT init error', { error: String(e.message || e) }));
   refreshDetectionThrottle().catch(e => ptzLog('THROTTLE init error', { error: String(e.message || e) }));
   refreshPtzConfigFromServer().catch(e => ptzLog('PTZ CONFIG init error', { error: String(e.message || e) }));
-  setTimeout(() => initPtzSpeedTunePanel().catch(e => ptzLog('PTZ SPEED PANEL init error', { error: String(e.message || e) })), 0);
   $('mjpegFrame').onload = () => {
     clearStreamRetry();
     telemetryState.lastImgFrameTs = Date.now();
@@ -3816,7 +3815,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
 
   let keyboardHoldStopTimer = null;
-  const KEYBOARD_HOLD_STOP_DELAY_MS = 240;
+  const KEYBOARD_HOLD_STOP_DELAY_MS = 450;
 
   function cancelKeyboardHoldStopTimer() {
     if (keyboardHoldStopTimer) {

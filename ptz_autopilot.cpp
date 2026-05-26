@@ -30,6 +30,11 @@ static Runtime g; static Config cfg;
 static std::string g_ptzConfigFile = "ptz_autopilot_config.json";
 static std::string g_speedProfileFile = "ptz_zoom_speed_profile.json";
 struct SpeedPoint { int profile_idx=-1; int step=-1; double zoom_ratio=0.0,focal_px=0.0,kp=0,ki=0,kd=0,deadzone=0; int max_pan=0,max_tilt=0,max_accel=0,min_pan=0,min_tilt=0; };
+
+static std::mutex g_runtimeSpeedOverrideMtx;
+static bool g_runtimeSpeedOverrideActive = false;
+static SpeedPoint g_runtimeSpeedOverride;
+
 struct SpeedPointResolveResult { SpeedPoint point; std::string source="fallback"; int left_profile_idx=-1; int right_profile_idx=-1; double t=0.0; };
 struct MovementRequest { double pan_norm=0.0; double tilt_norm=0.0; std::string source; };
 struct MovementResult { int profile_idx=-1; int zoom_sample_idx=-1; double zoom_ratio=0.0; int base_pan=0; int base_tilt=0; int final_pan=0; int final_tilt=0; int effective_max_pan=0; int effective_max_tilt=0; int effective_max_accel=0; std::string source; std::string speed_profile_source="fallback"; int left_profile_idx=-1; int right_profile_idx=-1; double interpolation_t=0.0; };
@@ -137,12 +142,72 @@ static int tcp_connect(const std::string& host,int port){int fd=socket(AF_INET,S
 static bool http_get(const std::string&host,int port,const std::string&path,std::string&body){int fd=tcp_connect(host,port); if(fd<0) return false; std::ostringstream req; req<<"GET "<<path<<" HTTP/1.1\r\nHost: "<<host<<":"<<port<<"\r\nConnection: close\r\n\r\n"; std::string r=req.str(); send(fd,r.data(),r.size(),0); std::string resp; char buf[4096]; ssize_t n; while((n=recv(fd,buf,sizeof(buf),0))>0) resp.append(buf,n); close(fd); auto p=resp.find("\r\n\r\n"); if(p==std::string::npos) return false; body=resp.substr(p+4); return resp.find(" 200 ")!=std::string::npos;}
 static bool fetch_zoom_state(ZoomState& zs){ std::string b; if(!http_get(cfg.tracker_host,cfg.tracker_port,"/api/zoom/state",b)){zs.error="zoom_state_unreachable"; return false;} zs.ok=true; json_bool(b,"profile_loaded",zs.profile_loaded); json_num(b,"zoom_ratio",zs.zoom_ratio); json_num(b,"focal_px",zs.focal_px); json_num(b,"focal_min_px",zs.focal_min_px); json_num(b,"focal_max_px",zs.focal_max_px); zs.source=json_str(b,"zoom_source"); if(!zs.profile_loaded) zs.error="zoom_profile_missing"; return true; }
 static double compute_zoom_speed_scale(const ZoomState& zs){ if(!cfg.zoom_scale_enable || !zs.ok || !zs.profile_loaded || zs.focal_px<=1.0 || zs.focal_min_px<=1.0) return 1.0; double s=zs.focal_min_px/zs.focal_px; return std::max(cfg.zoom_scale_min,std::min(cfg.zoom_scale_max,s)); }
+
+static void clear_runtime_speed_override(){
+  std::lock_guard<std::mutex> lk(g_runtimeSpeedOverrideMtx);
+  g_runtimeSpeedOverrideActive = false;
+}
+
+static void set_runtime_speed_override_for_current_sample(){
+  std::string zb;
+  double zr = 0.0, zf = 0.0;
+  int zidx = -1;
+
+  if(http_get(cfg.tracker_host,cfg.tracker_port,"/api/zoom/state",zb)){
+    json_num(zb,"zoom_ratio",zr);
+    json_num(zb,"focal_px",zf);
+    json_int(zb,"zoom_sample_idx",zidx);
+  }
+
+  if(zidx < 0) return;
+
+  SpeedPoint p;
+  p.profile_idx = zidx;
+  p.step = zidx;
+  p.zoom_ratio = zr;
+  p.focal_px = zf;
+  p.kp = cfg.kp;
+  p.ki = cfg.ki;
+  p.kd = cfg.kd;
+  p.deadzone = cfg.deadzone;
+  p.max_pan = cfg.max_pan;
+  p.max_tilt = cfg.max_tilt;
+  p.max_accel = cfg.max_accel;
+  p.min_pan = cfg.min_pan;
+  p.min_tilt = cfg.min_tilt;
+  clamp_speed_point(p);
+
+  {
+    std::lock_guard<std::mutex> lk(g_runtimeSpeedOverrideMtx);
+    g_runtimeSpeedOverrideActive = true;
+    g_runtimeSpeedOverride = p;
+  }
+
+  std::cerr << "PTZ_RUNTIME_SPEED_OVERRIDE sample=" << zidx
+            << " max_pan=" << p.max_pan
+            << " max_tilt=" << p.max_tilt
+            << " max_accel=" << p.max_accel
+            << " min_pan=" << p.min_pan
+            << " min_tilt=" << p.min_tilt
+            << std::endl;
+}
+
 class WsClient{int fd=-1; public: bool connect_ws(const std::string&h,int p){if(fd>=0) return true; fd=tcp_connect(h,p); if(fd<0) return false; std::string req="GET /ws HTTP/1.1\r\nHost: "+h+":"+std::to_string(p)+"\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n"; send(fd,req.data(),req.size(),0); char b[1024]; int n=recv(fd,b,sizeof(b),0); if(n<=0){close(fd);fd=-1; return false;} std::string s(b,n); if(s.find("101")==std::string::npos){close(fd);fd=-1; return false;} return true;} bool send_text(const std::string&m){ if(fd<0) return false; std::vector<uint8_t> fr; fr.push_back(0x81); size_t len=m.size(); if(len<126){fr.push_back(0x80|uint8_t(len));} else return false; uint8_t mk[4]={0x12,0x34,0x56,0x78}; fr.insert(fr.end(),mk,mk+4); for(size_t i=0;i<len;i++) fr.push_back(uint8_t(m[i])^mk[i%4]); if(::send(fd,fr.data(),fr.size(),0)<0){close(fd);fd=-1; return false;} return true;} void close_ws(){if(fd>=0) close(fd); fd=-1;} ~WsClient(){close_ws();}};
 
 static long long now_ms(){ return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
 static int clampi(int v,int lo,int hi){ return std::max(lo,std::min(hi,v)); }
 static bool send_bridge_j(int pan,int tilt){ static WsClient ws; if(!ws.connect_ws(cfg.bridge_host,cfg.bridge_port)) return false; int seq=g.seq.fetch_add(1); std::ostringstream cmd; cmd<<"J "<<seq<<" "<<pan<<" "<<tilt; if(!ws.send_text(cmd.str())){ ws.close_ws(); return false; } return true; }
 static MovementResult build_scaled_movement_command(const MovementRequest& req){ MovementResult r; r.source=req.source; double pn=std::max(-1.0,std::min(1.0,req.pan_norm)); double tn=std::max(-1.0,std::min(1.0,req.tilt_norm)); std::string zb; double zr=0.0,zf=0.0; int zidx=-1; if(http_get(cfg.tracker_host,cfg.tracker_port,"/api/zoom/state",zb)){ json_num(zb,"zoom_ratio",zr); json_num(zb,"focal_px",zf); json_int(zb,"zoom_sample_idx",zidx);} r.zoom_ratio=zr; r.zoom_sample_idx=zidx; auto sr=resolve_speed_point_for_sample(zidx,zr,zf); SpeedPoint sp=sr.point;
+ {
+   std::lock_guard<std::mutex> lk(g_runtimeSpeedOverrideMtx);
+   if(g_runtimeSpeedOverrideActive && g_runtimeSpeedOverride.profile_idx == zidx){
+     sp = g_runtimeSpeedOverride;
+     sr.source = "runtime_override";
+     sr.left_profile_idx = -1;
+     sr.right_profile_idx = -1;
+     sr.t = 0.0;
+   }
+ }
  r.speed_profile_source=sr.source; r.left_profile_idx=sr.left_profile_idx; r.right_profile_idx=sr.right_profile_idx; r.interpolation_t=sr.t;
  r.profile_idx=sp.profile_idx; r.effective_max_pan=std::max(1,sp.max_pan>0?sp.max_pan:cfg.max_pan); r.effective_max_tilt=std::max(1,sp.max_tilt>0?sp.max_tilt:cfg.max_tilt); r.effective_max_accel=std::max(1,sp.max_accel>0?sp.max_accel:cfg.max_accel);
  int minp=std::max(0,sp.min_pan); int mint=std::max(0,sp.min_tilt); r.base_pan=(int)std::lround(pn*r.effective_max_pan); r.base_tilt=(int)std::lround(tn*r.effective_max_tilt); int fp=r.base_pan, ft=r.base_tilt; if(pn!=0.0 && std::abs(fp)<minp) fp=(pn>0)?minp:-minp; if(tn!=0.0 && std::abs(ft)<mint) ft=(tn>0)?mint:-mint; int lastp=0,lastt=0; { std::lock_guard<std::mutex> lk(g.m); lastp=g.manual_cmd_pan; lastt=g.manual_cmd_tilt; }
@@ -217,10 +282,10 @@ static void control_server(){int s=socket(AF_INET,SOCK_STREAM,0); int on=1; sets
  else if(method=="GET" && path=="/api/autopilot/state") out=state_json();
  else if(method=="POST" && path=="/api/autopilot/start"){g.enabled=true; out=state_json();}
  else if(method=="POST" && path=="/api/autopilot/stop"){g.enabled=false; out=state_json();}
- else if(method=="POST" && path=="/api/autopilot/config"){json_num(body,"kp",cfg.kp);json_num(body,"ki",cfg.ki);json_num(body,"kd",cfg.kd);json_num(body,"deadzone",cfg.deadzone);json_int(body,"max_pan",cfg.max_pan);json_int(body,"max_tilt",cfg.max_tilt);json_int(body,"max_accel",cfg.max_accel);json_num(body,"hz",cfg.hz); bool invp=false; if(json_bool(body,"invert_pan",invp)) cfg.invert_pan=invp; bool invt=false; if(json_bool(body,"invert_tilt",invt)) cfg.invert_tilt=invt; json_num(body,"target_x",cfg.target_x); json_num(body,"target_y",cfg.target_y); json_int(body,"min_pan",cfg.min_pan); json_int(body,"min_tilt",cfg.min_tilt); bool zse=false; if(json_bool(body,"zoom_scale_enable",zse)) cfg.zoom_scale_enable=zse; json_num(body,"zoom_scale_min",cfg.zoom_scale_min); json_num(body,"zoom_scale_max",cfg.zoom_scale_max); json_num(body,"zoom_scale_smoothing",cfg.zoom_scale_smoothing); clamp_config(); save_ptz_config(); out=state_json();}
+ else if(method=="POST" && path=="/api/autopilot/config"){json_num(body,"kp",cfg.kp);json_num(body,"ki",cfg.ki);json_num(body,"kd",cfg.kd);json_num(body,"deadzone",cfg.deadzone);json_int(body,"max_pan",cfg.max_pan);json_int(body,"max_tilt",cfg.max_tilt);json_int(body,"max_accel",cfg.max_accel);json_num(body,"hz",cfg.hz); bool invp=false; if(json_bool(body,"invert_pan",invp)) cfg.invert_pan=invp; bool invt=false; if(json_bool(body,"invert_tilt",invt)) cfg.invert_tilt=invt; json_num(body,"target_x",cfg.target_x); json_num(body,"target_y",cfg.target_y); json_int(body,"min_pan",cfg.min_pan); json_int(body,"min_tilt",cfg.min_tilt); bool zse=false; if(json_bool(body,"zoom_scale_enable",zse)) cfg.zoom_scale_enable=zse; json_num(body,"zoom_scale_min",cfg.zoom_scale_min); json_num(body,"zoom_scale_max",cfg.zoom_scale_max); json_num(body,"zoom_scale_smoothing",cfg.zoom_scale_smoothing); clamp_config(); save_ptz_config(); set_runtime_speed_override_for_current_sample(); out=state_json();}
  else if(method=="GET" && path=="/api/autopilot/speed_profile"){ auto pts=load_speed_profile_points(); out=speed_profile_json(pts); int maxIdx=-1; for(const auto& p:pts) maxIdx=std::max(maxIdx,p.profile_idx); if(maxIdx>=0){ std::ostringstream ep; ep<<"{\"ok\":true,\"points\":["; for(size_t i=0;i<pts.size();++i){ if(i) ep<<","; ep<<speed_point_to_json(pts[i]); } ep<<"],\"effective_points\":["; for(int i=0;i<=maxIdx;++i){ auto rr=resolve_speed_point_for_sample(i,0.0,0.0); if(i) ep<<","; ep<<"{\"profile_idx\":"<<i<<",\"source\":\""<<rr.source<<"\""; if(rr.left_profile_idx>=0) ep<<",\"left_profile_idx\":"<<rr.left_profile_idx; if(rr.right_profile_idx>=0) ep<<",\"right_profile_idx\":"<<rr.right_profile_idx; ep<<"}"; } ep<<"]}"; out=ep.str(); } }
- else if(method=="POST" && path=="/api/autopilot/speed_profile/save_point"){ int step=-1, profile_idx=-1; double zoom_ratio=0.0,focal_px=0.0; json_int(body,"step",step); json_int(body,"profile_idx",profile_idx); json_num(body,"zoom_ratio",zoom_ratio); json_num(body,"focal_px",focal_px); if(profile_idx<0) profile_idx=step; if(step<0) step=profile_idx; auto pts=load_speed_profile_points(); SpeedPoint np; np.profile_idx=profile_idx; np.step=step; np.zoom_ratio=zoom_ratio; np.focal_px=focal_px; np.kp=cfg.kp; np.ki=cfg.ki; np.kd=cfg.kd; np.deadzone=cfg.deadzone; np.max_pan=cfg.max_pan; np.max_tilt=cfg.max_tilt; np.max_accel=cfg.max_accel; np.min_pan=cfg.min_pan; np.min_tilt=cfg.min_tilt; bool replaced=false; for(auto &p:pts){ if((profile_idx>=0 && p.profile_idx==profile_idx) || (profile_idx<0 && p.step==step)){ p=np; replaced=true; break; } } if(!replaced) pts.push_back(np); save_speed_profile_points(pts); std::ostringstream os; os<<"{\"ok\":true,\"saved\":true,\"points\":"<<pts.size()<<"}"; out=os.str(); }
- else if(method=="POST" && path=="/api/autopilot/speed_profile/apply_nearest"){ double zr=0.0,zf=0.0; int profile_idx=-1; json_num(body,"zoom_ratio",zr); json_num(body,"focal_px",zf); json_int(body,"profile_idx",profile_idx); auto rr=resolve_speed_point_for_sample(profile_idx,zr,zf); auto &p=rr.point; cfg.kp=p.kp; cfg.ki=p.ki; cfg.kd=p.kd; cfg.deadzone=p.deadzone; cfg.max_pan=p.max_pan; cfg.max_tilt=p.max_tilt; cfg.max_accel=p.max_accel; cfg.min_pan=p.min_pan; cfg.min_tilt=p.min_tilt; clamp_config(); save_ptz_config(); out=std::string("{\"ok\":true,\"applied\":true,\"source\":\"")+rr.source+"\",\"point\":"+speed_point_to_json(p)+"}"; }
+ else if(method=="POST" && path=="/api/autopilot/speed_profile/save_point"){ int step=-1, profile_idx=-1; double zoom_ratio=0.0,focal_px=0.0; json_int(body,"step",step); json_int(body,"profile_idx",profile_idx); json_num(body,"zoom_ratio",zoom_ratio); json_num(body,"focal_px",focal_px); if(profile_idx<0) profile_idx=step; if(step<0) step=profile_idx; auto pts=load_speed_profile_points(); SpeedPoint np; np.profile_idx=profile_idx; np.step=step; np.zoom_ratio=zoom_ratio; np.focal_px=focal_px; np.kp=cfg.kp; np.ki=cfg.ki; np.kd=cfg.kd; np.deadzone=cfg.deadzone; np.max_pan=cfg.max_pan; np.max_tilt=cfg.max_tilt; np.max_accel=cfg.max_accel; np.min_pan=cfg.min_pan; np.min_tilt=cfg.min_tilt; bool replaced=false; for(auto &p:pts){ if((profile_idx>=0 && p.profile_idx==profile_idx) || (profile_idx<0 && p.step==step)){ p=np; replaced=true; break; } } if(!replaced) pts.push_back(np); save_speed_profile_points(pts); clear_runtime_speed_override(); std::ostringstream os; os<<"{\"ok\":true,\"saved\":true,\"points\":"<<pts.size()<<"}"; out=os.str(); }
+ else if(method=="POST" && path=="/api/autopilot/speed_profile/apply_nearest"){ double zr=0.0,zf=0.0; int profile_idx=-1; json_num(body,"zoom_ratio",zr); json_num(body,"focal_px",zf); json_int(body,"profile_idx",profile_idx); auto rr=resolve_speed_point_for_sample(profile_idx,zr,zf); auto &p=rr.point; cfg.kp=p.kp; cfg.ki=p.ki; cfg.kd=p.kd; cfg.deadzone=p.deadzone; cfg.max_pan=p.max_pan; cfg.max_tilt=p.max_tilt; cfg.max_accel=p.max_accel; cfg.min_pan=p.min_pan; cfg.min_tilt=p.min_tilt; clamp_config(); save_ptz_config(); clear_runtime_speed_override(); out=std::string("{\"ok\":true,\"applied\":true,\"source\":\"")+rr.source+"\",\"point\":"+speed_point_to_json(p)+"}"; }
  else if(method=="POST" && path=="/api/autopilot/speed_profile/build"){ auto pts=load_speed_profile_points(); std::sort(pts.begin(),pts.end(),[](const SpeedPoint&a,const SpeedPoint&b){return a.profile_idx<b.profile_idx;}); bool ok=save_speed_profile_points(pts); int maxIdx=-1,interp=0,clamped=0; for(const auto& p:pts) maxIdx=std::max(maxIdx,p.profile_idx); for(int i=0;i<=maxIdx;++i){ auto rr=resolve_speed_point_for_sample(i,0.0,0.0); if(rr.source=="interpolated") interp++; else if(rr.source=="clamped_left"||rr.source=="clamped_right") clamped++; } std::ostringstream os; os<<"{\"ok\":"<<(ok?"true":"false")<<",\"user_points\":"<<pts.size()<<",\"interpolated_points\":"<<interp<<",\"clamped_points\":"<<clamped<<"}"; out=os.str(); }
  else if(method=="POST" && path=="/api/control/manual_drive"){
   if(g.enabled.load() && g.mode=="ACTIVE"){ out="{\"ok\":false,\"error\":\"autopilot_active\"}"; }
