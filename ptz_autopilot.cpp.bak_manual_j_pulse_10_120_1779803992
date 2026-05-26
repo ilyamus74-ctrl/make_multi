@@ -195,24 +195,8 @@ static void set_runtime_speed_override_for_current_sample(){
 class WsClient{int fd=-1; public: bool connect_ws(const std::string&h,int p){if(fd>=0) return true; fd=tcp_connect(h,p); if(fd<0) return false; std::string req="GET /ws HTTP/1.1\r\nHost: "+h+":"+std::to_string(p)+"\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n"; send(fd,req.data(),req.size(),0); char b[1024]; int n=recv(fd,b,sizeof(b),0); if(n<=0){close(fd);fd=-1; return false;} std::string s(b,n); if(s.find("101")==std::string::npos){close(fd);fd=-1; return false;} return true;} bool send_text(const std::string&m){ if(fd<0) return false; std::vector<uint8_t> fr; fr.push_back(0x81); size_t len=m.size(); if(len<126){fr.push_back(0x80|uint8_t(len));} else return false; uint8_t mk[4]={0x12,0x34,0x56,0x78}; fr.insert(fr.end(),mk,mk+4); for(size_t i=0;i<len;i++) fr.push_back(uint8_t(m[i])^mk[i%4]); if(::send(fd,fr.data(),fr.size(),0)<0){close(fd);fd=-1; return false;} return true;} void close_ws(){if(fd>=0) close(fd); fd=-1;} ~WsClient(){close_ws();}};
 
 static long long now_ms(){ return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
-static std::mutex g_manualPulseMtx;
 static int clampi(int v,int lo,int hi){ return std::max(lo,std::min(hi,v)); }
-static bool send_bridge_line(const std::string& line){
-  static WsClient ws;
-  if(!ws.connect_ws(cfg.bridge_host,cfg.bridge_port)) return false;
-  if(!ws.send_text(line)){
-    ws.close_ws();
-    return false;
-  }
-  return true;
-}
-
-static bool send_bridge_j(int pan,int tilt){
-  int seq=g.seq.fetch_add(1);
-  std::ostringstream cmd;
-  cmd<<"J "<<seq<<" "<<pan<<" "<<tilt;
-  return send_bridge_line(cmd.str());
-}
+static bool send_bridge_j(int pan,int tilt){ static WsClient ws; if(!ws.connect_ws(cfg.bridge_host,cfg.bridge_port)) return false; int seq=g.seq.fetch_add(1); std::ostringstream cmd; cmd<<"J "<<seq<<" "<<pan<<" "<<tilt; if(!ws.send_text(cmd.str())){ ws.close_ws(); return false; } return true; }
 static MovementResult build_scaled_movement_command(const MovementRequest& req){ MovementResult r; r.source=req.source; double pn=std::max(-1.0,std::min(1.0,req.pan_norm)); double tn=std::max(-1.0,std::min(1.0,req.tilt_norm)); std::string zb; double zr=0.0,zf=0.0; int zidx=-1; if(http_get(cfg.tracker_host,cfg.tracker_port,"/api/zoom/state",zb)){ json_num(zb,"zoom_ratio",zr); json_num(zb,"focal_px",zf); json_int(zb,"zoom_sample_idx",zidx);} r.zoom_ratio=zr; r.zoom_sample_idx=zidx; auto sr=resolve_speed_point_for_sample(zidx,zr,zf); SpeedPoint sp=sr.point;
  {
    std::lock_guard<std::mutex> lk(g_runtimeSpeedOverrideMtx);
@@ -303,93 +287,6 @@ static void control_server(){int s=socket(AF_INET,SOCK_STREAM,0); int on=1; sets
  else if(method=="POST" && path=="/api/autopilot/speed_profile/save_point"){ int step=-1, profile_idx=-1; double zoom_ratio=0.0,focal_px=0.0; json_int(body,"step",step); json_int(body,"profile_idx",profile_idx); json_num(body,"zoom_ratio",zoom_ratio); json_num(body,"focal_px",focal_px); if(profile_idx<0) profile_idx=step; if(step<0) step=profile_idx; auto pts=load_speed_profile_points(); SpeedPoint np; np.profile_idx=profile_idx; np.step=step; np.zoom_ratio=zoom_ratio; np.focal_px=focal_px; np.kp=cfg.kp; np.ki=cfg.ki; np.kd=cfg.kd; np.deadzone=cfg.deadzone; np.max_pan=cfg.max_pan; np.max_tilt=cfg.max_tilt; np.max_accel=cfg.max_accel; np.min_pan=cfg.min_pan; np.min_tilt=cfg.min_tilt; bool replaced=false; for(auto &p:pts){ if((profile_idx>=0 && p.profile_idx==profile_idx) || (profile_idx<0 && p.step==step)){ p=np; replaced=true; break; } } if(!replaced) pts.push_back(np); save_speed_profile_points(pts); clear_runtime_speed_override(); std::ostringstream os; os<<"{\"ok\":true,\"saved\":true,\"points\":"<<pts.size()<<"}"; out=os.str(); }
  else if(method=="POST" && path=="/api/autopilot/speed_profile/apply_nearest"){ double zr=0.0,zf=0.0; int profile_idx=-1; json_num(body,"zoom_ratio",zr); json_num(body,"focal_px",zf); json_int(body,"profile_idx",profile_idx); auto rr=resolve_speed_point_for_sample(profile_idx,zr,zf); auto &p=rr.point; cfg.kp=p.kp; cfg.ki=p.ki; cfg.kd=p.kd; cfg.deadzone=p.deadzone; cfg.max_pan=p.max_pan; cfg.max_tilt=p.max_tilt; cfg.max_accel=p.max_accel; cfg.min_pan=p.min_pan; cfg.min_tilt=p.min_tilt; clamp_config(); save_ptz_config(); clear_runtime_speed_override(); out=std::string("{\"ok\":true,\"applied\":true,\"source\":\"")+rr.source+"\",\"point\":"+speed_point_to_json(p)+"}"; }
  else if(method=="POST" && path=="/api/autopilot/speed_profile/build"){ auto pts=load_speed_profile_points(); std::sort(pts.begin(),pts.end(),[](const SpeedPoint&a,const SpeedPoint&b){return a.profile_idx<b.profile_idx;}); bool ok=save_speed_profile_points(pts); int maxIdx=-1,interp=0,clamped=0; for(const auto& p:pts) maxIdx=std::max(maxIdx,p.profile_idx); for(int i=0;i<=maxIdx;++i){ auto rr=resolve_speed_point_for_sample(i,0.0,0.0); if(rr.source=="interpolated") interp++; else if(rr.source=="clamped_left"||rr.source=="clamped_right") clamped++; } std::ostringstream os; os<<"{\"ok\":"<<(ok?"true":"false")<<",\"user_points\":"<<pts.size()<<",\"interpolated_points\":"<<interp<<",\"clamped_points\":"<<clamped<<"}"; out=os.str(); }
- else if(method=="POST" && path=="/api/control/manual_j_pulse"){
-  if(g.enabled.load() && g.mode=="ACTIVE"){
-    out="{\"ok\":false,\"error\":\"autopilot_active\"}";
-  } else {
-    std::unique_lock<std::mutex> pulseLock(g_manualPulseMtx, std::try_to_lock);
-    if(!pulseLock.owns_lock()){
-      out="{\"ok\":false,\"error\":\"pulse_busy\"}";
-    } else {
-      MovementRequest mr;
-      json_num(body,"pan",mr.pan_norm);
-      json_num(body,"tilt",mr.tilt_norm);
-      mr.source=json_str(body,"source");
-      if(mr.source.empty()) mr.source="manual_j_pulse";
-
-      int pulse=70;
-      json_int(body,"pulse_ms",pulse);
-      pulse=clampi(pulse,10,120);
-
-      auto res=build_scaled_movement_command(mr);
-
-      /*
-       * Direct joystick pulse:
-       * - bypass accel ramp final_pan/final_tilt;
-       * - use base command from current sample/runtime profile;
-       * - send neutral immediately after a short pulse.
-       */
-      int jp=0;
-      int jt=0;
-
-      if(std::abs(mr.pan_norm) >= 0.001){
-        jp = res.base_pan;
-        if(cfg.invert_pan) jp = -jp;
-      }
-
-      if(std::abs(mr.tilt_norm) >= 0.001){
-        jt = res.base_tilt;
-        if(cfg.invert_tilt) jt = -jt;
-      }
-
-      jp=clampi(jp,-res.effective_max_pan,res.effective_max_pan);
-      jt=clampi(jt,-res.effective_max_tilt,res.effective_max_tilt);
-
-      bool ok=true;
-      ok = send_bridge_j(jp,jt) && ok;
-      std::this_thread::sleep_for(std::chrono::milliseconds(pulse));
-      ok = send_bridge_j(0,0) && ok;
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      send_bridge_j(0,0);
-
-      {
-        std::lock_guard<std::mutex> lk(g.m);
-        g.manual_active=false;
-        g.manual_last_source=mr.source;
-        g.manual_cmd_pan=0;
-        g.manual_cmd_tilt=0;
-        g.manual_profile_idx=res.profile_idx;
-        g.manual_zoom_sample_idx=res.zoom_sample_idx;
-        g.manual_zoom_ratio=res.zoom_ratio;
-        g.manual_expires_ms=0;
-        g.active_profile_idx=res.zoom_sample_idx;
-        g.active_zoom_sample_idx=res.zoom_sample_idx;
-        g.profile_max_pan=res.effective_max_pan;
-        g.profile_max_tilt=res.effective_max_tilt;
-        g.profile_max_accel=res.effective_max_accel;
-        g.speed_profile_source=res.speed_profile_source;
-        g.speed_profile_left_idx=res.left_profile_idx;
-        g.speed_profile_right_idx=res.right_profile_idx;
-        g.speed_profile_t=res.interpolation_t;
-      }
-
-      std::ostringstream os;
-      os<<"{\"ok\":"<<(ok?"true":"false")
-        <<",\"mode\":\"manual_j_pulse\""
-        <<",\"profile_idx\":"<<res.zoom_sample_idx
-        <<",\"zoom_ratio\":"<<res.zoom_ratio
-        <<",\"speed_profile_source\":\""<<res.speed_profile_source<<"\""
-        <<",\"base_pan\":"<<res.base_pan
-        <<",\"base_tilt\":"<<res.base_tilt
-        <<",\"j_pan\":"<<jp
-        <<",\"j_tilt\":"<<jt
-        <<",\"pulse_ms\":"<<pulse
-        <<"}";
-      out=os.str();
-    }
-  }
- }
-
  else if(method=="POST" && path=="/api/control/manual_drive"){
   if(g.enabled.load() && g.mode=="ACTIVE"){ out="{\"ok\":false,\"error\":\"autopilot_active\"}"; }
   else {
