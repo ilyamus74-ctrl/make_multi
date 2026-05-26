@@ -3106,3 +3106,5 @@
 2026-05-26T14:22:38Z type=video_lost payload={"type":"video_lost","ts_ms":1779805358963,"details":{"status":"RECONNECTING"}}
 2026-05-26T14:22:38Z type=video_retry payload={"type":"video_retry","ts_ms":1779805358964,"details":{"attempt":1,"delay_ms":1000,"mode":"auto"}}
 2026-05-26T14:22:39Z type=video_restored payload={"type":"video_restored","ts_ms":1779805358991,"details":{"lost_for_ms":28}}
+2026-05-26T14:24:28Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779805468877,"details":{"mode":"safe","reason":"rtt-high","rtt_ms":546}}
+2026-05-26T14:24:29Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1779805469441,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":71}}
