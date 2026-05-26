@@ -44746,4 +44746,68 @@ scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top
 rknn_run
 scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
 rknn_run
-scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=17
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+zoom-calib: done (time+image), travel_sec=8.019 wide_sec=8.019 tele_sec=8.009 min_stop_sec=4.163 max_stop_sec=4.161
+HTTP MJPEG on 0.0.0.0:8080  ( / , /stream, /api/models, /model/select )
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+scale=0.416667 dst_box=(0 174 799 623) allow_slight_change=1 _left_offset=0 _top_offset=174 padding_w=0 padding_h=350
+rknn_run
+zoom-recalib: drift update (mean_diff=6.436, travel_sec=8.015
