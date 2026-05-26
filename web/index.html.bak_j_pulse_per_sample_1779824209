@@ -1793,7 +1793,6 @@ async function ptzStart() {
     if (res && res.ok) {
       const point = res.point || res.applied_point || res.config || res;
       fillPtzTuneFieldsFromConfig(point);
-      if (point && point.j_pulse_ms != null) syncJPulseInputs(point.j_pulse_ms);
       const st = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`);
       fillPtzTuneFieldsFromConfig(st);
       await refreshPtzTelemetry();
@@ -1820,7 +1819,6 @@ async function ptzStart() {
     }
 
     fillPtzTuneFieldsFromConfig(point);
-    if (point && point.j_pulse_ms != null) syncJPulseInputs(point.j_pulse_ms);
     const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/config`, {
       kp: Number(point.kp ?? 0),
       ki: Number(point.ki ?? 0),
@@ -1847,7 +1845,7 @@ async function ptzStart() {
   function renderPtzTuneSampleButtons(points){ const row=$('ptzTuneSamplesRow'); if(!row) return; row.innerHTML=''; for(const p of points){ const idx=Number(p.profile_idx); const btn=document.createElement('button'); btn.className='small-btn sample-btn'; btn.dataset.sampleIdx=String(idx); btn.textContent=String(idx); btn.title=`sample=${idx} zoom=${Number(p.zoom_ratio).toFixed(3)} focal=${Math.round(Number(p.focal_px))}`; btn.onclick=()=>ptzTuneGoToSample(idx); row.appendChild(btn);} }
   function updatePtzTuneSampleButtonUi(){ const sourceByIdx=new Map((ptzTuneSpeedProfile?.effective_points||[]).map(p=>[Number(p.profile_idx), String(p.source||'fallback')])); const userSaved=new Set((ptzTuneSpeedProfile?.points||[]).map(p=>Number(p.profile_idx ?? p.step))); document.querySelectorAll('.sample-btn[data-sample-idx]').forEach(btn=>{ const idx=Number(btn.dataset.sampleIdx); const src=userSaved.has(idx)?'user':(sourceByIdx.get(idx)||'fallback'); btn.classList.toggle('active', idx===Number(ptzTuneCurrentSample)); btn.classList.remove('saved-user','interpolated','clamped','missing'); if(src==='user') btn.classList.add('saved-user'); else if(src==='interpolated') btn.classList.add('interpolated'); else if(src==='clamped_left'||src==='clamped_right') btn.classList.add('clamped'); else btn.classList.add('missing'); const sample=ptzTuneGetSample(idx)||{zoom_ratio:0,focal_px:0}; const e=(ptzTuneSpeedProfile?.effective_points||[]).find(p=>Number(p.profile_idx)===idx)||{}; const from=(Number.isFinite(Number(e.left_profile_idx))&&Number.isFinite(Number(e.right_profile_idx)))?` from ${e.left_profile_idx}→${e.right_profile_idx}`:''; btn.title=`sample=${idx} zoom=${Number(sample.zoom_ratio||0).toFixed(3)} focal=${Math.round(Number(sample.focal_px||0))} source=${src}${from}`; }); }
   function setPtzTuneSampleButtonsDisabled(disabled){ document.querySelectorAll('.sample-btn[data-sample-idx]').forEach(btn=>{ btn.disabled=Boolean(disabled); }); if($('ptzTuneRehomeCurrentSampleBtn')) $('ptzTuneRehomeCurrentSampleBtn').disabled=Boolean(disabled);} 
-  async function ptzTuneLoadSpeedForSample(sampleIdx){ const res=await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/apply_nearest`, {profile_idx:Number(sampleIdx)}); if(res&&res.ok){ const point=res.point||res.applied_point||res.config||res; fillPtzTuneFieldsFromConfig(point); if(point && point.j_pulse_ms != null) syncJPulseInputs(point.j_pulse_ms); const st=await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`); fillPtzTuneFieldsFromConfig(st);} return res;}
+  async function ptzTuneLoadSpeedForSample(sampleIdx){ const res=await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/apply_nearest`, {profile_idx:Number(sampleIdx)}); if(res&&res.ok){ const point=res.point||res.applied_point||res.config||res; fillPtzTuneFieldsFromConfig(point); const st=await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`); fillPtzTuneFieldsFromConfig(st);} return res;}
   
 
 
@@ -2008,12 +2006,10 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       profile_idx: sampleIdx,
       step: sampleIdx, // legacy compatibility
       zoom_ratio: zoomRatio,
-      focal_px: focalPx,
-      j_pulse_ms: getJPulseMs()
+      focal_px: focalPx
     });
 
     await refreshPtzTuneSpeedProfile();
-    await ptzTuneLoadSpeedForSample(sampleIdx).catch(() => {});
     tuneStatusSet(zoomRatio, focalPx);
     updatePtzTuneSampleButtonUi?.();
 
