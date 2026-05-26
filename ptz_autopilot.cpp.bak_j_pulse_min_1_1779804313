@@ -319,7 +319,7 @@ static void control_server(){int s=socket(AF_INET,SOCK_STREAM,0); int on=1; sets
 
       int pulse=70;
       json_int(body,"pulse_ms",pulse);
-      pulse=clampi(pulse,1,120);
+      pulse=clampi(pulse,10,120);
 
       auto res=build_scaled_movement_command(mr);
 

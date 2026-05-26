@@ -372,11 +372,6 @@ Stream:
         <label>Min Tilt <input id="ptzTuneMinTilt" type="number" step="1"></label>
         <label>Deadzone <input id="ptzTuneDeadzone" type="number" step="0.001"></label>
         <button id="ptzTuneApplyConfigBtn" class="small-btn">APPLY SPEED</button>
-        <label title="Duration of direct J pulse for keyboard micro movement">
-          J Pulse ms
-          <input id="ptzTuneJPulseMs" type="range" min="1" max="120" step="1" value="70" style="width:130px">
-          <input id="ptzTuneJPulseMsNum" type="number" min="1" max="120" step="1" value="70" style="width:64px">
-        </label>
         <code id="ptzTuneStatus">sample=0 zoom=0.00 focal=0 points=0 stepsSinceHome=0</code>
         <span style="opacity:.8">Workflow: click sample → tune/apply → SAVE SPEED POINT for sample.</span>
         </div>
@@ -3574,37 +3569,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     return backendManualStop(source);
   }
 
-  function getJPulseMs() {
-    const slider = $('ptzTuneJPulseMs');
-    const num = $('ptzTuneJPulseMsNum');
-    const raw = Number((num && num.value) || (slider && slider.value) || 70);
-    return Math.max(1, Math.min(120, Math.round(raw)));
-  }
-
-  function syncJPulseInputs(v) {
-    v = Math.max(1, Math.min(120, Math.round(Number(v || 70))));
-    if ($('ptzTuneJPulseMs')) $('ptzTuneJPulseMs').value = String(v);
-    if ($('ptzTuneJPulseMsNum')) $('ptzTuneJPulseMsNum').value = String(v);
-    try { localStorage.setItem('ptzTuneJPulseMs', String(v)); } catch (_) {}
-    return v;
-  }
-
-  async function manualInputJPulse(panNorm, tiltNorm, source = 'manual_j_pulse') {
-    panNorm = Math.max(-1, Math.min(1, Number(panNorm || 0)));
-    tiltNorm = Math.max(-1, Math.min(1, Number(tiltNorm || 0)));
-
-    const pulseMs = getJPulseMs();
-    const res = await apiPostJson(`${autopilotBaseUrl()}/api/control/manual_j_pulse`, {
-      pan: panNorm,
-      tilt: tiltNorm,
-      source,
-      pulse_ms: pulseMs
-    });
-
-    ptzLog('MANUAL J PULSE BACKEND', { ...res, source });
-    return res;
-  }
-
   let manualHoldActive = false;
   let manualHoldPan = 0;
   let manualHoldTilt = 0;
@@ -3803,84 +3767,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     return [0, 0];
   }
 
-  if ($('ptzTuneJPulseMs')) {
-    const savedPulse = Number(localStorage.getItem('ptzTuneJPulseMs') || 70);
-    syncJPulseInputs(savedPulse);
-    $('ptzTuneJPulseMs').oninput = e => syncJPulseInputs(e.target.value);
-  }
-  if ($('ptzTuneJPulseMsNum')) {
-    $('ptzTuneJPulseMsNum').onchange = e => syncJPulseInputs(e.target.value);
-  }
-
   const manualKeyState = new Set();
-
-  let keyboardPulseInFlight = false;
-  const KEYBOARD_J_PULSE_GAP_MS = 15;
-
-  function updateKeyboardStateFromManualKeys() {
-    keyboardState.up = manualKeyState.has('ArrowUp');
-    keyboardState.down = manualKeyState.has('ArrowDown');
-    keyboardState.left = manualKeyState.has('ArrowLeft');
-    keyboardState.right = manualKeyState.has('ArrowRight');
-  }
-
-  function currentManualKeyVector() {
-    let pan = 0;
-    let tilt = 0;
-
-    if (manualKeyState.has('ArrowLeft')) pan -= 1;
-    if (manualKeyState.has('ArrowRight')) pan += 1;
-    if (manualKeyState.has('ArrowUp')) tilt -= 1;
-    if (manualKeyState.has('ArrowDown')) tilt += 1;
-
-    pan = Math.max(-1, Math.min(1, pan));
-    tilt = Math.max(-1, Math.min(1, tilt));
-
-    return { pan, tilt };
-  }
-
-  function keyboardPulseSourceFromVector(pan, tilt) {
-    if (pan < 0 && tilt < 0) return 'keyboard_left_up';
-    if (pan < 0 && tilt > 0) return 'keyboard_left_down';
-    if (pan > 0 && tilt < 0) return 'keyboard_right_up';
-    if (pan > 0 && tilt > 0) return 'keyboard_right_down';
-    if (pan < 0) return 'keyboard_left';
-    if (pan > 0) return 'keyboard_right';
-    if (tilt < 0) return 'keyboard_up';
-    if (tilt > 0) return 'keyboard_down';
-    return 'keyboard_none';
-  }
-
-  async function keyboardPulseLoop() {
-    if (keyboardPulseInFlight) return;
-
-    keyboardPulseInFlight = true;
-    try {
-      while (manualKeyState.size > 0) {
-        const v = currentManualKeyVector();
-
-        if (Math.abs(v.pan) > 0.001 || Math.abs(v.tilt) > 0.001) {
-          await manualInputJPulse(
-            v.pan,
-            v.tilt,
-            keyboardPulseSourceFromVector(v.pan, v.tilt)
-          );
-        }
-
-        await new Promise(resolve => setTimeout(resolve, KEYBOARD_J_PULSE_GAP_MS));
-      }
-    } catch (e) {
-      ptzLog('KEYBOARD J PULSE LOOP error', { error: String(e.message || e) });
-    } finally {
-      keyboardPulseInFlight = false;
-
-      // If a key appeared while the loop was finishing, restart.
-      if (manualKeyState.size > 0) {
-        keyboardPulseLoop();
-      }
-    }
-  }
-
 
   function applyKeyboardDrive() {
     const zoom = (keyboardState.zin ? -45 : 0) + (keyboardState.zout ? 45 : 0);
@@ -3983,9 +3870,16 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     e.preventDefault();
     cancelKeyboardHoldStopTimer();
 
+    keyboardState.up = dir.keyName === 'ArrowUp';
+    keyboardState.down = dir.keyName === 'ArrowDown';
+    keyboardState.left = dir.keyName === 'ArrowLeft';
+    keyboardState.right = dir.keyName === 'ArrowRight';
+
+    // On remote browsers keyup/keydown can flicker. Always refresh hold on keydown,
+    // including repeat events.
+    manualKeyState.clear();
     manualKeyState.add(dir.keyName);
-    updateKeyboardStateFromManualKeys();
-    keyboardPulseLoop();
+    startManualHold(dir.pan, dir.tilt, dir.source);
   });
 
   window.addEventListener('keyup', (e) => {
@@ -4007,8 +3901,13 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
     e.preventDefault();
 
+    keyboardState.up = false;
+    keyboardState.down = false;
+    keyboardState.left = false;
+    keyboardState.right = false;
+
     manualKeyState.delete(dir.keyName);
-    updateKeyboardStateFromManualKeys();
+    scheduleKeyboardHoldStop();
   });
 
 </script>

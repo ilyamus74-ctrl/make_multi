@@ -3814,74 +3814,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
   const manualKeyState = new Set();
 
-  let keyboardPulseInFlight = false;
-  const KEYBOARD_J_PULSE_GAP_MS = 15;
-
-  function updateKeyboardStateFromManualKeys() {
-    keyboardState.up = manualKeyState.has('ArrowUp');
-    keyboardState.down = manualKeyState.has('ArrowDown');
-    keyboardState.left = manualKeyState.has('ArrowLeft');
-    keyboardState.right = manualKeyState.has('ArrowRight');
-  }
-
-  function currentManualKeyVector() {
-    let pan = 0;
-    let tilt = 0;
-
-    if (manualKeyState.has('ArrowLeft')) pan -= 1;
-    if (manualKeyState.has('ArrowRight')) pan += 1;
-    if (manualKeyState.has('ArrowUp')) tilt -= 1;
-    if (manualKeyState.has('ArrowDown')) tilt += 1;
-
-    pan = Math.max(-1, Math.min(1, pan));
-    tilt = Math.max(-1, Math.min(1, tilt));
-
-    return { pan, tilt };
-  }
-
-  function keyboardPulseSourceFromVector(pan, tilt) {
-    if (pan < 0 && tilt < 0) return 'keyboard_left_up';
-    if (pan < 0 && tilt > 0) return 'keyboard_left_down';
-    if (pan > 0 && tilt < 0) return 'keyboard_right_up';
-    if (pan > 0 && tilt > 0) return 'keyboard_right_down';
-    if (pan < 0) return 'keyboard_left';
-    if (pan > 0) return 'keyboard_right';
-    if (tilt < 0) return 'keyboard_up';
-    if (tilt > 0) return 'keyboard_down';
-    return 'keyboard_none';
-  }
-
-  async function keyboardPulseLoop() {
-    if (keyboardPulseInFlight) return;
-
-    keyboardPulseInFlight = true;
-    try {
-      while (manualKeyState.size > 0) {
-        const v = currentManualKeyVector();
-
-        if (Math.abs(v.pan) > 0.001 || Math.abs(v.tilt) > 0.001) {
-          await manualInputJPulse(
-            v.pan,
-            v.tilt,
-            keyboardPulseSourceFromVector(v.pan, v.tilt)
-          );
-        }
-
-        await new Promise(resolve => setTimeout(resolve, KEYBOARD_J_PULSE_GAP_MS));
-      }
-    } catch (e) {
-      ptzLog('KEYBOARD J PULSE LOOP error', { error: String(e.message || e) });
-    } finally {
-      keyboardPulseInFlight = false;
-
-      // If a key appeared while the loop was finishing, restart.
-      if (manualKeyState.size > 0) {
-        keyboardPulseLoop();
-      }
-    }
-  }
-
-
   function applyKeyboardDrive() {
     const zoom = (keyboardState.zin ? -45 : 0) + (keyboardState.zout ? 45 : 0);
 
@@ -3983,9 +3915,18 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     e.preventDefault();
     cancelKeyboardHoldStopTimer();
 
+    keyboardState.up = dir.keyName === 'ArrowUp';
+    keyboardState.down = dir.keyName === 'ArrowDown';
+    keyboardState.left = dir.keyName === 'ArrowLeft';
+    keyboardState.right = dir.keyName === 'ArrowRight';
+
+    // Keyboard arrows use direct J pulse:
+    // one keydown = one micro movement. No hold/ramp/keyup stop.
+    manualKeyState.clear();
     manualKeyState.add(dir.keyName);
-    updateKeyboardStateFromManualKeys();
-    keyboardPulseLoop();
+    manualInputJPulse(dir.pan, dir.tilt, dir.source).catch(e =>
+      ptzLog('MANUAL J PULSE error', { source: dir.source, error: String(e.message || e) })
+    );
   });
 
   window.addEventListener('keyup', (e) => {
@@ -4007,8 +3948,15 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
     e.preventDefault();
 
+    keyboardState.up = false;
+    keyboardState.down = false;
+    keyboardState.left = false;
+    keyboardState.right = false;
+
     manualKeyState.delete(dir.keyName);
-    updateKeyboardStateFromManualKeys();
+    if (manualHoldActive) {
+      scheduleKeyboardHoldStop();
+    }
   });
 
 </script>
