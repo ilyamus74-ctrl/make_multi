@@ -382,6 +382,8 @@ Stream:
         <label>Min Pan <input id="ptzTuneMinPan" type="number" step="1"></label>
         <label>Min Tilt <input id="ptzTuneMinTilt" type="number" step="1"></label>
         <label>Deadzone <input id="ptzTuneDeadzone" type="number" step="0.001"></label>
+        <label title="Pulse single-click pan command">Nudge Pan <input id="ptzTuneNudgePan" type="number" min="0" max="100" step="1" value="12"></label>
+        <label title="Pulse single-click tilt command">Nudge Tilt <input id="ptzTuneNudgeTilt" type="number" min="0" max="100" step="1" value="12"></label>
         <button id="ptzTuneApplyConfigBtn" class="small-btn">APPLY SPEED</button>
         <label title="Duration of direct J pulse for keyboard micro movement">
           J Pulse ms
@@ -391,7 +393,8 @@ Stream:
         <label title="Keyboard PTZ behavior">
           Keyboard
           <select id="ptzTuneKeyboardMode" class="small-select">
-            <option value="hold" selected>HOLD SMOOTH</option>
+            <option value="tap_hold" selected>TAP=PULSE / HOLD=SMOOTH</option>
+            <option value="hold">HOLD SMOOTH</option>
             <option value="pulse">PULSE STEP</option>
           </select>
         </label>
@@ -2016,7 +2019,10 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       step: sampleIdx, // legacy compatibility
       zoom_ratio: zoomRatio,
       focal_px: focalPx,
-      j_pulse_ms: getJPulseMs()
+      j_pulse_ms: getJPulseMs(),
+      nudge_pan: Number($('ptzTuneNudgePan')?.value || $('ptzTuneMaxPan')?.value || 0),
+      nudge_tilt: Number($('ptzTuneNudgeTilt')?.value || $('ptzTuneMaxTilt')?.value || 0),
+      manual_mode: $('ptzTuneKeyboardMode')?.value || 'tap_hold'
     });
 
     await refreshPtzTuneSpeedProfile();
@@ -3835,16 +3841,40 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
 
   if ($('ptzTuneKeyboardMode')) {
-    const savedKeyboardMode = localStorage.getItem('ptzTuneKeyboardMode') || 'hold';
-    $('ptzTuneKeyboardMode').value = savedKeyboardMode === 'pulse' ? 'pulse' : 'hold';
+    const savedKeyboardMode = localStorage.getItem('ptzTuneKeyboardMode') || 'tap_hold';
+    $('ptzTuneKeyboardMode').value = (savedKeyboardMode === 'pulse' || savedKeyboardMode === 'hold') ? savedKeyboardMode : 'tap_hold';
     $('ptzTuneKeyboardMode').onchange = e => {
-      const mode = e.target.value === 'pulse' ? 'pulse' : 'hold';
+      const mode = (e.target.value === 'pulse' || e.target.value === 'hold') ? e.target.value : 'tap_hold';
       localStorage.setItem('ptzTuneKeyboardMode', mode);
       ptzLog('KEYBOARD PTZ MODE', { mode });
     };
   }
 
   const manualKeyState = new Set();
+
+  let keyboardTapHoldTimer = null;
+  let keyboardTapHoldActive = false;
+  let keyboardTapHoldVector = { pan: 0, tilt: 0 };
+  const KEYBOARD_TAP_HOLD_THRESHOLD_MS = 170;
+
+  function clearKeyboardTapHoldTimer() {
+    if (keyboardTapHoldTimer) {
+      clearTimeout(keyboardTapHoldTimer);
+      keyboardTapHoldTimer = null;
+    }
+  }
+
+  function startKeyboardTapHoldTimer() {
+    clearKeyboardTapHoldTimer();
+    keyboardTapHoldActive = false;
+    keyboardTapHoldTimer = setTimeout(() => {
+      keyboardTapHoldTimer = null;
+      if (manualKeyState.size > 0) {
+        keyboardTapHoldActive = true;
+        keyboardMotionLoop();
+      }
+    }, KEYBOARD_TAP_HOLD_THRESHOLD_MS);
+  }
 
   let keyboardPulseInFlight = false;
   const KEYBOARD_J_PULSE_GAP_MS = 15;
@@ -3916,7 +3946,8 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
   function getKeyboardPtzMode() {
     const el = $('ptzTuneKeyboardMode');
-    return el && el.value === 'pulse' ? 'pulse' : 'hold';
+    const v = el ? String(el.value || 'tap_hold') : 'tap_hold';
+    return (v === 'pulse' || v === 'hold') ? v : 'tap_hold';
   }
 
   const KEYBOARD_HOLD_REFRESH_MS = 220;
@@ -3994,6 +4025,8 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       ptzLog('KEYBOARD MOTION LOOP error', { error: String(e.message || e) });
     } finally {
       keyboardMotionInFlight = false;
+      keyboardTapHoldActive = false;
+      clearKeyboardTapHoldTimer();
 
       if (usedHoldMode) {
         manualInputStop('keyboard_hold_keyup_stop').catch(e =>
@@ -4110,7 +4143,16 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
     manualKeyState.add(dir.keyName);
     updateKeyboardStateFromManualKeys();
-    keyboardMotionLoop();
+    keyboardTapHoldVector = currentManualKeyVector();
+
+    const kmode = getKeyboardPtzMode();
+    if (kmode === 'tap_hold') {
+      if (!keyboardTapHoldTimer && !keyboardTapHoldActive && !keyboardMotionInFlight) {
+        startKeyboardTapHoldTimer();
+      }
+    } else {
+      keyboardMotionLoop();
+    }
   });
 
   window.addEventListener('keyup', (e) => {
@@ -4132,8 +4174,22 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
     e.preventDefault();
 
+    const beforeRelease = currentManualKeyVector();
     manualKeyState.delete(dir.keyName);
     updateKeyboardStateFromManualKeys();
+
+    if (getKeyboardPtzMode() === 'tap_hold') {
+      if (!keyboardTapHoldActive && manualKeyState.size === 0) {
+        clearKeyboardTapHoldTimer();
+        const v = keyboardTapHoldVector || beforeRelease;
+        if (Math.abs(v.pan) > 0.001 || Math.abs(v.tilt) > 0.001) {
+          manualInputJPulse(v.pan, v.tilt, keyboardPulseSourceFromVector(v.pan, v.tilt)).catch(e =>
+            ptzLog('TAP-HOLD PULSE error', { error: String(e.message || e) })
+          );
+        }
+        keyboardTapHoldVector = { pan: 0, tilt: 0 };
+      }
+    }
   });
 
 </script>
