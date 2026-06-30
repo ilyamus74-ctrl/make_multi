@@ -3,7 +3,7 @@
   "version": 2,
   "source_zoom_profile": "zoom_apriltag_master_profile.json",
   "points": [
-    {"profile_idx":0,"step":0,"zoom_ratio":0,"focal_px":2000.62,"kp":18,"ki":0,"kd":1.5,"deadzone":0.04,"max_pan":45,"max_tilt":26,"max_accel":60,"min_pan":3,"min_tilt":1,"j_pulse_ms":120,"nudge_pan":12,"nudge_tilt":12,"manual_mode":"tap_hold","source":"user"},
+    {"profile_idx":0,"step":0,"zoom_ratio":0,"focal_px":2137.65,"kp":18,"ki":0,"kd":1.5,"deadzone":0.04,"max_pan":40,"max_tilt":25,"max_accel":14,"min_pan":13,"min_tilt":1,"j_pulse_ms":120,"nudge_pan":12,"nudge_tilt":12,"manual_mode":"tap_hold","source":"user"},
     {"profile_idx":12,"step":12,"zoom_ratio":1,"focal_px":34204.5,"kp":22,"ki":0,"kd":2,"deadzone":0.14,"max_pan":22,"max_tilt":12,"max_accel":41,"min_pan":1,"min_tilt":1,"j_pulse_ms":11,"nudge_pan":12,"nudge_tilt":12,"manual_mode":"pulse","source":"user"},
     {"profile_idx":11,"step":11,"zoom_ratio":0.795,"focal_px":27603.7,"kp":22,"ki":0,"kd":2,"deadzone":0.14,"max_pan":22,"max_tilt":12,"max_accel":41,"min_pan":1,"min_tilt":1,"j_pulse_ms":11,"nudge_pan":12,"nudge_tilt":12,"manual_mode":"pulse","source":"user"},
     {"profile_idx":10,"step":10,"zoom_ratio":0.5,"focal_px":18102.5,"kp":30,"ki":0,"kd":2,"deadzone":0.14,"max_pan":30,"max_tilt":12,"max_accel":41,"min_pan":1,"min_tilt":1,"j_pulse_ms":12,"nudge_pan":12,"nudge_tilt":12,"manual_mode":"pulse","source":"user"},

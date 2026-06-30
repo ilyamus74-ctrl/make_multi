@@ -152,3 +152,12 @@ PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=3
 PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=3 min_tilt=1
 PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=3 min_tilt=1
 PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=3 min_tilt=1
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=3 min_tilt=1
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=3 min_tilt=1
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=40 max_tilt=25 max_accel=4 min_pan=3 min_tilt=1
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=40 max_tilt=25 max_accel=14 min_pan=13 min_tilt=1
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=40 max_tilt=25 max_accel=14 min_pan=13 min_tilt=1
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=13 min_tilt=1
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=13 min_tilt=1
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=13 min_tilt=1
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=13 min_tilt=1
