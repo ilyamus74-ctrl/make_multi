@@ -30,6 +30,7 @@
     .stream-wrap.cover iframe,
     .stream-wrap.cover img{object-fit:cover}
     .det-overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:auto;z-index:3}
+    .apriltag-overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
     .hidden{display:none !important}
     .stream-settings{display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:absolute;top:10px;left:10px;right:10px;z-index:4;background:var(--controls-bg);border:1px solid var(--controls-border);border-radius:10px;padding:8px}
     .controls-panel{order:2;position:absolute;left:10px;right:10px;bottom:10px;z-index:4;background:var(--controls-bg);border:1px solid var(--controls-border);backdrop-filter:blur(4px);max-height:42dvh;overflow:auto}
@@ -261,6 +262,7 @@
         <img id="mjpegImg" class="hidden" alt="MJPEG stream" />
       </div>
       <canvas id="detOverlay" class="det-overlay"></canvas>
+      <canvas id="apriltagOverlay" class="apriltag-overlay"></canvas>
       <div class="floating-row" style="position:absolute;left:10px;bottom:10px;z-index:4;background:var(--controls-bg);border:1px solid var(--controls-border);border-radius:8px;padding:6px 10px;flex-wrap:wrap;max-height:96px;overflow:auto;align-items:center;">
 Stream:
         <span id="streamStateChip" class="stream-chip reconnecting">RECONNECTING</span>
@@ -386,6 +388,7 @@ Stream:
         <button id="ptzTuneSavePointBtn" class="small-btn">SAVE SPEED POINT</button>
         <button id="ptzTuneLoadPointBtn" class="small-btn">LOAD SPEED POINT</button>
         <button id="ptzTuneBuildProfileBtn" class="small-btn">BUILD SPEED CURVE</button>
+        <button id="ptzTuneBuildFromZoomMasterBtn" class="small-btn">BUILD PTZ SPEED FROM ZOOM MASTER</button>
 
         <label>KP <input id="ptzTuneKp" type="number" step="0.1"></label>
         <label>KD <input id="ptzTuneKd" type="number" step="0.1"></label>
@@ -2081,6 +2084,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
     ptzLog(`SPEED SAMPLE SAVED sample=${sampleIdx} zoom=${zoomRatio.toFixed(3)} focal=${Math.round(focalPx)}`, res);
   })().catch(e => ptzLog('PTZ TUNE SAVE error', { error: String(e.message || e) }));
+  if ($('ptzTuneBuildFromZoomMasterBtn')) $('ptzTuneBuildFromZoomMasterBtn').onclick = () => buildPtzSpeedProfileFromZoomMaster().catch(e => ptzLog('PTZ SPEED FROM ZOOM MASTER error', { error: String(e.message || e) }));
   $('ptzTuneBuildProfileBtn').onclick = () => (async () => {
     const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/build`, {}); await refreshPtzTuneSpeedProfile(); ptzLog('PTZ TUNE BUILD PROFILE', res);
   })().catch(e => ptzLog('PTZ TUNE BUILD error', { error: String(e.message || e) }));
@@ -2088,6 +2092,59 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     ptzTuneLoadSpeedForSample(ptzTuneCurrentSample).catch(e =>
       ptzLog('PTZ SPEED LOAD POINT error', { error: String(e.message || e) })
     );
+
+  window.refreshPtzTuneSpeedProfile = refreshPtzTuneSpeedProfile;
+  window.updatePtzTuneSampleButtonUi = updatePtzTuneSampleButtonUi;
+  window.initPtzSpeedTuneSamples = async () => initPtzSpeedTuneSamples();
+  window.refreshPtzTuneZoomSamples = async function refreshPtzTuneZoomSamples(){ return initPtzSpeedTuneSamples?.(); };
+
+  function defaultSpeedPointForZoomMasterPoint(p) {
+    const z = Math.max(0, Math.min(1, Number(p.zoom_ratio || 0)));
+    const lerp = (a, b) => a + (b - a) * z;
+    const round = (v) => Math.round(v);
+    return {
+      profile_idx: Number(p.profile_idx ?? p.step ?? 0),
+      step: Number(p.profile_idx ?? p.step ?? 0),
+      zoom_ratio: z,
+      focal_px: Number(p.focal_px || 0),
+      kp: lerp(28, 10),
+      kd: lerp(2, 1),
+      deadzone: lerp(0.05, 0.12),
+      max_pan: round(lerp(35, 10)),
+      max_tilt: round(lerp(28, 10)),
+      max_accel: round(lerp(8, 2)),
+      min_pan: round(lerp(3, 8)),
+      min_tilt: round(lerp(3, 8)),
+      ptz_curve: lerp(0.65, 0.95),
+      ptz_lead_ms: round(lerp(150, 80)),
+      nudge_pan: round(lerp(12, 10)),
+      nudge_tilt: round(lerp(12, 10)),
+      j_pulse_ms: round(lerp(50, 20)),
+      manual_mode: 'tap_hold'
+    };
+  }
+
+  async function buildPtzSpeedProfileFromZoomMaster() {
+    const existing = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile`).catch(() => ({ points: [] }));
+    const existingPoints = Array.isArray(existing.points) ? existing.points : [];
+    if (existingPoints.length && !window.confirm(`PTZ speed profile already has ${existingPoints.length} points. Overwrite matching samples?`)) {
+      return { ok: false, cancelled: true };
+    }
+    const master = await apiGetJson('/api/zoom/master_profile');
+    const points = Array.isArray(master.profile_points) ? master.profile_points : (Array.isArray(master.points) ? master.points : []);
+    let saved = 0;
+    for (const p of points) {
+      const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/save_point`, defaultSpeedPointForZoomMasterPoint(p));
+      if (res && res.ok !== false) saved += 1;
+    }
+    await refreshPtzTuneSpeedProfile().catch(() => {});
+    await initPtzSpeedTuneSamples().catch(() => {});
+    updatePtzTuneSampleButtonUi?.();
+    if ($('ptzTuneStatus')) $('ptzTuneStatus').textContent = `PTZ speed profile created: points=${saved}`;
+    ptzLog(`PTZ speed profile created: points=${saved}`, { ok: true, points: saved });
+    return { ok: true, points: saved };
+  }
+  window.buildPtzSpeedProfileFromZoomMaster = buildPtzSpeedProfileFromZoomMaster;
 
   // SAMPLE_INIT_HOTKEYS_REPAIR_START
 
@@ -4521,6 +4578,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   let pollTimer = null;
   let testTimer = null;
   let running = false;
+  let latestAprilTag = null;
 
   function status(txt) { if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = txt; }
   function debugStatus(txt) { if ($('apriltagDebugStatus')) $('apriltagDebugStatus').textContent = txt; }
@@ -4541,6 +4599,26 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   function anchors() { return defs.map(anchor); }
   function activeAnchor() { return anchors().find(a => a.label === activeLabel) || anchors()[0]; }
   function updateDebugImage() { if ($('apriltagDebugImage')) $('apriltagDebugImage').src = `/debug_apriltag_latest.jpg?ts=${Date.now()}`; }
+  function drawAprilTags(res) {
+    const canvas = $('apriltagOverlay'); const wrap = $('streamWrap'); if (!canvas || !wrap) return;
+    const rect = wrap.getBoundingClientRect(); canvas.width = Math.max(1, Math.round(rect.width)); canvas.height = Math.max(1, Math.round(rect.height));
+    const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const w = Number(res?.width || 1920), h = Number(res?.height || 1080); if (!w || !h) return;
+    const cover = wrap.classList.contains('cover') || $('fitMode')?.value === 'cover';
+    const scale = cover ? Math.max(canvas.width / w, canvas.height / h) : Math.min(canvas.width / w, canvas.height / h);
+    const ox = (canvas.width - w * scale) / 2, oy = (canvas.height - h * scale) / 2;
+    const activeId = Number(activeAnchor().tag_id);
+    for (const tag of (Array.isArray(res?.tags) ? res.tags : [])) {
+      const cs = Array.isArray(tag.corners) ? tag.corners : []; if (cs.length < 4) continue;
+      const active = Number(tag.id) === activeId;
+      ctx.beginPath();
+      cs.forEach((pt, i) => { const x = ox + Number(pt[0]) * scale; const y = oy + Number(pt[1]) * scale; if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+      ctx.closePath(); ctx.lineWidth = active ? 5 : 2; ctx.strokeStyle = active ? '#00ff66' : 'rgba(255,230,0,.85)'; ctx.stroke();
+      ctx.fillStyle = active ? 'rgba(0,255,102,.22)' : 'rgba(255,230,0,.12)'; ctx.fill();
+      const lx = ox + Number(tag.center_x || cs[0][0]) * scale; const ly = oy + Number(tag.center_y || cs[0][1]) * scale;
+      ctx.font = active ? 'bold 18px system-ui' : '14px system-ui'; ctx.lineWidth = 4; ctx.strokeStyle = '#000'; ctx.strokeText(`id ${tag.id}`, lx + 6, ly - 6); ctx.fillStyle = active ? '#fff' : '#ffe600'; ctx.fillText(`id ${tag.id}`, lx + 6, ly - 6);
+    }
+  }
   function updateSummary() {
     const a = activeAnchor();
     const txt = `active=${activeLabel} id=${a.tag_id} distance=${(a.distance_mm / 1000).toFixed(2)}m size=${a.tag_size_mm}mm`;
@@ -4592,21 +4670,25 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
   async function save() { updateSummary(); const res = await postJson('/api/zoom_calibration/settings', payload()); return res; }
   async function selectAnchor(label) { activeLabel = label; updateSummary(); await save(); const a = activeAnchor(); status(`selected ${label} id=${a.tag_id} distance=${(a.distance_mm/1000).toFixed(2)}m`); }
-  async function testAprilTag() {
+  async function testAprilTag(options = {}) {
     const res = await getJson('/api/apriltag/test?ts=' + Date.now());
+    latestAprilTag = res;
     updateDebugImage();
+    drawAprilTags(res);
     const ids = Array.isArray(res.ids) ? res.ids.map(Number) : [];
     const a = activeAnchor();
     const found = ids.includes(Number(a.tag_id));
-    const base = `apriltag tags=${res.tags_found || ids.length || 0} ids=${ids.join(',') || 'none'} ${res.ok ? 'ok' : (res.message || 'not ok')}`;
-    status(`${base}; active tag ${a.tag_id} ${found ? 'FOUND' : 'NOT FOUND'}`);
+    const base = `apriltag tags=${res.tags_found || ids.length || 0} ids=${ids.join(',') || 'none'}`;
+    if (!options.silentStatus) status(`${base} | active tag ${a.tag_id} ${found ? 'FOUND' : 'NOT FOUND'}`);
     debugStatus(`active tag ${a.tag_id} ${found ? 'FOUND' : 'NOT FOUND'}`);
     console.log('[zoom-calib] APRILTAG TEST', res);
     return res;
   }
   async function pollOnce() {
     const s = await getJson('/api/zoom_calibration?ts=' + Date.now());
-    const msg = `idx=${s.idx ?? s.sample_idx ?? '?'} / ${s.samples ?? s.sample_count ?? '?'} zoom_ratio=${Number(s.zoom_ratio ?? 0).toFixed(3)} tags_found=${s.tags_found ?? '?'} ${s.last_status || ''} ${s.last_message || s.message || ''}`;
+    const tagIds = Array.isArray(latestAprilTag?.ids) ? latestAprilTag.ids.map(Number) : (Array.isArray(s.ids) ? s.ids.map(Number) : []);
+    const activeFound = tagIds.includes(Number(activeAnchor().tag_id)) || Boolean(s.anchor_found);
+    const msg = `running idx=${s.idx ?? s.sample_idx ?? '?'}/${s.samples ?? s.sample_count ?? '?'} tags=${latestAprilTag?.tags_found ?? s.tags_found ?? '?'} ids=${tagIds.join(',') || 'n/a'} active=${activeLabel} id=${activeAnchor().tag_id} ${activeFound ? 'FOUND' : 'NOT FOUND'} ${s.last_status || ''} ${s.last_message || s.message || ''}`;
     status(msg.trim());
     if (s.in_progress === false) stopPolling();
     return s;
@@ -4614,8 +4696,8 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   function startPolling() {
     stopPolling(false); running = true; setRunDisabled(true); status('calibration running...');
     pollTimer = setInterval(() => pollOnce().catch(e => status(`poll error: ${e.message || e}`)), 1000);
-    testTimer = setInterval(() => testAprilTag().catch(() => updateDebugImage()), 1300);
-    pollOnce().catch(() => {}); testAprilTag().catch(() => updateDebugImage());
+    testTimer = setInterval(() => testAprilTag({ silentStatus: true }).catch(() => updateDebugImage()), 1300);
+    pollOnce().catch(() => {}); testAprilTag({ silentStatus: true }).catch(() => updateDebugImage());
   }
   function stopPolling(update = true) {
     if (pollTimer) clearInterval(pollTimer); if (testTimer) clearInterval(testTimer); pollTimer = null; testTimer = null; running = false; setRunDisabled(false); if (update) updateDebugImage();
@@ -4637,6 +4719,9 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     status(res.ok ? `master ok raw=${res.points_total_raw || 0} clean=${res.points_total_clean || 0}` : `master failed ${res.error || res.message || ''}`);
     if (typeof window.refreshZoomMasterProfile === 'function') window.refreshZoomMasterProfile().catch?.(() => {});
     if (typeof window.refreshZoomSamplesForPtzTune === 'function') window.refreshZoomSamplesForPtzTune().catch?.(() => {});
+    if (typeof window.initPtzSpeedTuneSamples === 'function') window.initPtzSpeedTuneSamples().catch?.(() => {});
+    if (typeof window.refreshPtzTuneSpeedProfile === 'function') window.refreshPtzTuneSpeedProfile().catch?.(() => {});
+    if (typeof window.updatePtzTuneSampleButtonUi === 'function') window.updatePtzTuneSampleButtonUi();
     if (typeof window.refreshPtzTuneZoomSamples === 'function') window.refreshPtzTuneZoomSamples().catch?.(() => {});
     return res;
   }
@@ -4650,7 +4735,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     bindButton('zoomRunAprilTagCalibBtn', runActive); bindButton('zoomBuildMasterProfileBtn', buildMaster); bindButton('apriltagTestBtn', testAprilTag);
     load().catch(e => status(`settings load error: ${e.message || e}`));
   }
-  window.ZoomCalibUi = { load, save, selectAnchor, runAnchor, runActive, buildMaster, testAprilTag, startPolling, stopPolling };
+  window.ZoomCalibUi = { load, save, selectAnchor, runAnchor, runActive, buildMaster, testAprilTag, drawAprilTags, startPolling, stopPolling };
   window.getActiveZoomAnchorFromUi = activeAnchor;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once:true }); else boot();
 })();

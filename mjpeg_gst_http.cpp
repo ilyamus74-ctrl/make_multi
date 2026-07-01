@@ -652,6 +652,14 @@ static bool send_zoom_via_bridge_ws(int cmd) {
 }
 
 
+struct AprilTagInfo {
+  int id = -1;
+  double center_x = 0.0;
+  double center_y = 0.0;
+  double size_px = 0.0;
+  std::vector<cv::Point2f> corners;
+};
+
 struct AprilTagTestResult {
   bool detector_available = false;
   bool ok = false;
@@ -660,6 +668,7 @@ struct AprilTagTestResult {
   int height = 0;
   int tags_found = 0;
   std::vector<int> ids;
+  std::vector<AprilTagInfo> tags;
   std::string message;
   std::string debug_image = "debug_apriltag_latest.jpg";
 };
@@ -702,6 +711,25 @@ static AprilTagTestResult run_apriltag_test_on_latest_frame(bool saveDebugImage)
   cv::aruco::detectMarkers(gray, dict, corners, ids);
   r.tags_found = static_cast<int>(ids.size());
   r.ids = ids;
+  for (size_t i = 0; i < ids.size() && i < corners.size(); ++i) {
+    AprilTagInfo t;
+    t.id = ids[i];
+    t.corners = corners[i];
+    if (!t.corners.empty()) {
+      double sx = 0.0, sy = 0.0;
+      for (const auto& p : t.corners) { sx += p.x; sy += p.y; }
+      t.center_x = sx / static_cast<double>(t.corners.size());
+      t.center_y = sy / static_cast<double>(t.corners.size());
+      double perim = 0.0;
+      for (size_t j = 0; j < t.corners.size(); ++j) {
+        const auto& a = t.corners[j];
+        const auto& b = t.corners[(j + 1) % t.corners.size()];
+        perim += std::hypot(double(a.x - b.x), double(a.y - b.y));
+      }
+      t.size_px = perim / static_cast<double>(t.corners.size());
+    }
+    r.tags.push_back(t);
+  }
   r.ok = r.tags_found > 0;
   r.message = r.ok ? "ok" : "apriltag_not_found";
 
@@ -2775,6 +2803,20 @@ static void handle_client(int cfd, const Opts& o) {
     }
 
     if (!found) {
+      const AprilTagTestResult gen = run_apriltag_test_on_latest_frame(true);
+      (void)gen;
+      for (const auto& fp : candidates) {
+        std::ifstream in(fp, std::ios::binary);
+        if (!in.is_open()) continue;
+        std::ostringstream ss;
+        ss << in.rdbuf();
+        bytes = ss.str();
+        found = !bytes.empty();
+        if (found) break;
+      }
+    }
+
+    if (!found) {
       const char* body = "debug_apriltag_latest.jpg not found";
       std::string hdr =
         "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nCache-Control: no-store\r\nConnection: close\r\n"
@@ -3706,6 +3748,22 @@ static void handle_client(int cfd, const Opts& o) {
     for (size_t i = 0; i < r.ids.size(); ++i) {
       if (i) os << ",";
       os << r.ids[i];
+    }
+    os << "]"
+       << ",\"tags\":[";
+    for (size_t i = 0; i < r.tags.size(); ++i) {
+      if (i) os << ",";
+      const auto& t = r.tags[i];
+      os << "{\"id\":" << t.id
+         << ",\"center_x\":" << t.center_x
+         << ",\"center_y\":" << t.center_y
+         << ",\"size_px\":" << t.size_px
+         << ",\"corners\":[";
+      for (size_t j = 0; j < t.corners.size(); ++j) {
+        if (j) os << ",";
+        os << "[" << t.corners[j].x << "," << t.corners[j].y << "]";
+      }
+      os << "]}";
     }
     os << "]"
        << ",\"message\":\"" << json_escape(r.message) << "\""
