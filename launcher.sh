@@ -277,7 +277,7 @@ apply_object_preset_on_start() {
   (
     sleep 1
     log "Applying object preset: ${OBJECT_PRESET_NAME:-active}"
-    if python3 "$OBJECT_PRESET_APPLIER" --preset "${OBJECT_PRESET_NAME:-active}" >>"$AUTOPILOT_LOG" 2>&1; then
+    if python3 "$OBJECT_PRESET_APPLIER" --preset "${OBJECT_PRESET_NAME:-active}" --arm auto >>"$AUTOPILOT_LOG" 2>&1; then
       log "Object preset applied: ${OBJECT_PRESET_NAME:-active}"
     else
       log "WARN: object preset apply failed: ${OBJECT_PRESET_NAME:-active}. See $AUTOPILOT_LOG"

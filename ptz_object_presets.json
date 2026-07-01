@@ -23,7 +23,9 @@
         "auto_zoom_cmd": 10,
         "auto_zoom_sign": 1,
         "auto_zoom_period_ms": 350
-      }
+      },
+      "tracking_mode": "single_auto",
+      "auto_arm_on_click": true
     },
     "people": {
       "label": "Люди",
@@ -46,7 +48,9 @@
         "auto_zoom_cmd": 8,
         "auto_zoom_sign": 1,
         "auto_zoom_period_ms": 450
-      }
+      },
+      "tracking_mode": "multi_operator",
+      "auto_arm_on_click": false
     },
     "car_single": {
       "label": "Машина",
@@ -72,7 +76,9 @@
         "auto_zoom_cmd": 8,
         "auto_zoom_sign": 1,
         "auto_zoom_period_ms": 450
-      }
+      },
+      "tracking_mode": "single_auto",
+      "auto_arm_on_click": true
     },
     "cars": {
       "label": "Машины",
@@ -98,7 +104,9 @@
         "auto_zoom_cmd": 8,
         "auto_zoom_sign": 1,
         "auto_zoom_period_ms": 500
-      }
+      },
+      "tracking_mode": "multi_operator",
+      "auto_arm_on_click": false
     },
     "airplane_single": {
       "label": "Самолёт",
@@ -121,7 +129,9 @@
         "auto_zoom_cmd": 10,
         "auto_zoom_sign": 1,
         "auto_zoom_period_ms": 350
-      }
+      },
+      "tracking_mode": "single_auto",
+      "auto_arm_on_click": true
     },
     "airplanes": {
       "label": "Самолёты",
@@ -144,7 +154,9 @@
         "auto_zoom_cmd": 10,
         "auto_zoom_sign": 1,
         "auto_zoom_period_ms": 400
-      }
+      },
+      "tracking_mode": "multi_operator",
+      "auto_arm_on_click": false
     },
     "bird_single": {
       "label": "Птица",
@@ -167,7 +179,9 @@
         "auto_zoom_cmd": 12,
         "auto_zoom_sign": 1,
         "auto_zoom_period_ms": 300
-      }
+      },
+      "tracking_mode": "single_auto",
+      "auto_arm_on_click": true
     },
     "birds": {
       "label": "Птицы",
@@ -190,7 +204,9 @@
         "auto_zoom_cmd": 12,
         "auto_zoom_sign": 1,
         "auto_zoom_period_ms": 300
-      }
+      },
+      "tracking_mode": "multi_operator",
+      "auto_arm_on_click": false
     }
   }
 }

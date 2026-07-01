@@ -3,7 +3,6 @@ import argparse
 import json
 import sys
 import time
-import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -67,12 +66,17 @@ def load_all_presets():
     if isinstance(custom, dict):
         presets.update(custom)
 
-    active = settings.get("activeObjectPreset") or base.get("active") or "person_single"
+    active = (
+        settings.get("lastAppliedObjectPreset", {}).get("name")
+        or settings.get("activeObjectPreset")
+        or base.get("active")
+        or "person_single"
+    )
 
     return base, settings, presets, active
 
 
-def wait_api(url, attempts=20, delay=0.25):
+def wait_api(url, attempts=30, delay=0.25):
     last = None
 
     for _ in range(attempts):
@@ -158,18 +162,24 @@ def roi_payload(mode):
     return {"detection_mode": "full_frame", "rois": []}
 
 
-def merge_settings(settings, preset_name, preset):
+def merge_settings(settings, preset_name, preset, ptz_armed=None):
     out = dict(settings or {})
+
+    classes = list(preset.get("classes") or [])
+    ptz = dict(preset.get("ptz") or {})
 
     out["config_version"] = max(16, int(out.get("config_version") or 16))
     out["activeObjectPreset"] = preset_name
     out["detectorEnabled"] = True
-    out["detectorSelectedClasses"] = list(preset.get("classes") or [])
+    out["detectorSelectedClasses"] = classes
     out["operatorDetectionLimit"] = int(preset.get("max_detections") or 10)
     out["operatorDetectEvery"] = int(preset.get("detect_every_n_frames") or 1)
     out["operatorDetectionAreaMode"] = str(preset.get("detection_mode") or "full_frame")
+    out["objectPresetTrackingMode"] = str(preset.get("tracking_mode") or "manual_select")
 
-    ptz = dict(preset.get("ptz") or {})
+    if ptz_armed is not None:
+        out["ptzArmed"] = bool(ptz_armed)
+
     if ptz:
         out["ptzConfig"] = {
             "target_x": ptz.get("target_x"),
@@ -182,29 +192,125 @@ def merge_settings(settings, preset_name, preset):
     out["lastAppliedObjectPreset"] = {
         "name": preset_name,
         "label": preset.get("label") or preset_name,
+        "tracking_mode": preset.get("tracking_mode") or "manual_select",
         "ts": int(time.time())
     }
 
     return out
 
 
-def apply_preset(preset_name, preset, set_active=True, dry_run=False):
+def choose_best_detection(classes, attempts=30, delay=0.25):
+    wanted = {int(x) for x in classes or []}
+    last_count = 0
+
+    for _ in range(max(1, attempts)):
+        det = get_json(f"{MJPEG_BASE}/api/detections", timeout=3)
+        items = det.get("items") if isinstance(det, dict) else []
+        items = items if isinstance(items, list) else []
+        last_count = len(items)
+
+        candidates = []
+
+        for item in items:
+            try:
+                cls = int(item.get("cls"))
+            except Exception:
+                cls = None
+
+            if wanted and cls not in wanted:
+                continue
+
+            try:
+                score = float(item.get("prop") or item.get("score") or item.get("conf") or 0)
+            except Exception:
+                score = 0.0
+
+            try:
+                tid = int(item.get("id"))
+            except Exception:
+                continue
+
+            candidates.append((score, tid, item))
+
+        if candidates:
+            candidates.sort(key=lambda x: x[0], reverse=True)
+            return candidates[0][2]
+
+        time.sleep(delay)
+
+    raise RuntimeError(f"no matching detections after attempts; total_last={last_count}; classes={sorted(wanted)}")
+
+
+def select_target_and_start(classes, attempts=30, delay=0.25):
+    target = choose_best_detection(classes, attempts=attempts, delay=delay)
+    track_id = int(target["id"])
+
+    post_json(f"{MJPEG_BASE}/api/tracker/clear", {})
+    select_res = post_json(f"{MJPEG_BASE}/api/tracker/select", {"track_id": track_id})
+
+    time.sleep(0.4)
+
+    tr = get_json(f"{MJPEG_BASE}/api/tracker/state", timeout=3)
+
+    if tr.get("mode") != "TRACKING" or tr.get("selected_box_valid") is not True:
+        raise RuntimeError(f"tracker not ready after select: {tr}")
+
+    start_res = post_json(f"{AUTOPILOT_BASE}/api/autopilot/start", {})
+
+    time.sleep(0.2)
+
+    ap = get_json(f"{AUTOPILOT_BASE}/api/autopilot/state", timeout=3)
+
+    return {
+        "target": target,
+        "select": select_res,
+        "tracker": tr,
+        "start": start_res,
+        "autopilot": ap
+    }
+
+
+def stop_ptz():
+    try:
+        post_json(f"{AUTOPILOT_BASE}/api/autopilot/stop", {})
+    except Exception:
+        pass
+
+    try:
+        post_json(f"{AUTOPILOT_BASE}/api/control/stop", {})
+    except Exception:
+        pass
+
+
+def apply_preset(preset_name, preset, set_active=True, dry_run=False, arm="off", select_attempts=30, select_delay=0.25):
     classes = [int(x) for x in (preset.get("classes") or [])]
     mode = str(preset.get("detection_mode") or "full_frame")
     max_det = int(preset.get("max_detections") or 10)
     max_raw = int(preset.get("max_raw_candidates") or max(20, max_det * 5))
     every = int(preset.get("detect_every_n_frames") or 1)
     ptz = dict(preset.get("ptz") or {})
+    tracking_mode = str(preset.get("tracking_mode") or "manual_select")
+
+    base, settings, presets, active = load_all_presets()
+
+    should_arm = False
+    if arm == "force":
+        should_arm = tracking_mode == "single_auto"
+    elif arm == "auto":
+        should_arm = bool(settings.get("ptzArmed")) and tracking_mode == "single_auto"
 
     report = {
         "preset": preset_name,
         "label": preset.get("label") or preset_name,
+        "tracking_mode": tracking_mode,
         "classes": classes,
         "detection_mode": mode,
         "max_detections": max_det,
         "max_raw_candidates": max_raw,
         "detect_every_n_frames": every,
-        "ptz": ptz
+        "ptz": ptz,
+        "arm": arm,
+        "should_arm": should_arm
     }
 
     if dry_run:
@@ -234,10 +340,15 @@ def apply_preset(preset_name, preset, set_active=True, dry_run=False):
     if ptz:
         ptz_res = post_json(f"{AUTOPILOT_BASE}/api/autopilot/config", ptz)
 
-    base, settings, presets, active = load_all_presets()
+    arm_res = None
+    if should_arm:
+        arm_res = select_target_and_start(classes, attempts=select_attempts, delay=select_delay)
 
     if set_active:
-        settings = merge_settings(settings, preset_name, preset)
+        settings = merge_settings(settings, preset_name, preset, ptz_armed=should_arm if arm == "force" else None)
+        if arm == "force":
+            settings["controlMode"] = "ptz"
+
         save_json_file(SETTINGS_FILE, settings)
 
         base["active"] = preset_name
@@ -255,7 +366,8 @@ def apply_preset(preset_name, preset, set_active=True, dry_run=False):
         "limits": lim_res,
         "throttle": thr_res,
         "roi": roi_res,
-        "autopilot": ptz_res
+        "autopilot": ptz_res,
+        "arm_result": arm_res
     }
 
     print(json.dumps(result, indent=2, ensure_ascii=False))
@@ -268,14 +380,31 @@ def main():
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--no-set-active", action="store_true")
+    ap.add_argument("--arm", choices=["off", "auto", "force"], default="off")
+    ap.add_argument("--disarm", action="store_true")
+    ap.add_argument("--select-attempts", type=int, default=30)
+    ap.add_argument("--select-delay", type=float, default=0.25)
     args = ap.parse_args()
 
     base, settings, presets, active = load_all_presets()
 
     if args.list:
         print("active =", active)
+        print("ptzArmed =", bool(settings.get("ptzArmed")))
         for name, preset in presets.items():
-            print(name, "=", preset.get("label") or name)
+            print(name, "=", preset.get("label") or name, "|", preset.get("tracking_mode") or "manual_select")
+        return 0
+
+    if args.disarm:
+        stop_ptz()
+        settings["ptzArmed"] = False
+        settings["controlMode"] = settings.get("controlMode") or "ptz"
+        save_json_file(SETTINGS_FILE, settings)
+        try:
+            post_json(f"{MJPEG_BASE}/api/settings", settings)
+        except Exception:
+            pass
+        print(json.dumps({"ok": True, "disarmed": True}, indent=2, ensure_ascii=False))
         return 0
 
     name = active if args.preset == "active" else args.preset
@@ -287,7 +416,15 @@ def main():
             print(f"  {k}", file=sys.stderr)
         return 2
 
-    apply_preset(name, presets[name], set_active=not args.no_set_active, dry_run=args.dry_run)
+    apply_preset(
+        name,
+        presets[name],
+        set_active=not args.no_set_active,
+        dry_run=args.dry_run,
+        arm=args.arm,
+        select_attempts=args.select_attempts,
+        select_delay=args.select_delay,
+    )
     return 0
 
 
