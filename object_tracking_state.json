@@ -1,9 +1,9 @@
 {
-  "ts": 1782940144.444,
-  "mode": "tracking",
-  "preset": "person_single",
-  "track_id": 160,
-  "ptz": "ACTIVE",
-  "cmd_pan": 5,
-  "cmd_tilt": 0
+  "ts": 1782940371.937,
+  "mode": "error",
+  "result": {
+    "ok": false,
+    "error": "unhandled_exception",
+    "message": "API not ready: http://127.0.0.1:8080/api/ping: <urlopen error [Errno 111] Connection refused>"
+  }
 }

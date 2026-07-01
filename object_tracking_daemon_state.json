@@ -1,5 +1,7 @@
 {
-  "ts": 1782940145.282,
-  "event": "daemon_stop",
-  "signal": 2
+  "ts": 1782940622.702,
+  "event": "idle_disarmed",
+  "preset": "person_single",
+  "armed": false,
+  "single_auto": true
 }

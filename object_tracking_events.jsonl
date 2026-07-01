@@ -563,3 +563,4 @@
 {"cmd_pan": 13, "cmd_tilt": 0, "event": "tracking", "mode": "tracking", "preset": "person_single", "ptz": "ACTIVE", "track_id": 160, "ts": 1782940143.44}
 {"cmd_pan": 10, "cmd_tilt": 0, "event": "tracking", "mode": "tracking", "preset": "person_single", "ptz": "ACTIVE", "track_id": 160, "ts": 1782940143.942}
 {"cmd_pan": 5, "cmd_tilt": 0, "event": "tracking", "mode": "tracking", "preset": "person_single", "ptz": "ACTIVE", "track_id": 160, "ts": 1782940144.443}
+{"error": "API not ready: http://127.0.0.1:8080/api/ping: <urlopen error [Errno 111] Connection refused>", "event": "unhandled_exception", "ts": 1782940371.937}

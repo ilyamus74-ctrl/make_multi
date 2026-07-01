@@ -322,7 +322,78 @@ def choose_best_detection_once(classes):
     }
 
 
-def zoom_wide_pulse(reason="search", hold_ms=220):
+def zoom_state():
+    try:
+        return get_json(f"{MJPEG_BASE}/api/zoom/state", timeout=2)
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def zoom_is_already_wide(skip_ratio=0.06):
+    st = zoom_state()
+
+    ratio = None
+    for key in ["zoom_ratio", "ratio", "state", "zoomState"]:
+        if key in st:
+            try:
+                ratio = float(st.get(key))
+                break
+            except Exception:
+                pass
+
+    sample = None
+    for key in ["active_zoom_sample_idx", "sample", "sample_idx", "step"]:
+        if key in st:
+            try:
+                sample = int(st.get(key))
+                break
+            except Exception:
+                pass
+
+    if ratio is not None and ratio <= float(skip_ratio):
+        return True, st
+
+    if sample is not None and sample <= 0:
+        return True, st
+
+    return False, st
+
+
+def zoom_wide_pulse(reason="search", hold_ms=220, cooldown_sec=8.0, skip_ratio=0.06):
+    now = time.time()
+    last_ts = getattr(zoom_wide_pulse, "_last_ts", 0.0)
+
+    if now - last_ts < float(cooldown_sec):
+        event_log(
+            "zoom_wide_skip_cooldown",
+            reason=reason,
+            cooldown_sec=cooldown_sec,
+            age_sec=round(now - last_ts, 3)
+        )
+        return {
+            "ok": True,
+            "skipped": True,
+            "reason": "cooldown",
+            "age_sec": round(now - last_ts, 3)
+        }
+
+    already_wide, state = zoom_is_already_wide(skip_ratio=skip_ratio)
+
+    if already_wide:
+        zoom_wide_pulse._last_ts = now
+        event_log(
+            "zoom_wide_skip_already_wide",
+            reason=reason,
+            skip_ratio=skip_ratio,
+            state=state
+        )
+        return {
+            "ok": True,
+            "skipped": True,
+            "reason": "already_wide",
+            "state": state
+        }
+
     try:
         settings = {}
         try:
@@ -352,6 +423,8 @@ def zoom_wide_pulse(reason="search", hold_ms=220):
             }, timeout=2)
         except Exception:
             pass
+
+        zoom_wide_pulse._last_ts = now
 
         event_log("zoom_wide_pulse", reason=reason, ok=True, cmd=cmd, hold_ms=hold_ms)
         return {"ok": True, "cmd": cmd, "hold_ms": hold_ms}
@@ -567,15 +640,28 @@ def run_once_fail_stop(classes, max_seconds, preset_name):
 def run_continuous_wide_scan_x(classes, preset_name, plan, max_seconds=0):
     stop_ptz()
 
+    lost_seen_since = None
+    last_status = None
+    cycle = 0
+
+    lost_grace_sec = float(plan.get("lost_grace_sec") or 1.8)
+    lost_grace_poll_sec = float(plan.get("lost_grace_poll_sec") or 0.25)
+
+    zoom_cooldown = float(plan.get("zoom_wide_cooldown_sec") or 8.0)
+    zoom_skip_ratio = float(plan.get("zoom_wide_skip_ratio") or 0.06)
+    zoom_hold_ms = int(plan.get("zoom_wide_hold_ms") or 140)
+
     if plan.get("zoom_wide_on_start", True):
-        zoom_wide_pulse("scan_start", hold_ms=260)
+        zoom_wide_pulse(
+            "scan_start",
+            hold_ms=zoom_hold_ms,
+            cooldown_sec=zoom_cooldown,
+            skip_ratio=zoom_skip_ratio
+        )
 
     deadline = None
     if max_seconds and float(max_seconds) > 0:
         deadline = time.time() + float(max_seconds)
-
-    cycle = 0
-    last_status = None
 
     event_log("continuous_scan_start", preset=preset_name, classes=classes)
 
@@ -603,13 +689,16 @@ def run_continuous_wide_scan_x(classes, preset_name, plan, max_seconds=0):
             )
 
             if tracking_ok:
+                lost_seen_since = None
+
                 status = {
                     "mode": "tracking",
                     "preset": preset_name,
                     "track_id": tr.get("selected_track_id"),
                     "ptz": ap.get("mode"),
                     "cmd_pan": ap.get("cmd_pan"),
-                    "cmd_tilt": ap.get("cmd_tilt")
+                    "cmd_tilt": ap.get("cmd_tilt"),
+                    "zoom_cmd": ap.get("auto_zoom_cmd")
                 }
 
                 if status != last_status:
@@ -620,12 +709,54 @@ def run_continuous_wide_scan_x(classes, preset_name, plan, max_seconds=0):
                 time.sleep(0.5)
                 continue
 
+            # If PTZ is active but tracker briefly lost target, do not instantly stop/reacquire.
+            # Give the internal tracker/autopilot a short grace period.
             if ap.get("enabled") is True:
-                event_log("lost_object", preset=preset_name, tracker=tr, autopilot=ap)
+                now = time.time()
+
+                if lost_seen_since is None:
+                    lost_seen_since = now
+                    event_log(
+                        "lost_grace_start",
+                        preset=preset_name,
+                        tracker=tr,
+                        autopilot={
+                            "enabled": ap.get("enabled"),
+                            "mode": ap.get("mode"),
+                            "last_tracker_mode": ap.get("last_tracker_mode")
+                        }
+                    )
+
+                lost_age = now - lost_seen_since
+
+                if lost_age < lost_grace_sec:
+                    write_state(
+                        mode="lost_grace",
+                        preset=preset_name,
+                        lost_age=round(lost_age, 3),
+                        track_id=tr.get("selected_track_id")
+                    )
+                    time.sleep(lost_grace_poll_sec)
+                    continue
+
+                event_log(
+                    "lost_object",
+                    preset=preset_name,
+                    lost_age=round(lost_age, 3),
+                    tracker=tr,
+                    autopilot=ap
+                )
+
                 stop_ptz()
+                lost_seen_since = None
 
                 if plan.get("zoom_wide_on_lost", True):
-                    zoom_wide_pulse("lost", hold_ms=260)
+                    zoom_wide_pulse(
+                        "lost",
+                        hold_ms=zoom_hold_ms,
+                        cooldown_sec=zoom_cooldown,
+                        skip_ratio=zoom_skip_ratio
+                    )
 
             acquire = try_acquire_once(classes, tracker_wait_sec=float(plan.get("tracker_wait_sec") or 4.5))
 
@@ -636,9 +767,9 @@ def run_continuous_wide_scan_x(classes, preset_name, plan, max_seconds=0):
 
             step = scan_step_default(plan, cycle)
             repeat = max(1, int(step.get("repeat") or 1))
-            pan = float(step.get("pan") or 0.0)
-            tilt = float(step.get("tilt") or 0.0)
-            pulse_ms = int(step.get("pulse_ms") or plan.get("pan_pulse_ms") or 110)
+            pan = float(step.get("pan") or plan.get("pan_norm") or 0.55)
+            tilt = float(step.get("tilt") or plan.get("tilt_norm") or 0.0)
+            pulse_ms = int(step.get("pulse_ms") or plan.get("pan_pulse_ms") or 90)
 
             event_log(
                 "scan_step",
@@ -653,7 +784,12 @@ def run_continuous_wide_scan_x(classes, preset_name, plan, max_seconds=0):
             if plan.get("zoom_wide_every_cycles", 0):
                 n = int(plan.get("zoom_wide_every_cycles") or 0)
                 if n > 0 and cycle > 0 and cycle % n == 0:
-                    zoom_wide_pulse("scan_cycle", hold_ms=220)
+                    zoom_wide_pulse(
+                        "scan_cycle",
+                        hold_ms=zoom_hold_ms,
+                        cooldown_sec=zoom_cooldown,
+                        skip_ratio=zoom_skip_ratio
+                    )
 
             for _ in range(repeat):
                 manual_search_pulse(pan=pan, tilt=tilt, pulse_ms=pulse_ms)
