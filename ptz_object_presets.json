@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "active": "birds",
+  "active": "bird_single",
   "presets": {
     "person_single": {
       "label": "Человек",
