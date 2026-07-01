@@ -1881,6 +1881,17 @@ static bool load_model(const std::string& modelPath) {
   return load_model_locked(modelPath);
 }
 
+static std::string json_escape(const std::string& s) {
+  std::string out;
+  out.reserve(s.size() + 8);
+  for (char c : s) {
+    if (c == '\\' || c == '"') out.push_back('\\');
+    out.push_back(c);
+  }
+  return out;
+}
+
+
 static std::string now_utc_iso8601();
 
 static void append_ops_event(const std::string& evType, const std::string& payloadJson) {
