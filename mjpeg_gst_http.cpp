@@ -403,6 +403,8 @@ struct ZoomAprilTagCalibParams {
   int cmd_abs = 34;
   int wide_cmd_sign = 1;
   int wide_hold_ms = 2000;
+  std::string zoom_move_mode = "legacy_impulse";
+  int full_sweep_ms = 2000;
   std::string calibration_direction = "wide_to_tele";
   std::vector<ZoomAnchorSlot> anchors;
   std::string active_anchor_label = "near";
@@ -464,6 +466,9 @@ static void clamp_zoom_calib_params(ZoomAprilTagCalibParams& p, int cmdMaxZoom) 
   p.cmd_abs = std::max(1, std::min(maxZoom, p.cmd_abs));
   p.wide_cmd_sign = (p.wide_cmd_sign < 0) ? -1 : 1;
   p.wide_hold_ms = std::max(300, std::min(10000, p.wide_hold_ms));
+  if (p.full_sweep_ms <= 0) p.full_sweep_ms = p.wide_hold_ms;
+  p.full_sweep_ms = std::max(100, std::min(20000, p.full_sweep_ms));
+  if (p.zoom_move_mode != "sweep_time_steps") p.zoom_move_mode = "legacy_impulse";
   if (p.calibration_direction != "tele_to_wide") p.calibration_direction = "wide_to_tele";
   ensure_zoom_anchors(p);
   for (auto& a : p.anchors) {
@@ -928,6 +933,8 @@ static std::string zoom_calib_settings_json(const ZoomAprilTagCalibParams& pIn) 
      << ",\"cmd_abs\":" << p.cmd_abs
      << ",\"wide_cmd_sign\":" << p.wide_cmd_sign
      << ",\"wide_hold_ms\":" << p.wide_hold_ms
+     << ",\"zoom_move_mode\":\"" << json_escape(p.zoom_move_mode) << "\""
+     << ",\"full_sweep_ms\":" << p.full_sweep_ms
      << ",\"calibration_direction\":\"" << json_escape(p.calibration_direction) << "\""
      << ",\"active_anchor_label\":\"" << json_escape(p.active_anchor_label) << "\""
      << ",\"anchors\":[";
@@ -957,6 +964,8 @@ static bool save_zoom_calib_settings(const ZoomAprilTagCalibParams& pIn) {
     << "  \"cmd_abs\": " << p.cmd_abs << ",\n"
     << "  \"wide_cmd_sign\": " << p.wide_cmd_sign << ",\n"
     << "  \"wide_hold_ms\": " << p.wide_hold_ms << ",\n"
+    << "  \"zoom_move_mode\": \"" << json_escape(p.zoom_move_mode) << "\",\n"
+    << "  \"full_sweep_ms\": " << p.full_sweep_ms << ",\n"
     << "  \"calibration_direction\": \"" << json_escape(p.calibration_direction) << "\",\n"
     << "  \"active_anchor_label\": \"" << json_escape(p.active_anchor_label) << "\",\n"
     << "  \"anchors\": [\n";
@@ -1014,6 +1023,9 @@ static bool load_zoom_calib_settings(ZoomAprilTagCalibParams& p, int cmdMaxZoom)
   if (extract_json_int_field(body, "cmd_abs", &i)) p.cmd_abs = i;
   if (extract_json_int_field(body, "wide_cmd_sign", &i)) p.wide_cmd_sign = i;
   if (extract_json_int_field(body, "wide_hold_ms", &i)) p.wide_hold_ms = i;
+  if (extract_json_int_field(body, "full_sweep_ms", &i)) p.full_sweep_ms = i;
+  else p.full_sweep_ms = p.wide_hold_ms;
+  p.zoom_move_mode = extract_json_string_field(body, "zoom_move_mode");
   p.calibration_direction = extract_json_string_field(body, "calibration_direction");
   p.active_anchor_label = extract_json_string_field(body, "active_anchor_label");
   parse_zoom_anchors_json(body, p);
@@ -1214,6 +1226,37 @@ static bool run_zoom_image_time_calibration(const Opts& o) {
   return true;
 }
 
+
+static int move_zoom_by_sample_delta_sweep_time(
+  int current_idx,
+  int target_idx,
+  int samples,
+  int full_sweep_ms,
+  int cmd_abs,
+  const std::string& direction,
+  int sign,
+  int settle_ms,
+  bool* ok_out,
+  int* hold_ms_out
+) {
+  const int delta = target_idx - current_idx;
+  const double perStepMs = static_cast<double>(std::max(100, full_sweep_ms)) / static_cast<double>(std::max(1, samples - 1));
+  const int holdMs = (delta == 0) ? 0 : static_cast<int>(std::llround(perStepMs * std::abs(delta)));
+  if (hold_ms_out) *hold_ms_out = holdMs;
+  bool ok = true;
+  if (delta != 0) {
+    const int wideCmd = ((sign < 0) ? -1 : 1) * std::max(1, cmd_abs);
+    const int teleCmd = -wideCmd;
+    int forwardCmd = teleCmd;
+    if (direction == "tele_to_wide") forwardCmd = wideCmd;
+    const int cmd = (delta > 0) ? forwardCmd : -forwardCmd;
+    ok = send_zoom_stream_via_bridge_ws(cmd, holdMs);
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(std::max(50, settle_ms)));
+  if (ok_out) *ok_out = ok;
+  return ok ? target_idx : current_idx;
+}
+
 static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTagCalibParams& params) {
   if (g_zoomCalibInProgress.exchange(true)) return false;
   struct Guard { ~Guard(){ g_zoomCalibInProgress = false; } } guard;
@@ -1252,26 +1295,61 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
   g_zoomRatio = homeZoomRatio;
 
   std::vector<ZoomMarkerMeasurement> rows;
+  std::vector<int> moveHoldMs;
+  std::vector<int> moveDelta;
+  std::vector<int> moveCurrentIdx;
+  std::vector<int> moveTargetIdx;
   cv::Mat gray; uint64_t fid = 0;
-  if (fetch_latest_gray_frame(&fid, &gray)) rows.push_back(measure_zoom_markers_apriltag(gray, params));
-  for (int i = 1; i <= std::max(1, params.samples); ++i) {
-    const bool impulseOk = send_zoom_stream_via_bridge_ws(stepCmd, params.impulse_ms);
-    std::cout << "zoom-apriltag: impulse idx=" << i << " direction=" << params.calibration_direction
-              << " cmd=" << stepCmd << " hold_ms=" << params.impulse_ms << " ok=" << (impulseOk ? 1 : 0) << "\n";
-    if (!impulseOk) {
-      g_detectEnabled = prevDetect;
-      std::lock_guard<std::mutex> slk(g_zoomCalibStatusMtx);
-      g_zoomCalibLastStatus = "failed";
-      g_zoomCalibLastMessage = "bridge_ws_stream_failed";
-      g_zoomCalibLastRunAt = now_utc_iso8601();
-      return false;
+  int currentIdx = 0;
+  const bool sweepMode = (params.zoom_move_mode == "sweep_time_steps");
+  const int sampleCount = std::max(1, params.samples);
+  if (sweepMode) {
+    for (int i = 0; i < sampleCount; ++i) {
+      bool moveOk = true;
+      int holdMs = 0;
+      const int beforeIdx = currentIdx;
+      currentIdx = move_zoom_by_sample_delta_sweep_time(currentIdx, i, sampleCount, params.full_sweep_ms,
+                                                        cmd, params.calibration_direction, params.wide_cmd_sign,
+                                                        params.settle_ms, &moveOk, &holdMs);
+      const int delta = i - beforeIdx;
+      std::cout << "zoom-apriltag: sample " << i << "/" << (sampleCount - 1)
+                << " mode=sweep_time_steps delta=" << delta << " hold=" << holdMs
+                << "ms settle=" << params.settle_ms << "ms ok=" << (moveOk ? 1 : 0) << "\n";
+      if (!moveOk) {
+        g_detectEnabled = prevDetect;
+        std::lock_guard<std::mutex> slk(g_zoomCalibStatusMtx);
+        g_zoomCalibLastStatus = "failed";
+        g_zoomCalibLastMessage = "bridge_ws_stream_failed";
+        g_zoomCalibLastRunAt = now_utc_iso8601();
+        return false;
+      }
+      ZoomMarkerMeasurement m;
+      if (fetch_latest_gray_frame(&fid, &gray)) m = measure_zoom_markers_apriltag(gray, params);
+      rows.push_back(m); moveHoldMs.push_back(holdMs); moveDelta.push_back(delta); moveCurrentIdx.push_back(beforeIdx); moveTargetIdx.push_back(i);
+      g_zoomCalibProgressIdx = i; g_zoomCalibProgressSamples = sampleCount; g_zoomCalibProgressTagsFound = m.tags_found;
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(std::max(50, params.settle_ms)));
-    ZoomMarkerMeasurement m;
-    if (fetch_latest_gray_frame(&fid, &gray)) m = measure_zoom_markers_apriltag(gray, params);
-    std::cout << "zoom-apriltag: measure idx=" << i << " tags_found=" << m.tags_found << "\n";
-    rows.push_back(m);
-    g_zoomCalibProgressIdx = i; g_zoomCalibProgressSamples = params.samples; g_zoomCalibProgressTagsFound = m.tags_found;
+  } else {
+    if (fetch_latest_gray_frame(&fid, &gray)) rows.push_back(measure_zoom_markers_apriltag(gray, params));
+    moveHoldMs.push_back(0); moveDelta.push_back(0); moveCurrentIdx.push_back(0); moveTargetIdx.push_back(0);
+    for (int i = 1; i <= sampleCount; ++i) {
+      const bool impulseOk = send_zoom_stream_via_bridge_ws(stepCmd, params.impulse_ms);
+      std::cout << "zoom-apriltag: impulse idx=" << i << " direction=" << params.calibration_direction
+                << " cmd=" << stepCmd << " hold_ms=" << params.impulse_ms << " ok=" << (impulseOk ? 1 : 0) << "\n";
+      if (!impulseOk) {
+        g_detectEnabled = prevDetect;
+        std::lock_guard<std::mutex> slk(g_zoomCalibStatusMtx);
+        g_zoomCalibLastStatus = "failed";
+        g_zoomCalibLastMessage = "bridge_ws_stream_failed";
+        g_zoomCalibLastRunAt = now_utc_iso8601();
+        return false;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(std::max(50, params.settle_ms)));
+      ZoomMarkerMeasurement m;
+      if (fetch_latest_gray_frame(&fid, &gray)) m = measure_zoom_markers_apriltag(gray, params);
+      std::cout << "zoom-apriltag: measure idx=" << i << " tags_found=" << m.tags_found << "\n";
+      rows.push_back(m); moveHoldMs.push_back(params.impulse_ms); moveDelta.push_back(1); moveCurrentIdx.push_back(i-1); moveTargetIdx.push_back(i);
+      g_zoomCalibProgressIdx = i; g_zoomCalibProgressSamples = sampleCount; g_zoomCalibProgressTagsFound = m.tags_found;
+    }
   }
   g_detectEnabled = prevDetect;
   double minF = 1e9, maxF = 0.0;
@@ -1320,18 +1398,28 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
      << ",\"anchor_tag_id\":" << params.anchor_tag_id << ",\"anchor_distance_mm\":" << params.anchor_distance_mm
      << ",\"cmd_abs\":" << cmd << ",\"home_cmd\":" << homeCmd << ",\"step_cmd\":" << stepCmd
      << ",\"impulse_ms\":" << params.impulse_ms << ",\"settle_ms\":" << params.settle_ms
+     << ",\"zoom_move_mode\":\"" << json_escape(params.zoom_move_mode) << "\""
+     << ",\"full_sweep_ms\":" << params.full_sweep_ms
+     << ",\"step_ms\":" << std::fixed << std::setprecision(3) << (static_cast<double>(params.full_sweep_ms) / static_cast<double>(std::max(1, params.samples - 1)))
      << ",\"valid_rows_raw\":" << validRowsRaw << ",\"valid_rows_clean\":" << validRows << ",\"tags_total\":" << tagsTotal
      << ",\"status\":\"" << calibStatus << "\",\"samples\":[";
   for (size_t i = 0; i < rows.size(); ++i) {
     int profileIdx = -1;
-    for (size_t pi = 0; pi < cleanIdx.size(); ++pi) if (cleanIdx[pi] == i) { profileIdx = static_cast<int>(pi); break; }
+    for (size_t pi = 0; pi < cleanIdx.size(); ++pi) if (cleanIdx[pi] == i) { profileIdx = sweepMode ? static_cast<int>(i) : static_cast<int>(pi); break; }
     double zr = 0.0;
     if (profileIdx >= 0 && hasFocalRange) zr = std::max(0.0, std::min(1.0, (rows[i].focal_px - minF) / (maxF - minF)));
     g_zoomCalibProgressRatio = zr;
     if (i) os << ",";
     os << "{\"idx\":" << i << ",\"profile_idx\":" << profileIdx << ",\"zoom_ratio\":" << std::fixed << std::setprecision(3) << zr
        << ",\"cmd\":" << (i == 0 ? 0 : cmd) << ",\"direction\":\"" << params.calibration_direction << "\""
-       << ",\"hold_ms\":" << (i == 0 ? 0 : params.impulse_ms)
+       << ",\"hold_ms\":" << (i < moveHoldMs.size() ? moveHoldMs[i] : (i == 0 ? 0 : params.impulse_ms))
+       << ",\"move_hold_ms\":" << (i < moveHoldMs.size() ? moveHoldMs[i] : 0)
+       << ",\"move_delta\":" << (i < moveDelta.size() ? moveDelta[i] : 0)
+       << ",\"current_idx\":" << (i < moveCurrentIdx.size() ? moveCurrentIdx[i] : static_cast<int>(i))
+       << ",\"target_idx\":" << (i < moveTargetIdx.size() ? moveTargetIdx[i] : static_cast<int>(i))
+       << ",\"step_ms\":" << std::fixed << std::setprecision(3) << (static_cast<double>(params.full_sweep_ms) / static_cast<double>(std::max(1, params.samples - 1)))
+       << ",\"zoom_move_mode\":\"" << json_escape(params.zoom_move_mode) << "\""
+       << ",\"full_sweep_ms\":" << params.full_sweep_ms
        << ",\"focal_px\":" << rows[i].focal_px
        << ",\"anchor_tag_id\":" << params.anchor_tag_id << ",\"anchor_found\":" << (rows[i].anchor_found ? "true" : "false")
        << ",\"anchor_px\":" << rows[i].anchor_px
@@ -1346,7 +1434,7 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
   for (size_t pi = 0; pi < cleanIdx.size(); ++pi) {
     const size_t i = cleanIdx[pi];
     if (!rows[i].anchor_found || rows[i].focal_px <= 0.0) continue;
-    const int profileIdx = static_cast<int>(pi);
+    const int profileIdx = sweepMode ? static_cast<int>(i) : static_cast<int>(pi);
     if (profileIdx < 0 || seenProfileIdx.count(profileIdx)) continue;
     seenProfileIdx.insert(profileIdx);
     const double zr = hasFocalRange ? std::max(0.0, std::min(1.0, (rows[i].focal_px - minF) / (maxF - minF))) : 0.0;
@@ -1356,6 +1444,11 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
        << ",\"zoom_ratio\":" << std::fixed << std::setprecision(3) << zr
        << ",\"focal_px\":" << rows[i].focal_px
        << ",\"source_idx\":" << i
+       << ",\"step\":" << profileIdx
+       << ",\"move_hold_ms\":" << (i < moveHoldMs.size() ? moveHoldMs[i] : 0)
+       << ",\"move_delta\":" << (i < moveDelta.size() ? moveDelta[i] : 0)
+       << ",\"current_idx\":" << (i < moveCurrentIdx.size() ? moveCurrentIdx[i] : static_cast<int>(i))
+       << ",\"target_idx\":" << (i < moveTargetIdx.size() ? moveTargetIdx[i] : static_cast<int>(i))
        << ",\"anchor_distance_mm\":" << params.anchor_distance_mm
        << ",\"anchor_tag_id\":" << params.anchor_tag_id
        << ",\"anchor_px\":" << rows[i].anchor_px
@@ -3930,6 +4023,8 @@ static void handle_client(int cfd, const Opts& o) {
         extract_json_int_field(bodyReq, "cmd_abs", &p.cmd_abs);
         extract_json_int_field(bodyReq, "wide_cmd_sign", &p.wide_cmd_sign);
         extract_json_int_field(bodyReq, "wide_hold_ms", &p.wide_hold_ms);
+        extract_json_int_field(bodyReq, "full_sweep_ms", &p.full_sweep_ms);
+        { const std::string zmm = extract_json_string_field(bodyReq, "zoom_move_mode"); if (!zmm.empty()) p.zoom_move_mode = zmm; }
         p.calibration_direction = extract_json_string_field(bodyReq, "calibration_direction");
         p.active_anchor_label = extract_json_string_field(bodyReq, "active_anchor_label");
         parse_zoom_anchors_json(bodyReq, p);
@@ -3996,6 +4091,8 @@ static void handle_client(int cfd, const Opts& o) {
       extract_json_int_field(bodyReq, "cmd_abs", &p.cmd_abs);
       extract_json_int_field(bodyReq, "wide_cmd_sign", &p.wide_cmd_sign);
       extract_json_int_field(bodyReq, "wide_hold_ms", &p.wide_hold_ms);
+      extract_json_int_field(bodyReq, "full_sweep_ms", &p.full_sweep_ms);
+      { const std::string zmm = extract_json_string_field(bodyReq, "zoom_move_mode"); if (!zmm.empty()) p.zoom_move_mode = zmm; }
       p.calibration_direction = extract_json_string_field(bodyReq, "calibration_direction");
       p.active_anchor_label = extract_json_string_field(bodyReq, "active_anchor_label");
       parse_zoom_anchors_json(bodyReq, p);

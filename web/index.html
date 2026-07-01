@@ -459,11 +459,19 @@ Stream:
             <button id="zoomRunFarBtn" class="small-btn">RUN FAR</button>
           </div>
         </div>
+        <label>Movement
+          <select id="zoomMoveMode">
+            <option value="legacy_impulse">LEGACY IMPULSE</option>
+            <option value="sweep_time_steps">SWEEP TIME STEPS</option>
+          </select>
+        </label>
         <label>Impulse ms <input id="zoomImpulseMs" type="number" value="170"></label>
         <label>Settle ms <input id="zoomSettleMs" type="number" value="250"></label>
         <label>Samples <input id="zoomSamples" type="number" value="12"></label>
         <label>Cmd <input id="zoomCmdAbs" type="number" value="34" min="1" max="100"></label>
         <label>Wide hold ms <input id="zoomWideHoldMs" type="number" value="3000" min="500" max="8000"></label>
+        <label>Full sweep ms <input id="zoomFullSweepMs" type="number" value="3000" min="100" max="20000"></label>
+        <label>Step ms <input id="zoomStepMsPreview" type="number" value="0" readonly></label>
         <label>Direction
           <select id="zoomCalibDirection">
             <option value="wide_to_tele">WIDE→TELE</option>
@@ -2329,6 +2337,23 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     if ($('zoomCalibMenuSummary') && a) $('zoomCalibMenuSummary').textContent = `active ${zoomActiveAnchorLabel} id=${a.tag_id}`;
   }
 
+  function zoomStepMsValue() {
+    const samples = Number($('zoomSamples')?.value || 1);
+    const full = Number($('zoomFullSweepMs')?.value || $('zoomWideHoldMs')?.value || 0);
+    return full / Math.max(1, samples - 1);
+  }
+
+  function zoomMovementStatusText() {
+    const mode = $('zoomMoveMode')?.value || 'legacy_impulse';
+    if (mode === 'sweep_time_steps') return `mode=sweep time steps step=${zoomStepMsValue().toFixed(1)}ms`;
+    return 'mode=legacy impulse';
+  }
+
+  function updateZoomStepMsPreview() {
+    if ($('zoomStepMsPreview')) $('zoomStepMsPreview').value = zoomStepMsValue().toFixed(1);
+    if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = zoomMovementStatusText();
+  }
+
   async function loadZoomCalibSettings() {
     const s = await apiGetJson('/api/zoom_calibration/settings');
     zoomActiveAnchorLabel = s.active_anchor_label || 'near';
@@ -2345,18 +2370,21 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       if ($(zoomAnchorInputId(def, 'DistanceM'))) $(zoomAnchorInputId(def, 'DistanceM')).value = Number((a.distance_mm ?? def.defaultDistanceM * 1000) / 1000).toFixed(2).replace(/\.00$/, '');
       if ($(zoomAnchorInputId(def, 'SizeMm'))) $(zoomAnchorInputId(def, 'SizeMm')).value = Number(a.tag_size_mm ?? s.tag_size_mm ?? 160);
     });
+    if ($('zoomMoveMode')) $('zoomMoveMode').value = s.zoom_move_mode === 'sweep_time_steps' ? 'sweep_time_steps' : 'legacy_impulse';
     if ($('zoomImpulseMs')) $('zoomImpulseMs').value = Number(s.impulse_ms || 170);
     if ($('zoomSettleMs')) $('zoomSettleMs').value = Number(s.settle_ms || 250);
     if ($('zoomSamples')) $('zoomSamples').value = Number(s.samples || 12);
     if ($('zoomCmdAbs')) $('zoomCmdAbs').value = Number(s.cmd_abs || 34);
     if ($('zoomWideHoldMs')) $('zoomWideHoldMs').value = Number(s.wide_hold_ms || 2000);
+    if ($('zoomFullSweepMs')) $('zoomFullSweepMs').value = Number(s.full_sweep_ms || s.wide_hold_ms || 2000);
     if ($('zoomCalibDirection')) {
       $('zoomCalibDirection').value =
         s.calibration_direction === 'tele_to_wide' ? 'tele_to_wide' : 'wide_to_tele';
     }
     if ($('zoomWideSign')) $('zoomWideSign').value = String(Number(s.wide_cmd_sign || 1) < 0 ? -1 : 1);
+    updateZoomStepMsPreview();
     updateZoomActiveAnchorSummary();
-    if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings loaded';
+    if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = zoomMovementStatusText();
   }
 
   function readZoomCalibSettingsFromUi() {
@@ -2368,27 +2396,31 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       anchor_distance_mm: Number(active?.distance_mm || 1000),
       anchors,
       active_anchor_label: zoomActiveAnchorLabel,
+      zoom_move_mode: $('zoomMoveMode')?.value || 'legacy_impulse',
       impulse_ms: Number($('zoomImpulseMs')?.value || 170),
       settle_ms: Number($('zoomSettleMs')?.value || 250),
       samples: Number($('zoomSamples')?.value || 12),
       cmd_abs: Number($('zoomCmdAbs')?.value || 34),
       wide_cmd_sign: Number($('zoomWideSign')?.value || 1),
       wide_hold_ms: Number($('zoomWideHoldMs')?.value || 2000),
+      full_sweep_ms: Number($('zoomFullSweepMs')?.value || $('zoomWideHoldMs')?.value || 2000),
       calibration_direction: $('zoomCalibDirection')?.value || 'tele_to_wide',
     };
   }
 
   async function saveZoomCalibSettingsFromUi() {
+    updateZoomStepMsPreview();
     updateZoomActiveAnchorSummary();
     const payload = readZoomCalibSettingsFromUi();
     const res = await apiPostJson('/api/zoom_calibration/settings', payload);
-    if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings saved';
+    if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = zoomMovementStatusText();
     ptzLog('ZOOM CALIB SETTINGS saved', res);
     return res;
   }
   let zoomCalibSettingsSaveTimer = null;
 
   function scheduleZoomCalibSettingsSave(delayMs = 400) {
+    updateZoomStepMsPreview();
     updateZoomActiveAnchorSummary();
     if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings saving...';
     if (zoomCalibSettingsSaveTimer) clearTimeout(zoomCalibSettingsSaveTimer);
@@ -2402,6 +2434,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
 
   function flushZoomCalibSettingsSaveNow() {
+    updateZoomStepMsPreview();
     updateZoomActiveAnchorSummary();
     if (zoomCalibSettingsSaveTimer) {
       clearTimeout(zoomCalibSettingsSaveTimer);
@@ -2418,11 +2451,13 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     if (!el || !el.id) return false;
     if (String(el.id).startsWith('zoomAnchor')) return true;
     return [
+      'zoomMoveMode',
       'zoomImpulseMs',
       'zoomSettleMs',
       'zoomSamples',
       'zoomCmdAbs',
       'zoomWideHoldMs',
+      'zoomFullSweepMs',
       'zoomCalibDirection',
       'zoomWideSign'
     ].includes(el.id);
@@ -4702,11 +4737,13 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       anchor_tag_id: Number(a.tag_id ?? 7),
       anchor_distance_mm: Number(a.distance_mm || 1000),
       samples: Number($('zoomSamples')?.value || 12),
+      zoom_move_mode: $('zoomMoveMode')?.value || 'legacy_impulse',
       impulse_ms: Number($('zoomImpulseMs')?.value || 170),
       settle_ms: Number($('zoomSettleMs')?.value || 250),
       cmd_abs: Number($('zoomCmdAbs')?.value || 34),
       wide_cmd_sign: Number($('zoomWideSign')?.value || -1),
       wide_hold_ms: Number($('zoomWideHoldMs')?.value || 3000),
+      full_sweep_ms: Number($('zoomFullSweepMs')?.value || $('zoomWideHoldMs')?.value || 3000),
       calibration_direction: $('zoomCalibDirection')?.value || 'wide_to_tele'
     };
   }
@@ -4744,16 +4781,18 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       if (field(def, 'DistanceM')) field(def, 'DistanceM').value = (norm(a.distance_mm, def.defaultDistanceM*1000)/1000).toFixed(2).replace(/\.00$/, '');
       if (field(def, 'SizeMm')) field(def, 'SizeMm').value = norm(a.tag_size_mm, norm(s.tag_size_mm, 160));
     });
+    if ($('zoomMoveMode')) $('zoomMoveMode').value = s.zoom_move_mode === 'sweep_time_steps' ? 'sweep_time_steps' : 'legacy_impulse';
     if ($('zoomImpulseMs')) $('zoomImpulseMs').value = norm(s.impulse_ms, 170);
     if ($('zoomSettleMs')) $('zoomSettleMs').value = norm(s.settle_ms, 250);
     if ($('zoomSamples')) $('zoomSamples').value = norm(s.samples, 12);
     if ($('zoomCmdAbs')) $('zoomCmdAbs').value = norm(s.cmd_abs, 34);
     if ($('zoomWideHoldMs')) $('zoomWideHoldMs').value = norm(s.wide_hold_ms, 3000);
+    if ($('zoomFullSweepMs')) $('zoomFullSweepMs').value = norm(s.full_sweep_ms, norm(s.wide_hold_ms, 3000));
     if ($('zoomWideSign')) $('zoomWideSign').value = String(norm(s.wide_cmd_sign, -1) < 0 ? -1 : 1);
     if ($('zoomCalibDirection')) $('zoomCalibDirection').value = s.calibration_direction === 'tele_to_wide' ? 'tele_to_wide' : 'wide_to_tele';
-    updateSummary(); status('settings loaded'); return s;
+    updateSummary(); if (typeof updateZoomStepMsPreview === 'function') updateZoomStepMsPreview(); else status('settings loaded'); return s;
   }
-  async function save() { updateSummary(); const res = await postJson('/api/zoom_calibration/settings', payload()); return res; }
+  async function save() { updateSummary(); if (typeof updateZoomStepMsPreview === 'function') updateZoomStepMsPreview(); const res = await postJson('/api/zoom_calibration/settings', payload()); return res; }
   async function selectAnchor(label) { activeLabel = label; updateSummary(); await save(); const a = activeAnchor(); status(`selected ${label} id=${a.tag_id} distance=${(a.distance_mm/1000).toFixed(2)}m`); }
   async function testAprilTag(options = {}) {
     const res = await getJson('/api/apriltag/test?ts=' + Date.now());
@@ -4817,8 +4856,10 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     if (typeof window.refreshPtzTuneZoomSamples === 'function') window.refreshPtzTuneZoomSamples().catch?.(() => {});
     return res;
   }
-  function isField(el) { return el?.id && (String(el.id).startsWith('zoomAnchor') || ['zoomImpulseMs','zoomSettleMs','zoomSamples','zoomCmdAbs','zoomWideHoldMs','zoomCalibDirection','zoomWideSign'].includes(el.id)); }
-  function scheduleSave() { updateSummary(); if (saveTimer) clearTimeout(saveTimer); saveTimer = setTimeout(() => save().catch(e => status(`settings save error: ${e.message || e}`)), 250); }
+  function isField(el) { return el?.id && (String(el.id).startsWith('zoomAnchor') || ['zoomMoveMode',
+      'zoomImpulseMs','zoomSettleMs','zoomSamples','zoomCmdAbs','zoomWideHoldMs',
+      'zoomFullSweepMs','zoomCalibDirection','zoomWideSign'].includes(el.id)); }
+  function scheduleSave() { if (typeof updateZoomStepMsPreview === 'function') updateZoomStepMsPreview(); updateSummary(); if (saveTimer) clearTimeout(saveTimer); saveTimer = setTimeout(() => save().catch(e => status(`settings save error: ${e.message || e}`)), 250); }
   function bindButton(id, fn) { const el = $(id); if (!el) return; el.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); fn().catch(err => { console.error('[zoom-calib]', id, err); status(`error: ${err.message || err}`); }); }, true); }
   function boot() {
     updateAprilTagOverlayVisibility();
@@ -4956,11 +4997,13 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       anchor_distance_mm: Number(anchor.distance_mm),
 
       samples: num('zoomSamples', 10),
+      zoom_move_mode: $('zoomMoveMode')?.value || 'legacy_impulse',
       impulse_ms: num('zoomImpulseMs', 170),
       settle_ms: num('zoomSettleMs', 190),
       cmd_abs: num('zoomCmdAbs', 34),
       wide_cmd_sign: num('zoomWideSign', -1),
       wide_hold_ms: num('zoomWideHoldMs', 1500),
+      full_sweep_ms: num('zoomFullSweepMs', num('zoomWideHoldMs', 1500)),
       calibration_direction: $('zoomCalibDirection')?.value || 'wide_to_tele',
 
       active_anchor_label: anchor.label,
