@@ -2203,8 +2203,300 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     } catch (_) {}
     return Number(ptzTuneCurrentSample || 0);
   }
-  // ZOOM_ANCHOR_DEFS_EARLY_START
-  // zoomAnchorDefs moved earlier to avoid TDZ initialization error.
+  // PTZ speed tune sample init must never block video stream startup.
+  initPtzSpeedTuneSamples().catch(e =>
+    ptzLog('PTZ SPEED SAMPLES init error', { error: String(e.message || e) })
+  );
+
+  zoomAnchorDefs.forEach(def => {
+    const cap = def.prefix;
+    if ($(`zoomSelect${cap}Btn`)) $(`zoomSelect${cap}Btn`).onclick = () =>
+      selectZoomAnchor(def.label, false).catch(e => ptzLog('ZOOM ANCHOR select error', { error: String(e.message || e) }));
+    if ($(`zoomRun${cap}Btn`)) $(`zoomRun${cap}Btn`).onclick = () =>
+      selectZoomAnchor(def.label, true).catch(e => ptzLog('ZOOM ANCHOR run error', { error: String(e.message || e) }));
+  });
+  [
+    ...zoomAnchorDefs.flatMap(def => [
+      zoomAnchorInputId(def, 'Enabled'),
+      zoomAnchorInputId(def, 'TagId'),
+      zoomAnchorInputId(def, 'DistanceM'),
+      zoomAnchorInputId(def, 'SizeMm'),
+    ]),
+    'zoomImpulseMs',
+    'zoomSettleMs',
+    'zoomSamples',
+    'zoomCmdAbs',
+    'zoomWideHoldMs',
+    'zoomCalibDirection',
+    'zoomWideSign',
+  ].forEach(id => {
+    if ($(id)) {
+      $(id).addEventListener('input', scheduleZoomCalibSettingsSave);
+      $(id).addEventListener('change', scheduleZoomCalibSettingsSave);
+    }
+  });
+  ['pidKp','pidKi','pidKd','pidDeadzone','pidMaxSpeed','pidMaxAccel','pidPanHold','pidPanRelease','reacquirePanStep','reacquireTiltStep','reacquirePanCadence','reacquireTiltCadence','reacquireMaxLostSec'].forEach(id => {
+    $(id).onchange = () => saveSettings();
+  });
+  $('reacquireHoldMs').onchange = () => {
+    $('reacquireHoldMs').value = readReacquireParams().holdMs;
+    saveSettings();
+  };
+  window.addEventListener('resize', () => renderDetectionsOverlay());
+  $('detOverlay').addEventListener('click', (ev) => pickTargetByCanvasPoint(ev.clientX, ev.clientY));
+  ['confL0Enabled','confL1Enabled','confL2Enabled','confL3Enabled','confW0','confW1','confW2','confW3'].forEach(id => {
+    $(id).onchange = () => {
+      saveSettings();
+      pushConfidenceLayerConfig();
+    };
+  });
+  initSettings();
+  setupPersistedDetails('detectionMenu', 'ui.menu.detection', false);
+  setupPersistedDetails('ptzSpeedTuneMenu', 'ui.menu.ptzSpeedTune', false);
+  setupPersistedDetails('zoomCalibMenu', 'ui.menu.zoomCalib', false);
+  setupPersistedDetails('ptzLogMenu', 'ui.menu.ptzLog', false);
+  refreshDetectionLimits().catch(e => ptzLog('LIMIT init error', { error: String(e.message || e) }));
+  refreshDetectionThrottle().catch(e => ptzLog('THROTTLE init error', { error: String(e.message || e) }));
+  refreshPtzConfigFromServer().catch(e => ptzLog('PTZ CONFIG init error', { error: String(e.message || e) }));
+  $('mjpegFrame').onload = () => {
+    clearStreamRetry();
+    telemetryState.lastImgFrameTs = Date.now();
+    setStreamStatus('LIVE');
+  };
+  $('mjpegImg').onload = () => {
+    clearStreamRetry();
+    setStreamStatus('LIVE');
+  };
+  $('mjpegImg').onerror = () => {
+    setStreamStatus('RECONNECTING');
+    scheduleStreamRetry();
+  };
+  startLostTicker();
+  window.addEventListener('gamepadconnected', () => {});
+  startTelemetry();
+  startTimer();
+  setInterval(refreshPtzTelemetry, 1000);
+  function defaultMjpegUrl() {
+
+    return `http://${location.hostname}:8080/stream`;
+  }
+
+  function normalizeStreamUrl(url) {
+    const raw = String(url || '').trim();
+    if (!raw) return defaultMjpegUrl();
+    if (raw.endsWith(':8080/')) return `${raw}stream`;
+    return raw;
+  }
+
+  function syncControlModeUi() {
+    const selectedMode = $('controlMode').value;
+    const mode = selectedMode.toUpperCase();
+    const isAuto = selectedMode === 'auto';
+    const isPtz = selectedMode === 'ptz';
+    $('modeManualBtn').classList.toggle('active', selectedMode === 'manual');
+    $('modePtzBtn').classList.toggle('active', selectedMode === 'ptz');
+    $('ptzModeManualBtn')?.classList.toggle('active', selectedMode === 'manual');
+    $('ptzModePtzBtn')?.classList.toggle('active', selectedMode === 'ptz');
+    $('modeAssistBtn').classList.toggle('active', selectedMode === 'assist');
+    $('modeAutoBtn').classList.toggle('active', isAuto);
+    $('controlModeChip').textContent = zoomAprilTagCalibrationActive && selectedMode === 'ptz'
+      ? 'ACTIVE MODE: PTZ / CALIB SAFE'
+      : `ACTIVE MODE: ${mode}`;
+  }
+  function setControlMode(mode) {
+    if (mode !== 'manual' && mode !== 'assist' && mode !== 'auto' && mode !== 'ptz') return;
+    if ($('controlMode').value === mode) return;
+
+    if (mode === 'ptz') {
+      $('controlMode').value = 'ptz';
+      if ($('auto')) $('auto').checked = false;
+      disconnectWs();
+      syncControlModeUi();
+      saveSettings();
+      ptzPrecheck().catch(e => ptzLog('PTZ mode precheck error', { error: String(e.message || e) }));
+      return;
+    }
+
+    if (mode === 'manual') {
+      fetch(`${autopilotBaseUrl()}/api/autopilot/stop`, { method: 'POST' }).catch(() => {});
+    }
+
+    $('controlMode').value = mode;
+    syncControlModeUi();
+    saveSettings();
+    panicStop(`mode-quick-switch-${mode}`);
+  }
+
+  function syncSafeThresholds() {
+    const lost = parseFloat($('safeLostSec').value || '2');
+    const restore = parseFloat($('safeRestoreSec').value || '3');
+    safeLostSec = Number.isFinite(lost) ? Math.max(0.5, Math.min(15, lost)) : 2.0;
+    safeRestoreSec = Number.isFinite(restore) ? Math.max(0.5, Math.min(20, restore)) : 3.0;
+    $('safeLostSec').value = safeLostSec.toFixed(1);
+    $('safeRestoreSec').value = safeRestoreSec.toFixed(1);
+  }
+
+  function applyProfile(name) {
+    const profile = PROFILE_PRESETS[name] || PROFILE_PRESETS.indoor;
+    activeProfile = PROFILE_PRESETS[name] ? name : 'indoor';
+    $('controlProfile').value = activeProfile;
+    $('hz').value = profile.hz;
+    $('dz').value = profile.dz;
+    $('safeLostSec').value = profile.safeLostSec.toFixed(1);
+    $('safeRestoreSec').value = profile.safeRestoreSec.toFixed(1);
+    $('pidMaxSpeed').value = profile.pidMaxSpeed;
+    $('pidMaxAccel').value = profile.pidMaxAccel;
+    $('reacquirePanStep').value = profile.reacquirePanStep;
+    $('reacquireTiltStep').value = profile.reacquireTiltStep;
+    $('reacquirePanCadence').value = profile.reacquirePanCadence;
+    $('reacquireTiltCadence').value = profile.reacquireTiltCadence;
+    $('reacquireHoldMs').value = profile.reacquireHoldMs;
+    $('reacquireMaxLostSec').value = profile.reacquireMaxLostSec;
+    if (profile.confidence) {
+      applyConfidenceLayerConfig(profile.confidence);
+      pushConfidenceLayerConfig();
+    }
+    syncSafeThresholds();
+    startTimer();
+    syncControlModeUi();
+  }
+
+  function applyFitMode(mode) {
+    $('streamWrap').classList.toggle('cover', mode === 'cover');
+    saveSettings();
+  }
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.()
+        .then(() => applyLandscapeLock())
+        .catch(() => {});
+    } else {
+      document.exitFullscreen?.();
+    }
+  }
+
+  async function applyLandscapeLock() {
+    if (!$('toggleLandscapeLock')) return;
+    const wantLock = $('toggleLandscapeLock').dataset.locked === '1';
+    const orientationApi = screen.orientation;
+    if (!orientationApi || !orientationApi.lock || !orientationApi.unlock) return;
+    try {
+      if (wantLock) {
+        if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.();
+        await orientationApi.lock('landscape');
+      } else {
+        orientationApi.unlock();
+      }
+    } catch (_) {}
+  }
+  function setLandscapeToggleState(enabled) {
+    const btn = $('toggleLandscapeLock');
+    btn.dataset.locked = enabled ? '1' : '0';
+    btn.textContent = enabled ? 'LANDSCAPE: ON' : 'LANDSCAPE: OFF';
+    btn.classList.toggle('active', enabled);
+  }
+  function toggleLandscapeLock() {
+    const enabled = $('toggleLandscapeLock').dataset.locked === '1';
+    setLandscapeToggleState(!enabled);
+    saveSettings();
+    applyLandscapeLock();
+  }
+
+  async function initSettings() {
+    await restoreSettings();
+    await refreshCommandLimits();
+    await loadZoomCalibSettings().catch(e =>
+      ptzLog('ZOOM CALIB SETTINGS load error', { error: String(e.message || e) })
+    );
+    await refreshZoomCalibrationProfile();
+    renderDetectionClassCheckboxes();
+    try {
+      await refreshDetectorConfig();
+    } catch (e) {
+      ptzLog('DETECTOR CONFIG load error', { error: String(e.message || e) });
+    }
+    applyFitMode($('fitMode').value);
+    loadMjpeg($('mjpegUrl').value);
+  }
+
+  async function refreshCommandLimits() {
+    try {
+      const res = await fetch('/api/command_limits', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      const clampLimit = (value, fallback) => {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return fallback;
+        return Math.max(0, Math.min(100, Math.round(num)));
+      };
+      cmdLimits = {
+        pan: clampLimit(data?.cmd_max_pan, cmdLimits.pan),
+        tilt: clampLimit(data?.cmd_max_tilt, cmdLimits.tilt),
+        zoom: clampLimit(data?.cmd_max_zoom, cmdLimits.zoom),
+      };
+    } catch (_) {}
+  }
+
+  async function refreshZoomCalibrationProfile() {
+    try {
+      const res = await fetch('/api/zoom_calibration', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      const table = Array.isArray(data?.speed_table) ? data.speed_table : [];
+      zoomCalibProfile = {
+        source: String(data?.source || 'server'),
+        cmdMaxZoom: Number(data?.cmd_max_zoom || cmdLimits.zoom || 34),
+        holdMs: Number(data?.hold_ms || 4000),
+        measuredFullTravelSec: Number(data?.measured_full_travel_sec || 0),
+        speedTable: table
+          .map((row) => ({
+            level: Number(row?.level || 0),
+            cmdAbs: Number(row?.cmd_abs || 0),
+            ratioPerSec: Number(row?.ratio_per_sec || 0),
+          }))
+          .filter((row) => row.level >= 1 && row.level <= 4 && row.cmdAbs > 0)
+          .sort((a, b) => a.cmdAbs - b.cmdAbs),
+      };
+      const inProgress = Boolean(data?.in_progress);
+      zoomCalibInProgress = inProgress;
+      const lastStatus = String(data?.last_status || 'idle');
+      const lastMessage = String(data?.last_message || '');
+      $('zoomCalibStatus').textContent = inProgress
+        ? 'running...'
+        : `${lastStatus}${lastMessage ? `:${lastMessage}` : ''}`;
+      $('zoomRunCalibrationBtn').disabled = inProgress;
+      if (Number.isFinite(zoomCalibProfile.measuredFullTravelSec) && zoomCalibProfile.measuredFullTravelSec > 0) {
+        $('zoomTravelSec').value = Math.max(2, zoomCalibProfile.measuredFullTravelSec).toFixed(1);
+      }
+    } catch (_) {}
+  }
+
+  let zoomActiveAnchorLabel = 'near';
+  const zoomAnchorDefs = [
+    { label: 'near', prefix: 'Near', defaultDistanceM: 1, defaultTagId: 7 },
+    { label: 'mid', prefix: 'Mid', defaultDistanceM: 5, defaultTagId: -1 },
+    { label: 'far', prefix: 'Far', defaultDistanceM: 10, defaultTagId: 12 },
+  ];
+
+  function zoomAnchorInputId(def, field) {
+    return `zoomAnchor${def.prefix}${field}`;
+  }
+
+  function readZoomAnchorFromUi(def) {
+    return {
+      label: def.label,
+      enabled: !!$(zoomAnchorInputId(def, 'Enabled'))?.checked,
+      tag_id: Number($(zoomAnchorInputId(def, 'TagId'))?.value ?? def.defaultTagId),
+      distance_mm: Number($(zoomAnchorInputId(def, 'DistanceM'))?.value || def.defaultDistanceM) * 1000,
+      tag_size_mm: Number($(zoomAnchorInputId(def, 'SizeMm'))?.value || 160),
+    };
+  }
+
+  function getActiveZoomAnchorFromUi() {
+    const anchors = zoomAnchorDefs.map(readZoomAnchorFromUi);
+    return anchors.find(a => a.label === zoomActiveAnchorLabel && a.enabled) ||
+      anchors.find(a => a.enabled) || anchors.find(a => a.label === zoomActiveAnchorLabel) || anchors[0];
+  }
 
   function updateZoomActiveAnchorSummary() {
     const a = getActiveZoomAnchorFromUi();
