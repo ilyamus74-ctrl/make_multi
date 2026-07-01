@@ -2132,7 +2132,14 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       return { ok: false, cancelled: true };
     }
     const master = await apiGetJson('/api/zoom/master_profile');
-    const points = Array.isArray(master.profile_points) ? master.profile_points : (Array.isArray(master.points) ? master.points : []);
+    const points = normalizeZoomMasterPoints(master);
+
+    if (!points.length) {
+      if ($('ptzTuneStatus')) $('ptzTuneStatus').textContent = 'No zoom master points found';
+      ptzLog('PTZ SPEED FROM ZOOM MASTER no points', { master });
+      return { ok: false, error: 'no_zoom_master_points' };
+    }
+
     let saved = 0;
     for (const p of points) {
       const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/save_point`, defaultSpeedPointForZoomMasterPoint(p));
@@ -2141,9 +2148,9 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     await refreshPtzTuneSpeedProfile().catch(() => {});
     await initPtzSpeedTuneSamples().catch(() => {});
     updatePtzTuneSampleButtonUi?.();
-    if ($('ptzTuneStatus')) $('ptzTuneStatus').textContent = `PTZ speed profile created: points=${saved}`;
-    ptzLog(`PTZ speed profile created: points=${saved}`, { ok: true, points: saved });
-    return { ok: true, points: saved };
+    if ($('ptzTuneStatus')) $('ptzTuneStatus').textContent = `PTZ speed profile created: saved=${saved} master=${points.length}`;
+    ptzLog(`PTZ speed profile created: saved=${saved} master=${points.length}`, { ok: true, points: saved, master_points: points.length });
+    return { ok: true, points: saved, master_points: points.length };
   }
   window.buildPtzSpeedProfileFromZoomMaster = buildPtzSpeedProfileFromZoomMaster;
 
@@ -2163,6 +2170,38 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       ptzLog('PTZ SPEED PROFILE load error', { error: String(e.message || e) });
       return ptzTuneSpeedProfile;
     }
+  }
+
+  function normalizeZoomMasterPoints(master) {
+    const src = Array.isArray(master?.profile_points)
+      ? master.profile_points
+      : (Array.isArray(master?.points) ? master.points : []);
+
+    const byIdx = new Map();
+
+    src.forEach((p, i) => {
+      const idx = Number(p.profile_idx ?? p.step ?? i);
+      if (!Number.isFinite(idx)) return;
+
+      const prev = byIdx.get(idx);
+      const item = {
+        profile_idx: idx,
+        step: idx,
+        zoom_ratio: Number(p.zoom_ratio ?? 0),
+        focal_px: Number(p.focal_px ?? 0),
+        fallback: false
+      };
+
+      /*
+       * Prefer point with focal_px/zoom_ratio, but keep first if both equal.
+       */
+      if (!prev || (!Number(prev.focal_px || 0) && Number(item.focal_px || 0))) {
+        byIdx.set(idx, item);
+      }
+    });
+
+    return Array.from(byIdx.values())
+      .sort((a, b) => Number(a.profile_idx) - Number(b.profile_idx));
   }
 
   function makeFallbackZoomSamples(count) {
@@ -2186,17 +2225,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
     try {
       const mp = await apiGetJson('/api/zoom/master_profile');
-      if (Array.isArray(mp?.profile_points)) {
-        points = mp.profile_points
-          .map((p, i) => ({
-            profile_idx: Number(p.profile_idx ?? i),
-            zoom_ratio: Number(p.zoom_ratio ?? 0),
-            focal_px: Number(p.focal_px ?? 0),
-            fallback: false
-          }))
-          .filter(p => Number.isFinite(p.profile_idx))
-          .sort((a, b) => Number(a.profile_idx) - Number(b.profile_idx));
-      }
+      points = normalizeZoomMasterPoints(mp);
     } catch (e) {
       ptzLog('PTZ ZOOM SAMPLES master profile load error', { error: String(e.message || e) });
     }
