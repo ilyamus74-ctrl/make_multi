@@ -3503,3 +3503,4 @@
 2026-07-01T12:47:59Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782910079813,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":10}}
 2026-07-01T12:51:49Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782910309841,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":10}}
 2026-07-01T13:02:34Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782910954011,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":10}}
+2026-07-01T13:06:17Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782911177631,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":12}}
