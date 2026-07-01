@@ -1407,7 +1407,7 @@ static bool load_zoom_master_profile() {
     if (p.focal_px > 0.0) next.points.push_back(p);
     ++autoIdx;
   }
-  std::sort(next.points.begin(), next.points.end(), [](const ZoomProfilePoint& a, const ZoomProfilePoint& b){ return a.zoom_ratio < b.zoom_ratio; });
+  std::sort(next.points.begin(), next.points.end(), [](const ZoomProfilePoint& a, const ZoomProfilePoint& b){ return a.profile_idx < b.profile_idx; });
   next.loaded = (next.focal_min_px > 0.0 && next.focal_max_px >= next.focal_min_px);
   if (!next.loaded && next.points.size() >= 2) {
     next.focal_min_px = next.points.front().focal_px;
@@ -3649,6 +3649,12 @@ static void handle_client(int cfd, const Opts& o) {
         const auto& p = prof.points[i];
         os << "{\"profile_idx\":" << p.profile_idx << ",\"zoom_ratio\":" << p.zoom_ratio << ",\"focal_px\":" << p.focal_px << "}";
       }
+      os << "],\"points\":[";
+      for (size_t i = 0; i < prof.points.size(); ++i) {
+        if (i) os << ",";
+        const auto& p = prof.points[i];
+        os << "{\"profile_idx\":" << p.profile_idx << ",\"step\":" << p.profile_idx << ",\"zoom_ratio\":" << p.zoom_ratio << ",\"focal_px\":" << p.focal_px << "}";
+      }
       os << "]}";
     }
     const std::string body = os.str();
@@ -4017,6 +4023,10 @@ static void handle_client(int cfd, const Opts& o) {
   }
 
   if (path == "/api/zoom_calibration/build_master_profile") {
+    ZoomAprilTagCalibParams settings = g_zoomCalibSettings;
+    load_zoom_calib_settings(settings, g_cmdMaxZoom);
+    clamp_zoom_calib_params(settings, g_cmdMaxZoom);
+    const int targetCount = std::max(2, std::min(64, settings.samples));
     std::vector<std::string> profileFiles;
     for (const auto& e : std::filesystem::directory_iterator(std::filesystem::current_path())) {
       if (!e.is_regular_file()) continue;
@@ -4025,111 +4035,75 @@ static void handle_client(int cfd, const Opts& o) {
     }
     std::sort(profileFiles.begin(), profileFiles.end());
     struct SourceRef { std::string file; int source_idx = -1; double anchor_distance_mm = 0.0; };
-    struct Point { double focal_px = 0.0; double anchor_px_sum = 0.0; int anchor_px_count = 0; std::vector<SourceRef> sources; };
+    struct Measurement { double focal_px = 0.0; SourceRef source; };
     std::vector<std::string> profilesUsed;
     std::vector<std::pair<std::string, std::string>> profilesSkipped;
-    std::vector<Point> pointsRaw;
+    std::vector<std::vector<Measurement>> bySample(targetCount);
+    int pointsTotalRaw = 0;
     for (const auto& file : profileFiles) {
-      std::ifstream in(file);
-      if (!in.good()) continue;
-      std::ostringstream ss; ss << in.rdbuf();
-      const std::string payload = ss.str();
+      std::ifstream in(file); if (!in.good()) continue;
+      std::ostringstream ss; ss << in.rdbuf(); const std::string payload = ss.str();
       const std::string status = extract_json_string_field(payload, "status");
-      int validRowsClean = 0;
-      extract_json_int_field(payload, "valid_rows_clean", &validRowsClean);
-      if (status != "ok" || validRowsClean < 4) {
-        profilesSkipped.push_back({file, "status_failed_or_too_few_rows"});
-        continue;
-      }
+      int validRowsClean = 0; extract_json_int_field(payload, "valid_rows_clean", &validRowsClean);
+      if (status != "ok" || validRowsClean < 2) { profilesSkipped.push_back({file, "status_failed_or_too_few_rows"}); continue; }
       profilesUsed.push_back(file);
-      double anchorDistanceMm = 0.0;
-      extract_json_double_field(payload, "anchor_distance_mm", &anchorDistanceMm);
+      double anchorDistanceMm = 0.0; extract_json_double_field(payload, "anchor_distance_mm", &anchorDistanceMm);
       auto objects = extract_json_object_array(payload, "profile_points");
       if (objects.empty()) objects = extract_json_object_array(payload, "samples");
       for (const auto& obj : objects) {
-        int profileIdx = -1;
-        extract_json_int_field(obj, "profile_idx", &profileIdx);
-        bool anchorFound = true;
-        extract_json_bool_field(obj, "anchor_found", &anchorFound);
-        double focalPx = 0.0;
-        extract_json_double_field(obj, "focal_px", &focalPx);
-        if (profileIdx < 0 || !anchorFound || focalPx <= 0.0) continue;
-        int sourceIdx = -1;
-        if (!extract_json_int_field(obj, "source_idx", &sourceIdx)) extract_json_int_field(obj, "idx", &sourceIdx);
-        double anchorPx = 0.0;
-        const bool hasAnchorPx = extract_json_double_field(obj, "anchor_px", &anchorPx);
-        Point p;
-        p.focal_px = focalPx;
-        if (hasAnchorPx) { p.anchor_px_sum = anchorPx; p.anchor_px_count = 1; }
-        p.sources.push_back({file, sourceIdx, anchorDistanceMm});
-        pointsRaw.push_back(p);
+        int sampleIdx = -1;
+        if (!extract_json_int_field(obj, "profile_idx", &sampleIdx) && !extract_json_int_field(obj, "step", &sampleIdx) && !extract_json_int_field(obj, "sample_idx", &sampleIdx)) extract_json_int_field(obj, "idx", &sampleIdx);
+        bool anchorFound = true; extract_json_bool_field(obj, "anchor_found", &anchorFound);
+        double focalPx = 0.0; extract_json_double_field(obj, "focal_px", &focalPx);
+        if (sampleIdx < 0 || sampleIdx >= targetCount || !anchorFound || focalPx <= 0.0) continue;
+        int sourceIdx = -1; if (!extract_json_int_field(obj, "source_idx", &sourceIdx)) extract_json_int_field(obj, "idx", &sourceIdx);
+        bySample[sampleIdx].push_back({focalPx, {file, sourceIdx, anchorDistanceMm}});
+        ++pointsTotalRaw;
       }
     }
-    const int pointsTotalRaw = static_cast<int>(pointsRaw.size());
-    std::sort(pointsRaw.begin(), pointsRaw.end(), [](const Point& a, const Point& b){ return a.focal_px < b.focal_px; });
-    std::vector<Point> pointsClean;
-    for (const auto& p : pointsRaw) {
-      if (pointsClean.empty()) { pointsClean.push_back(p); continue; }
-      Point& prev = pointsClean.back();
-      const double thr = std::max(50.0, prev.focal_px * 0.03);
-      if (std::abs(p.focal_px - prev.focal_px) < thr) {
-        const int prevCount = static_cast<int>(prev.sources.size());
-        prev.focal_px = (prev.focal_px * prevCount + p.focal_px) / static_cast<double>(prevCount + 1);
-        prev.anchor_px_sum += p.anchor_px_sum;
-        prev.anchor_px_count += p.anchor_px_count;
-        prev.sources.insert(prev.sources.end(), p.sources.begin(), p.sources.end());
-      } else {
-        pointsClean.push_back(p);
-      }
+    std::vector<double> finalFocal(targetCount, 0.0);
+    std::vector<std::vector<Measurement>> cleanBySample(targetCount);
+    int pointsTotalClean = 0;
+    for (int i = 0; i < targetCount; ++i) {
+      auto vals = bySample[i]; if (vals.empty()) continue;
+      std::sort(vals.begin(), vals.end(), [](const Measurement& a, const Measurement& b){ return a.focal_px < b.focal_px; });
+      cleanBySample[i] = vals; pointsTotalClean += static_cast<int>(vals.size());
+      const size_t n = vals.size(); finalFocal[i] = (n % 2) ? vals[n/2].focal_px : ((vals[n/2 - 1].focal_px + vals[n/2].focal_px) / 2.0);
     }
-    const int pointsTotalClean = static_cast<int>(pointsClean.size());
+    int available = 0; for (double f : finalFocal) if (f > 0.0) ++available;
     std::string body;
-    if (pointsTotalClean < 4) {
-      std::ostringstream os;
-      os << "{\"ok\":false,\"error\":\"too_few_master_points\",\"points_total_clean\":" << pointsTotalClean << "}";
-      body = os.str();
+    if (available < 2) {
+      std::ostringstream os; os << "{\"ok\":false,\"error\":\"too_few_master_points\",\"points_total_raw\":" << pointsTotalRaw << ",\"points_total_clean\":" << pointsTotalClean << ",\"output_points\":" << targetCount << ",\"samples_requested\":" << targetCount << "}"; body = os.str();
     } else {
-      const double minF = pointsClean.front().focal_px;
-      const double maxF = pointsClean.back().focal_px;
+      for (int i = 0; i < targetCount; ++i) if (finalFocal[i] <= 0.0) {
+        int left = i - 1; while (left >= 0 && finalFocal[left] <= 0.0) --left;
+        int right = i + 1; while (right < targetCount && finalFocal[right] <= 0.0) ++right;
+        if (left >= 0 && right < targetCount) { double t = double(i - left) / double(right - left); finalFocal[i] = finalFocal[left] + (finalFocal[right] - finalFocal[left]) * t; }
+        else if (left >= 0) finalFocal[i] = finalFocal[left]; else if (right < targetCount) finalFocal[i] = finalFocal[right];
+      }
+      const auto mm = std::minmax_element(finalFocal.begin(), finalFocal.end()); const double minF = *mm.first, maxF = *mm.second;
+      auto writePoints = [&](std::ostringstream& out){
+        for (int i = 0; i < targetCount; ++i) {
+          double zr = (maxF > minF) ? ((finalFocal[i] - minF) / (maxF - minF)) : 0.0; if (i) out << ",";
+          out << "{\"profile_idx\":" << i << ",\"step\":" << i << ",\"zoom_ratio\":" << std::fixed << std::setprecision(3) << std::max(0.0, std::min(1.0, zr)) << ",\"focal_px\":" << finalFocal[i] << ",\"sources\":[";
+          for (size_t j = 0; j < cleanBySample[i].size(); ++j) { if (j) out << ","; const auto& s = cleanBySample[i][j].source; out << "{\"file\":\"" << json_escape(s.file) << "\",\"source_idx\":" << s.source_idx << ",\"anchor_distance_mm\":" << s.anchor_distance_mm << "}"; }
+          out << "]}";
+        }
+      };
       std::ostringstream master;
-      master << "{\"method\":\"apriltag_zoom_master_profile\",\"status\":\"ok\",\"profiles_used\":[";
+      master << "{\"method\":\"apriltag_zoom_master_profile\",\"status\":\"ok\",\"samples_requested\":" << targetCount << ",\"profiles_used\":[";
       for (size_t i = 0; i < profilesUsed.size(); ++i) { if (i) master << ","; master << "\"" << json_escape(profilesUsed[i]) << "\""; }
       master << "],\"profiles_skipped\":[";
       for (size_t i = 0; i < profilesSkipped.size(); ++i) { if (i) master << ","; master << "{\"file\":\"" << json_escape(profilesSkipped[i].first) << "\",\"reason\":\"" << profilesSkipped[i].second << "\"}"; }
-      master << "],\"points_total_raw\":" << pointsTotalRaw << ",\"points_total_clean\":" << pointsTotalClean
-             << ",\"focal_min_px\":" << minF << ",\"focal_max_px\":" << maxF << ",\"profile_points\":[";
-      for (size_t i = 0; i < pointsClean.size(); ++i) {
-        const double zr = (maxF > minF) ? ((pointsClean[i].focal_px - minF) / (maxF - minF)) : 0.0;
-        if (i) master << ",";
-        master << "{\"profile_idx\":" << i << ",\"zoom_ratio\":" << std::fixed << std::setprecision(3) << std::max(0.0, std::min(1.0, zr))
-               << ",\"focal_px\":" << pointsClean[i].focal_px;
-        if (pointsClean[i].anchor_px_count > 0) master << ",\"anchor_px\":" << (pointsClean[i].anchor_px_sum / pointsClean[i].anchor_px_count);
-        master << ",\"sources\":[";
-        for (size_t j = 0; j < pointsClean[i].sources.size(); ++j) {
-          if (j) master << ",";
-          const auto& s = pointsClean[i].sources[j];
-          master << "{\"file\":\"" << json_escape(s.file) << "\",\"source_idx\":" << s.source_idx << ",\"anchor_distance_mm\":" << s.anchor_distance_mm << "}";
-        }
-        master << "]}";
-      }
-      master << "]}";
-      std::ofstream mout("zoom_apriltag_master_profile.json", std::ios::trunc);
-      mout << master.str();
-      std::ostringstream os;
-      os << "{\"ok\":true,\"output\":\"zoom_apriltag_master_profile.json\",\"profiles_used\":[";
+      master << "],\"points_total_raw\":" << pointsTotalRaw << ",\"points_total_clean\":" << pointsTotalClean << ",\"output_points\":" << targetCount << ",\"focal_min_px\":" << minF << ",\"focal_max_px\":" << maxF << ",\"profile_points\":["; writePoints(master); master << "],\"points\":["; writePoints(master); master << "]}";
+      std::ofstream mout(g_zoomMasterProfileFile, std::ios::trunc); mout << master.str(); load_zoom_master_profile();
+      std::ostringstream os; os << "{\"ok\":true,\"output\":\"" << json_escape(g_zoomMasterProfileFile) << "\",\"samples_requested\":" << targetCount << ",\"output_points\":" << targetCount << ",\"profiles_used\":[";
       for (size_t i = 0; i < profilesUsed.size(); ++i) { if (i) os << ","; os << "\"" << json_escape(profilesUsed[i]) << "\""; }
-      os << "],\"profiles_skipped\":[";
-      for (size_t i = 0; i < profilesSkipped.size(); ++i) { if (i) os << ","; os << "{\"file\":\"" << json_escape(profilesSkipped[i].first) << "\",\"reason\":\"" << profilesSkipped[i].second << "\"}"; }
-      os << "],\"points_total_raw\":" << pointsTotalRaw << ",\"points_total_clean\":" << pointsTotalClean << "}";
-      body = os.str();
+      os << "],\"profiles_skipped\":["; for (size_t i = 0; i < profilesSkipped.size(); ++i) { if (i) os << ","; os << "{\"file\":\"" << json_escape(profilesSkipped[i].first) << "\",\"reason\":\"" << profilesSkipped[i].second << "\"}"; }
+      os << "],\"points_total_raw\":" << pointsTotalRaw << ",\"points_total_clean\":" << pointsTotalClean << "}"; body = os.str();
     }
-    const std::string hdr =
-      "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\n"
-      "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
-    send_all(cfd, hdr.data(), hdr.size());
-    send_all(cfd, body.data(), body.size());
-    ::close(cfd);
-    return;
+    const std::string hdr = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+    send_all(cfd, hdr.data(), hdr.size()); send_all(cfd, body.data(), body.size()); ::close(cfd); return;
   }
 
   if (path == "/api/zoom_profile") {
