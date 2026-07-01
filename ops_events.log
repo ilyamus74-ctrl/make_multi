@@ -3498,3 +3498,4 @@
 2026-07-01T12:22:56Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782908576193,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":11}}
 2026-07-01T12:32:06Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782909126171,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":10}}
 2026-07-01T12:34:18Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782909258912,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":18}}
+2026-07-01T12:39:59Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782909599310,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":10}}
