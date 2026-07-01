@@ -3491,3 +3491,4 @@
 2026-07-01T11:20:20Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782904820012,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":18}}
 2026-07-01T11:31:45Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782905505729,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":10}}
 2026-07-01T11:33:01Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782905581859,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":20}}
+2026-07-01T11:35:11Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782905711278,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":24}}
