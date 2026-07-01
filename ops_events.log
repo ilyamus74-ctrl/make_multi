@@ -3486,3 +3486,5 @@
 2026-07-01T10:02:43Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782900163436,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":13}}
 2026-07-01T10:04:37Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782900277860,"details":{"mode":"safe","reason":"rtt-high","rtt_ms":384}}
 2026-07-01T10:04:39Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782900279534,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":57}}
+2026-07-01T10:26:19Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782901579239,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":9}}
+2026-07-01T10:26:19Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782901579881,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":14}}
