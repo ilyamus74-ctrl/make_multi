@@ -172,3 +172,4 @@ PTZ_RUNTIME_SPEED_OVERRIDE sample=5 max_pan=30 max_tilt=20 max_accel=2 min_pan=3
 PTZ_RUNTIME_SPEED_OVERRIDE sample=5 max_pan=15 max_tilt=10 max_accel=2 min_pan=3 min_tilt=1
 PTZ_RUNTIME_SPEED_OVERRIDE sample=5 max_pan=15 max_tilt=12 max_accel=2 min_pan=3 min_tilt=1
 PTZ_RUNTIME_SPEED_OVERRIDE sample=5 max_pan=15 max_tilt=12 max_accel=2 min_pan=3 min_tilt=1
+PTZ_RUNTIME_SPEED_OVERRIDE sample=9 max_pan=12 max_tilt=12 max_accel=2 min_pan=8 min_tilt=8
