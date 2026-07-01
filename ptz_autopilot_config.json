@@ -10,7 +10,7 @@
   "invert_pan": false,
   "invert_tilt": false,
   "target_x": 0.5,
-  "target_y": 0.5,
+  "target_y": 0.45,
   "min_pan": 3,
   "min_tilt": 3,
   "zoom_scale_enable": true,

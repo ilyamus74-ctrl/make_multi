@@ -187,3 +187,38 @@ PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=3
 PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=3 min_tilt=3
 PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=4 min_tilt=3
 PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=20 max_tilt=20 max_accel=4 min_pan=4 min_tilt=3
+Traceback (most recent call last):
+  File "/root/new_yolo8/apply_ptz_object_preset.py", line 295, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/root/new_yolo8/apply_ptz_object_preset.py", line 290, in main
+    apply_preset(name, presets[name], set_active=not args.no_set_active, dry_run=args.dry_run)
+  File "/root/new_yolo8/apply_ptz_object_preset.py", line 214, in apply_preset
+    wait_api(f"{MJPEG_BASE}/api/ping", attempts=30, delay=0.25)
+  File "/root/new_yolo8/apply_ptz_object_preset.py", line 85, in wait_api
+    raise RuntimeError(f"API not ready: {url}: {last}")
+RuntimeError: API not ready: http://127.0.0.1:8080/api/ping: <urlopen error [Errno 111] Connection refused>
+Traceback (most recent call last):
+  File "/root/new_yolo8/apply_ptz_object_preset.py", line 295, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/root/new_yolo8/apply_ptz_object_preset.py", line 290, in main
+    apply_preset(name, presets[name], set_active=not args.no_set_active, dry_run=args.dry_run)
+  File "/root/new_yolo8/apply_ptz_object_preset.py", line 214, in apply_preset
+    wait_api(f"{MJPEG_BASE}/api/ping", attempts=30, delay=0.25)
+  File "/root/new_yolo8/apply_ptz_object_preset.py", line 85, in wait_api
+    raise RuntimeError(f"API not ready: {url}: {last}")
+RuntimeError: API not ready: http://127.0.0.1:8080/api/ping: <urlopen error [Errno 111] Connection refused>
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=4 min_tilt=4
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=4 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=2
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=2
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=4 min_tilt=4
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=4 min_tilt=4

@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "active": "birds",
+  "presets": {
+    "person_single": {
+      "label": "Человек",
+      "description": "Один человек в комнате. FULL FRAME, class person, быстрый detect, удержание полного роста.",
+      "classes": [
+        0
+      ],
+      "detection_mode": "full_frame",
+      "max_detections": 5,
+      "max_raw_candidates": 25,
+      "detect_every_n_frames": 1,
+      "ptz": {
+        "target_x": 0.5,
+        "target_y": 0.46,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "auto_zoom_enable": true,
+        "auto_zoom_target_h": 0.68,
+        "auto_zoom_deadzone": 0.08,
+        "auto_zoom_cmd": 10,
+        "auto_zoom_sign": 1,
+        "auto_zoom_period_ms": 350
+      }
+    },
+    "people": {
+      "label": "Люди",
+      "description": "Несколько людей. Ищем person, больше лимит, полный кадр.",
+      "classes": [
+        0
+      ],
+      "detection_mode": "full_frame",
+      "max_detections": 10,
+      "max_raw_candidates": 50,
+      "detect_every_n_frames": 1,
+      "ptz": {
+        "target_x": 0.5,
+        "target_y": 0.47,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "auto_zoom_enable": true,
+        "auto_zoom_target_h": 0.58,
+        "auto_zoom_deadzone": 0.1,
+        "auto_zoom_cmd": 8,
+        "auto_zoom_sign": 1,
+        "auto_zoom_period_ms": 450
+      }
+    },
+    "car_single": {
+      "label": "Машина",
+      "description": "Одна машина/мото/автобус/грузовик. FULL FRAME.",
+      "classes": [
+        2,
+        3,
+        5,
+        7
+      ],
+      "detection_mode": "full_frame",
+      "max_detections": 8,
+      "max_raw_candidates": 40,
+      "detect_every_n_frames": 1,
+      "ptz": {
+        "target_x": 0.5,
+        "target_y": 0.5,
+        "min_pan": 3,
+        "min_tilt": 2,
+        "auto_zoom_enable": true,
+        "auto_zoom_target_h": 0.48,
+        "auto_zoom_deadzone": 0.1,
+        "auto_zoom_cmd": 8,
+        "auto_zoom_sign": 1,
+        "auto_zoom_period_ms": 450
+      }
+    },
+    "cars": {
+      "label": "Машины",
+      "description": "Несколько машин. TILED 2x2 для дальних мелких объектов.",
+      "classes": [
+        2,
+        3,
+        5,
+        7
+      ],
+      "detection_mode": "tiled",
+      "max_detections": 15,
+      "max_raw_candidates": 80,
+      "detect_every_n_frames": 1,
+      "ptz": {
+        "target_x": 0.5,
+        "target_y": 0.5,
+        "min_pan": 3,
+        "min_tilt": 2,
+        "auto_zoom_enable": true,
+        "auto_zoom_target_h": 0.42,
+        "auto_zoom_deadzone": 0.12,
+        "auto_zoom_cmd": 8,
+        "auto_zoom_sign": 1,
+        "auto_zoom_period_ms": 500
+      }
+    },
+    "airplane_single": {
+      "label": "Самолёт",
+      "description": "Один самолёт. HYBRID FULL+ROI, небо + полный кадр.",
+      "classes": [
+        4
+      ],
+      "detection_mode": "hybrid",
+      "max_detections": 8,
+      "max_raw_candidates": 60,
+      "detect_every_n_frames": 1,
+      "ptz": {
+        "target_x": 0.5,
+        "target_y": 0.45,
+        "min_pan": 4,
+        "min_tilt": 3,
+        "auto_zoom_enable": true,
+        "auto_zoom_target_h": 0.3,
+        "auto_zoom_deadzone": 0.08,
+        "auto_zoom_cmd": 10,
+        "auto_zoom_sign": 1,
+        "auto_zoom_period_ms": 350
+      }
+    },
+    "airplanes": {
+      "label": "Самолёты",
+      "description": "Несколько самолётов. HYBRID, больше лимит.",
+      "classes": [
+        4
+      ],
+      "detection_mode": "hybrid",
+      "max_detections": 15,
+      "max_raw_candidates": 100,
+      "detect_every_n_frames": 1,
+      "ptz": {
+        "target_x": 0.5,
+        "target_y": 0.45,
+        "min_pan": 4,
+        "min_tilt": 3,
+        "auto_zoom_enable": true,
+        "auto_zoom_target_h": 0.25,
+        "auto_zoom_deadzone": 0.1,
+        "auto_zoom_cmd": 10,
+        "auto_zoom_sign": 1,
+        "auto_zoom_period_ms": 400
+      }
+    },
+    "bird_single": {
+      "label": "Птица",
+      "description": "Одна птица. ROI SKY/HYBRID, агрессивнее PTZ.",
+      "classes": [
+        14
+      ],
+      "detection_mode": "hybrid",
+      "max_detections": 10,
+      "max_raw_candidates": 80,
+      "detect_every_n_frames": 1,
+      "ptz": {
+        "target_x": 0.5,
+        "target_y": 0.45,
+        "min_pan": 4,
+        "min_tilt": 4,
+        "auto_zoom_enable": true,
+        "auto_zoom_target_h": 0.24,
+        "auto_zoom_deadzone": 0.07,
+        "auto_zoom_cmd": 12,
+        "auto_zoom_sign": 1,
+        "auto_zoom_period_ms": 300
+      }
+    },
+    "birds": {
+      "label": "Птицы",
+      "description": "Несколько птиц. HYBRID, высокий лимит.",
+      "classes": [
+        14
+      ],
+      "detection_mode": "hybrid",
+      "max_detections": 20,
+      "max_raw_candidates": 120,
+      "detect_every_n_frames": 1,
+      "ptz": {
+        "target_x": 0.5,
+        "target_y": 0.45,
+        "min_pan": 4,
+        "min_tilt": 4,
+        "auto_zoom_enable": true,
+        "auto_zoom_target_h": 0.2,
+        "auto_zoom_deadzone": 0.08,
+        "auto_zoom_cmd": 12,
+        "auto_zoom_sign": 1,
+        "auto_zoom_period_ms": 300
+      }
+    }
+  }
+}

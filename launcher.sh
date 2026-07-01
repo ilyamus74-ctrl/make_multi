@@ -90,6 +90,10 @@ AUTOPILOT_TARGET_Y="${AUTOPILOT_TARGET_Y:-0.5}"
 AUTOPILOT_MIN_PAN="${AUTOPILOT_MIN_PAN:-4}"
 AUTOPILOT_MIN_TILT="${AUTOPILOT_MIN_TILT:-3}"
 
+OBJECT_PRESET_APPLY_ON_START="${OBJECT_PRESET_APPLY_ON_START:-1}"
+OBJECT_PRESET_NAME="${OBJECT_PRESET_NAME:-active}"
+OBJECT_PRESET_APPLIER="${OBJECT_PRESET_APPLIER:-$ROOT_DIR/apply_ptz_object_preset.py}"
+
 MJPEG_PID=""
 BRIDGE_PID=""
 AUTOPILOT_PID=""
@@ -258,6 +262,29 @@ start_autopilot() {
   log "Autopilot pid=$AUTOPILOT_PID (log: $AUTOPILOT_LOG)"
 }
 
+
+apply_object_preset_on_start() {
+  if [[ "${OBJECT_PRESET_APPLY_ON_START:-1}" != "1" ]]; then
+    log "Object preset apply on start disabled"
+    return 0
+  fi
+
+  if [[ ! -f "$OBJECT_PRESET_APPLIER" ]]; then
+    log "Object preset applier not found: $OBJECT_PRESET_APPLIER"
+    return 0
+  fi
+
+  (
+    sleep 1
+    log "Applying object preset: ${OBJECT_PRESET_NAME:-active}"
+    if python3 "$OBJECT_PRESET_APPLIER" --preset "${OBJECT_PRESET_NAME:-active}" >>"$AUTOPILOT_LOG" 2>&1; then
+      log "Object preset applied: ${OBJECT_PRESET_NAME:-active}"
+    else
+      log "WARN: object preset apply failed: ${OBJECT_PRESET_NAME:-active}. See $AUTOPILOT_LOG"
+    fi
+  ) &
+}
+
 start_bridge() {
   log "Starting bridge: $BRIDGE_BIN $UART_DEV $UART_BAUD $WS_PORT"
   "$BRIDGE_BIN" "$UART_DEV" "$UART_BAUD" "$WS_PORT" >>"$BRIDGE_LOG" 2>&1 &
@@ -291,6 +318,7 @@ if ! start_bridge; then
 fi
 if [[ "$AUTOPILOT_ENABLE" == "1" ]]; then
   start_autopilot
+  apply_object_preset_on_start
 fi
 
 log "Services are up"
