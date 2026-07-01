@@ -4315,21 +4315,9 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     if (isQ || isA) {
       e.preventDefault();
       if (e.repeat) return;
-
       keyboardState[isQ ? 'zin' : 'zout'] = true;
-
-      if (keyboardQaIsSweepMode()) {
-        keyboardQaSweepStart(isQ, isQ ? 'Q_TELE_SWEEP_HOLD' : 'A_WIDE_SWEEP_HOLD')
-          .catch(e => {
-            sendZoomOnly(0);
-            keyboardQaSweepHold = null;
-            ptzLog('KEYBOARD QA SWEEP START error', { error: String(e.message || e) });
-          });
-      } else {
-        if (isQ) keyboardZoomSampleStep(1, 'Q_TELE');
-        if (isA) keyboardZoomSampleStep(-1, 'A_WIDE');
-      }
-
+      if (isQ) keyboardZoomSampleStep(1, 'Q_TELE');
+      if (isA) keyboardZoomSampleStep(-1, 'A_WIDE');
       return;
     }
 
@@ -4353,14 +4341,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     }
   });
 
-  window.addEventListener('blur', () => {
-    if (keyboardQaSweepHold) keyboardQaSweepStop('window_blur').catch(() => sendZoomOnly(0));
-  });
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && keyboardQaSweepHold) keyboardQaSweepStop('visibility_hidden').catch(() => sendZoomOnly(0));
-  });
-
   window.addEventListener('keyup', (e) => {
     if (shouldIgnoreKeyboardEvent(e)) return;
 
@@ -4372,15 +4352,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     if (isQ || isA) {
       e.preventDefault();
       keyboardState[isQ ? 'zin' : 'zout'] = false;
-
-      if (keyboardQaIsSweepMode()) {
-        keyboardQaSweepStop('keyup').catch(e => {
-          sendZoomOnly(0);
-          keyboardQaSweepHold = null;
-          ptzLog('KEYBOARD QA SWEEP STOP error', { error: String(e.message || e) });
-        });
-      }
-
       return;
     }
 
