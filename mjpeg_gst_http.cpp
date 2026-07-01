@@ -3593,6 +3593,42 @@ static void handle_client(int cfd, const Opts& o) {
     return;
   }
 
+  if (path == "/debug_apriltag_latest.jpg") {
+    if (method != "GET") {
+      const char* body = "Method Not Allowed";
+      std::string hdr =
+        "HTTP/1.1 405 Method Not Allowed\r\nAllow: GET\r\nContent-Type: text/plain\r\nConnection: close\r\n"
+        "Content-Length: " + std::to_string(std::strlen(body)) + "\r\n\r\n";
+      send_all(cfd, hdr.data(), hdr.size());
+      send_all(cfd, body, std::strlen(body));
+      ::close(cfd);
+      return;
+    }
+
+    std::ifstream in("debug_apriltag_latest.jpg", std::ios::binary);
+    if (!in) {
+      const char* body = "debug_apriltag_latest.jpg not found";
+      std::string hdr =
+        "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nCache-Control: no-store\r\nConnection: close\r\n"
+        "Content-Length: " + std::to_string(std::strlen(body)) + "\r\n\r\n";
+      send_all(cfd, hdr.data(), hdr.size());
+      send_all(cfd, body, std::strlen(body));
+      ::close(cfd);
+      return;
+    }
+
+    std::ostringstream bytes;
+    bytes << in.rdbuf();
+    const std::string body = bytes.str();
+    const std::string hdr =
+      "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nCache-Control: no-store\r\n"
+      "Connection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+    send_all(cfd, hdr.data(), hdr.size());
+    if (!body.empty()) send_all(cfd, body.data(), body.size());
+    ::close(cfd);
+    return;
+  }
+
   if (path == "/api/apriltag/test") {
     if (method != "GET") {
       const char* body = "Method Not Allowed";

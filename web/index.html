@@ -208,6 +208,19 @@
 .sample-btn.clamped { box-shadow: inset 0 -3px 0 rgba(255,165,0,.9); }
 .sample-btn.missing { opacity:.65; box-shadow: inset 0 -3px 0 rgba(140,140,140,.6); }
 
+.zoom-anchor-row.active {
+  outline: 2px solid rgba(80,255,120,.8);
+  background: rgba(80,255,120,.12);
+  border-radius: 8px;
+}
+#apriltagDebugImage {
+  max-width: 260px;
+  max-height: 160px;
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 6px;
+  margin-top: 6px;
+}
+
 .class-grid {
   display:flex;
   flex-wrap:wrap;
@@ -462,6 +475,10 @@ Stream:
         <button id="zoomTestTeleBtn" class="small-btn">TEST TELE</button>
         <button id="zoomStopBtn" class="small-btn">STOP ZOOM</button>
         <code id="zoomAprilTagCalibStatus">idle</code>
+        <div class="apriltag-debug-preview">
+          <img id="apriltagDebugImage" alt="Latest AprilTag debug preview">
+          <code id="apriltagDebugStatus">apriltag debug idle</code>
+        </div>
         <span style="opacity:.8">Manual 3-run flow: configure Near/Mid/Far anchors, SELECT or RUN the desired anchor. Edits auto-save.</span>
         </div>
       </details>
@@ -4488,465 +4505,156 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
 
 <script>
-// ZOOM_CALIB_STANDALONE_SYNC_START
+// ZOOM_CALIB_CONTROLLER_START
 (function () {
-  const $ = (id) => document.getElementById(id);
+  if (window.__zoomCalibUiInstalled) return;
+  window.__zoomCalibUiInstalled = true;
 
+  const $ = (id) => document.getElementById(id);
   const defs = [
     { label: 'near', prefix: 'Near', defaultDistanceM: 1, defaultTagId: 7 },
     { label: 'mid',  prefix: 'Mid',  defaultDistanceM: 5, defaultTagId: -1 },
     { label: 'far',  prefix: 'Far',  defaultDistanceM: 10, defaultTagId: 12 }
   ];
-
   let activeLabel = 'near';
   let saveTimer = null;
+  let pollTimer = null;
+  let testTimer = null;
+  let running = false;
 
-  function id(def, field) {
-    return `zoomAnchor${def.prefix}${field}`;
+  function status(txt) { if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = txt; }
+  function debugStatus(txt) { if ($('apriltagDebugStatus')) $('apriltagDebugStatus').textContent = txt; }
+  function setRunDisabled(disabled) {
+    ['zoomRunAprilTagCalibBtn','zoomRunNearBtn','zoomRunMidBtn','zoomRunFarBtn'].forEach(id => { if ($(id)) $(id).disabled = disabled; });
   }
-
-  function setVal(el, v) {
-    if (!el) return;
-    el.value = String(v);
-  }
-
-  function setChecked(el, v) {
-    if (!el) return;
-    el.checked = !!v;
-  }
-
-  function normNum(v, fallback) {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : fallback;
-  }
-
-  function getAnchorFromUi(def) {
+  function norm(v, fallback) { const n = Number(v); return Number.isFinite(n) ? n : fallback; }
+  function field(def, name) { return $(`zoomAnchor${def.prefix}${name}`); }
+  function anchor(def) {
     return {
       label: def.label,
-      enabled: !!$(id(def, 'Enabled'))?.checked,
-      tag_id: Math.round(normNum($(id(def, 'TagId'))?.value, def.defaultTagId)),
-      distance_mm: normNum($(id(def, 'DistanceM'))?.value, def.defaultDistanceM) * 1000,
-      tag_size_mm: normNum($(id(def, 'SizeMm'))?.value, 160)
+      enabled: field(def, 'Enabled')?.checked !== false,
+      tag_id: Math.round(norm(field(def, 'TagId')?.value, def.defaultTagId)),
+      distance_mm: norm(field(def, 'DistanceM')?.value, def.defaultDistanceM) * 1000,
+      tag_size_mm: norm(field(def, 'SizeMm')?.value, 160)
     };
   }
-
-  function getActiveAnchor() {
-    const anchors = defs.map(getAnchorFromUi);
-    return anchors.find(a => a.label === activeLabel) || anchors[0];
-  }
-
+  function anchors() { return defs.map(anchor); }
+  function activeAnchor() { return anchors().find(a => a.label === activeLabel) || anchors()[0]; }
+  function updateDebugImage() { if ($('apriltagDebugImage')) $('apriltagDebugImage').src = `/debug_apriltag_latest.jpg?ts=${Date.now()}`; }
   function updateSummary() {
-    const a = getActiveAnchor();
+    const a = activeAnchor();
     const txt = `active=${activeLabel} id=${a.tag_id} distance=${(a.distance_mm / 1000).toFixed(2)}m size=${a.tag_size_mm}mm`;
-
     if ($('zoomActiveAnchorSummary')) $('zoomActiveAnchorSummary').textContent = txt;
     if ($('zoomCalibMenuSummary')) $('zoomCalibMenuSummary').textContent = txt;
+    document.querySelectorAll('.zoom-anchor-row[data-anchor]').forEach(row => row.classList.toggle('active', row.dataset.anchor === activeLabel));
   }
+  function payload() {
+    const all = anchors();
+    const a = all.find(x => x.label === activeLabel) || all[0];
+    return {
+      mode: 'apriltag_zoom_table',
+      active_anchor_label: activeLabel,
+      anchors: all,
+      tag_size_mm: Number(a.tag_size_mm || 160),
+      anchor_tag_id: Number(a.tag_id ?? 7),
+      anchor_distance_mm: Number(a.distance_mm || 1000),
+      samples: Number($('zoomSamples')?.value || 12),
+      impulse_ms: Number($('zoomImpulseMs')?.value || 170),
+      settle_ms: Number($('zoomSettleMs')?.value || 250),
+      cmd_abs: Number($('zoomCmdAbs')?.value || 34),
+      wide_cmd_sign: Number($('zoomWideSign')?.value || -1),
+      wide_hold_ms: Number($('zoomWideHoldMs')?.value || 3000),
+      calibration_direction: $('zoomCalibDirection')?.value || 'wide_to_tele'
+    };
+  }
+  async function getJson(url) { const r = await fetch(url, { cache: 'no-store' }); if (!r.ok) throw new Error(`${r.status} ${url}`); return r.json(); }
+  async function postJson(url, body) { const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body || {}) }); if (!r.ok) throw new Error(`${r.status} ${url}`); return r.json().catch(() => ({ ok:true })); }
 
-  function applySettingsToUi(s) {
-    activeLabel = s.active_anchor_label || activeLabel || 'near';
-
-    const byLabel = new Map((Array.isArray(s.anchors) ? s.anchors : []).map(a => [String(a.label || ''), a]));
-
+  async function load() {
+    const s = await getJson('/api/zoom_calibration/settings?ts=' + Date.now());
+    activeLabel = s.active_anchor_label || activeLabel;
+    const byLabel = new Map((Array.isArray(s.anchors) ? s.anchors : []).map(a => [a.label, a]));
     defs.forEach(def => {
-      const a = byLabel.get(def.label) || {
-        enabled: true,
-        tag_id: def.label === 'near' ? normNum(s.anchor_tag_id, def.defaultTagId) : def.defaultTagId,
-        distance_mm: def.label === 'near' ? normNum(s.anchor_distance_mm, def.defaultDistanceM * 1000) : def.defaultDistanceM * 1000,
-        tag_size_mm: normNum(s.tag_size_mm, 160)
-      };
-
-      setChecked($(id(def, 'Enabled')), a.enabled !== false);
-      setVal($(id(def, 'TagId')), Math.round(normNum(a.tag_id, def.defaultTagId)));
-      setVal($(id(def, 'DistanceM')), (normNum(a.distance_mm, def.defaultDistanceM * 1000) / 1000).toFixed(2).replace(/\.00$/, ''));
-      setVal($(id(def, 'SizeMm')), normNum(a.tag_size_mm, normNum(s.tag_size_mm, 160)));
+      const a = byLabel.get(def.label) || { enabled:true, tag_id:def.label === 'near' ? norm(s.anchor_tag_id, def.defaultTagId) : def.defaultTagId, distance_mm:def.defaultDistanceM*1000, tag_size_mm:norm(s.tag_size_mm,160) };
+      if (field(def, 'Enabled')) field(def, 'Enabled').checked = a.enabled !== false;
+      if (field(def, 'TagId')) field(def, 'TagId').value = Math.round(norm(a.tag_id, def.defaultTagId));
+      if (field(def, 'DistanceM')) field(def, 'DistanceM').value = (norm(a.distance_mm, def.defaultDistanceM*1000)/1000).toFixed(2).replace(/\.00$/, '');
+      if (field(def, 'SizeMm')) field(def, 'SizeMm').value = norm(a.tag_size_mm, norm(s.tag_size_mm, 160));
     });
-
-    setVal($('zoomImpulseMs'), normNum(s.impulse_ms, 170));
-    setVal($('zoomSettleMs'), normNum(s.settle_ms, 190));
-    setVal($('zoomSamples'), normNum(s.samples, 12));
-    setVal($('zoomCmdAbs'), normNum(s.cmd_abs, 34));
-    setVal($('zoomWideHoldMs'), normNum(s.wide_hold_ms, 1500));
-
-    if ($('zoomWideSign')) {
-      $('zoomWideSign').value = String(normNum(s.wide_cmd_sign, -1) < 0 ? -1 : 1);
-    }
-
-    if ($('zoomCalibDirection')) {
-      $('zoomCalibDirection').value =
-        s.calibration_direction === 'tele_to_wide' ? 'tele_to_wide' : 'wide_to_tele';
-    }
-
-    updateSummary();
-
-    if ($('zoomAprilTagCalibStatus')) {
-      $('zoomAprilTagCalibStatus').textContent = 'settings loaded';
-    }
+    if ($('zoomImpulseMs')) $('zoomImpulseMs').value = norm(s.impulse_ms, 170);
+    if ($('zoomSettleMs')) $('zoomSettleMs').value = norm(s.settle_ms, 250);
+    if ($('zoomSamples')) $('zoomSamples').value = norm(s.samples, 12);
+    if ($('zoomCmdAbs')) $('zoomCmdAbs').value = norm(s.cmd_abs, 34);
+    if ($('zoomWideHoldMs')) $('zoomWideHoldMs').value = norm(s.wide_hold_ms, 3000);
+    if ($('zoomWideSign')) $('zoomWideSign').value = String(norm(s.wide_cmd_sign, -1) < 0 ? -1 : 1);
+    if ($('zoomCalibDirection')) $('zoomCalibDirection').value = s.calibration_direction === 'tele_to_wide' ? 'tele_to_wide' : 'wide_to_tele';
+    updateSummary(); status('settings loaded'); return s;
   }
-
-  async function loadSettings() {
-    const r = await fetch('/api/zoom_calibration/settings?ts=' + Date.now(), { cache: 'no-store' });
-    if (!r.ok) throw new Error('GET settings failed: ' + r.status);
-    const s = await r.json();
-    applySettingsToUi(s);
-    window.__zoomCalibStandaloneLastSettings = s;
+  async function save() { updateSummary(); const res = await postJson('/api/zoom_calibration/settings', payload()); return res; }
+  async function selectAnchor(label) { activeLabel = label; updateSummary(); await save(); const a = activeAnchor(); status(`selected ${label} id=${a.tag_id} distance=${(a.distance_mm/1000).toFixed(2)}m`); }
+  async function testAprilTag() {
+    const res = await getJson('/api/apriltag/test?ts=' + Date.now());
+    updateDebugImage();
+    const ids = Array.isArray(res.ids) ? res.ids.map(Number) : [];
+    const a = activeAnchor();
+    const found = ids.includes(Number(a.tag_id));
+    const base = `apriltag tags=${res.tags_found || ids.length || 0} ids=${ids.join(',') || 'none'} ${res.ok ? 'ok' : (res.message || 'not ok')}`;
+    status(`${base}; active tag ${a.tag_id} ${found ? 'FOUND' : 'NOT FOUND'}`);
+    debugStatus(`active tag ${a.tag_id} ${found ? 'FOUND' : 'NOT FOUND'}`);
+    console.log('[zoom-calib] APRILTAG TEST', res);
+    return res;
+  }
+  async function pollOnce() {
+    const s = await getJson('/api/zoom_calibration?ts=' + Date.now());
+    const msg = `idx=${s.idx ?? s.sample_idx ?? '?'} / ${s.samples ?? s.sample_count ?? '?'} zoom_ratio=${Number(s.zoom_ratio ?? 0).toFixed(3)} tags_found=${s.tags_found ?? '?'} ${s.last_status || ''} ${s.last_message || s.message || ''}`;
+    status(msg.trim());
+    if (s.in_progress === false) stopPolling();
     return s;
   }
-
-  function readSettingsFromUi() {
-    const anchors = defs.map(getAnchorFromUi);
-    const active = anchors.find(a => a.label === activeLabel) || anchors[0];
-
-    return {
-      tag_size_mm: Number(active?.tag_size_mm || 160),
-      anchor_tag_id: Number(active?.tag_id ?? 7),
-      anchor_distance_mm: Number(active?.distance_mm || 1000),
-      samples: Number($('zoomSamples')?.value || 12),
-      impulse_ms: Number($('zoomImpulseMs')?.value || 170),
-      settle_ms: Number($('zoomSettleMs')?.value || 190),
-      cmd_abs: Number($('zoomCmdAbs')?.value || 34),
-      wide_cmd_sign: Number($('zoomWideSign')?.value || -1),
-      wide_hold_ms: Number($('zoomWideHoldMs')?.value || 1500),
-      calibration_direction: $('zoomCalibDirection')?.value || 'wide_to_tele',
-      active_anchor_label: activeLabel,
-      anchors
-    };
+  function startPolling() {
+    stopPolling(false); running = true; setRunDisabled(true); status('calibration running...');
+    pollTimer = setInterval(() => pollOnce().catch(e => status(`poll error: ${e.message || e}`)), 1000);
+    testTimer = setInterval(() => testAprilTag().catch(() => updateDebugImage()), 1300);
+    pollOnce().catch(() => {}); testAprilTag().catch(() => updateDebugImage());
   }
-
-  async function saveSettings() {
-    const payload = readSettingsFromUi();
-
-    if ($('zoomAprilTagCalibStatus')) {
-      $('zoomAprilTagCalibStatus').textContent = 'settings saving...';
-    }
-
-    const r = await fetch('/api/zoom_calibration/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    if (!r.ok) throw new Error('POST settings failed: ' + r.status);
-
-    const res = await r.json().catch(() => ({ ok: true }));
-
-    if ($('zoomAprilTagCalibStatus')) {
-      $('zoomAprilTagCalibStatus').textContent = 'settings saved';
-    }
-
-    window.__zoomCalibStandaloneLastSave = payload;
-    updateSummary();
-
-    return res;
+  function stopPolling(update = true) {
+    if (pollTimer) clearInterval(pollTimer); if (testTimer) clearInterval(testTimer); pollTimer = null; testTimer = null; running = false; setRunDisabled(false); if (update) updateDebugImage();
   }
-
-  function scheduleSave(delay = 250) {
-    updateSummary();
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      saveTimer = null;
-      saveSettings().catch(e => {
-        if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings save error';
-        console.error('[zoom-calib-standalone] save failed', e);
-      });
-    }, delay);
+  async function runActive() {
+    const a = activeAnchor();
+    status(`starting calibration for ${activeLabel} id=${a.tag_id}...`);
+    await save();
+    const res = await postJson('/api/zoom_calibration', payload());
+    console.log('[zoom-calib] RUN APRILTAG ZOOM CALIB', res);
+    if (res.ok === false || res.started === false) { status(`calibration not started: ${res.error || res.message || JSON.stringify(res)}`); return res; }
+    status('calibration running...'); startPolling(); return res;
   }
-
-  function flushSave() {
-    if (saveTimer) {
-      clearTimeout(saveTimer);
-      saveTimer = null;
-    }
-    return saveSettings().catch(e => {
-      if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings save error';
-      console.error('[zoom-calib-standalone] save failed', e);
-    });
-  }
-
-  function isZoomCalibField(el) {
-    if (!el || !el.id) return false;
-    if (String(el.id).startsWith('zoomAnchor')) return true;
-    return [
-      'zoomImpulseMs',
-      'zoomSettleMs',
-      'zoomSamples',
-      'zoomCmdAbs',
-      'zoomWideHoldMs',
-      'zoomCalibDirection',
-      'zoomWideSign'
-    ].includes(el.id);
-  }
-
-  function installAutosave() {
-    if (window.__zoomCalibStandaloneAutosaveInstalled) return;
-    window.__zoomCalibStandaloneAutosaveInstalled = true;
-
-    document.addEventListener('input', e => {
-      if (!isZoomCalibField(e.target)) return;
-      scheduleSave(250);
-    }, true);
-
-    document.addEventListener('change', e => {
-      if (!isZoomCalibField(e.target)) return;
-      flushSave();
-    }, true);
-  }
-
-  function installAnchorButtons() {
-    defs.forEach(def => {
-      const selectBtn = $(`zoomSelect${def.prefix}Btn`);
-      const runBtn = $(`zoomRun${def.prefix}Btn`);
-
-      if (selectBtn && !selectBtn.__zoomStandaloneBound) {
-        selectBtn.__zoomStandaloneBound = true;
-        selectBtn.addEventListener('click', e => {
-          e.preventDefault();
-          activeLabel = def.label;
-          flushSave();
-          updateSummary();
-        }, true);
-      }
-
-      if (runBtn && !runBtn.__zoomStandaloneBound) {
-        runBtn.__zoomStandaloneBound = true;
-        runBtn.addEventListener('click', async e => {
-          e.preventDefault();
-          activeLabel = def.label;
-          await flushSave();
-
-          if (typeof runAprilTagZoomCalibrationFromUi === 'function') {
-            runAprilTagZoomCalibrationFromUi();
-          } else {
-            fetch('/api/zoom_calibration', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...readSettingsFromUi(), mode: 'apriltag_zoom_table' })
-            }).catch(console.error);
-          }
-
-          updateSummary();
-        }, true);
-      }
-    });
-  }
-
-  function boot() {
-    window.__zoomCalibStandaloneSyncInstalled = true;
-    installAutosave();
-    installAnchorButtons();
-
-    loadSettings().catch(e => {
-      if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings load error';
-      console.error('[zoom-calib-standalone] load failed', e);
-    });
-
-    /*
-     * Firefox/Chromium can restore form values after script init.
-     * Re-apply backend values a few times after page load.
-     */
-    setTimeout(() => loadSettings().catch(() => {}), 250);
-    setTimeout(() => loadSettings().catch(() => {}), 1000);
-  }
-
-  window.zoomCalibStandaloneLoad = loadSettings;
-  window.zoomCalibStandaloneSave = saveSettings;
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
-  } else {
-    boot();
-  }
-
-  window.addEventListener('pageshow', () => {
-    setTimeout(() => loadSettings().catch(() => {}), 100);
-  });
-})();
-// ZOOM_CALIB_STANDALONE_SYNC_END
-</script>
-
-
-<script>
-// ZOOM_CALIB_BUTTONS_HARDFIX_START
-
-function getActiveZoomAnchorFromUi() {
-  const defs = [
-    { label: 'near', prefix: 'Near', defaultDistanceM: 1, defaultTagId: 7 },
-    { label: 'mid',  prefix: 'Mid',  defaultDistanceM: 5, defaultTagId: -1 },
-    { label: 'far',  prefix: 'Far',  defaultDistanceM: 10, defaultTagId: 12 }
-  ];
-
-  const $ = (id) => document.getElementById(id);
-
-  let activeLabel = 'near';
-  try {
-    const txt = String($('zoomActiveAnchorSummary')?.textContent || '');
-    const m = txt.match(/active=([a-z]+)/i);
-    if (m) activeLabel = m[1].toLowerCase();
-  } catch (_) {}
-
-  const anchors = defs.map(def => ({
-    label: def.label,
-    enabled: !!$(`zoomAnchor${def.prefix}Enabled`)?.checked,
-    tag_id: Number($(`zoomAnchor${def.prefix}TagId`)?.value ?? def.defaultTagId),
-    distance_mm: Number($(`zoomAnchor${def.prefix}DistanceM`)?.value || def.defaultDistanceM) * 1000,
-    tag_size_mm: Number($(`zoomAnchor${def.prefix}SizeMm`)?.value || 160)
-  }));
-
-  return anchors.find(a => a.label === activeLabel && a.enabled) ||
-    anchors.find(a => a.enabled) ||
-    anchors.find(a => a.label === activeLabel) ||
-    anchors[0];
-}
-
-(function () {
-  const $ = (id) => document.getElementById(id);
-
-  function setStatus(txt) {
-    if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = txt;
-  }
-
-  function defs() {
-    return [
-      { label: 'near', prefix: 'Near', defaultDistanceM: 1, defaultTagId: 7 },
-      { label: 'mid',  prefix: 'Mid',  defaultDistanceM: 5, defaultTagId: -1 },
-      { label: 'far',  prefix: 'Far',  defaultDistanceM: 10, defaultTagId: 12 }
-    ];
-  }
-
-  function activeLabelFromUi() {
-    const txt = String($('zoomActiveAnchorSummary')?.textContent || '');
-    const m = txt.match(/active=([a-z]+)/i);
-    return m ? m[1].toLowerCase() : 'near';
-  }
-
-  function readAnchor(def) {
-    return {
-      label: def.label,
-      enabled: !!$(`zoomAnchor${def.prefix}Enabled`)?.checked,
-      tag_id: Number($(`zoomAnchor${def.prefix}TagId`)?.value ?? def.defaultTagId),
-      distance_mm: Number($(`zoomAnchor${def.prefix}DistanceM`)?.value || def.defaultDistanceM) * 1000,
-      tag_size_mm: Number($(`zoomAnchor${def.prefix}SizeMm`)?.value || 160)
-    };
-  }
-
-  function readPayload() {
-    const anchors = defs().map(readAnchor);
-    const activeLabel = activeLabelFromUi();
-    const active = anchors.find(a => a.label === activeLabel) || anchors[0];
-
-    return {
-      tag_size_mm: Number(active?.tag_size_mm || 160),
-      anchor_tag_id: Number(active?.tag_id ?? 7),
-      anchor_distance_mm: Number(active?.distance_mm || 1000),
-      samples: Number($('zoomSamples')?.value || 12),
-      impulse_ms: Number($('zoomImpulseMs')?.value || 170),
-      settle_ms: Number($('zoomSettleMs')?.value || 190),
-      cmd_abs: Number($('zoomCmdAbs')?.value || 34),
-      wide_cmd_sign: Number($('zoomWideSign')?.value || -1),
-      wide_hold_ms: Number($('zoomWideHoldMs')?.value || 1500),
-      calibration_direction: $('zoomCalibDirection')?.value || 'wide_to_tele',
-      active_anchor_label: activeLabel,
-      anchors
-    };
-  }
-
-  async function postJson(url, payload) {
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload || {})
-    });
-    if (!r.ok) throw new Error(`${url} ${r.status}`);
-    return await r.json().catch(() => ({ ok: true }));
-  }
-
-  async function getJson(url) {
-    const r = await fetch(url, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`${url} ${r.status}`);
-    return await r.json();
-  }
-
-  async function saveSettingsNow() {
-    const payload = readPayload();
-    setStatus('settings saving...');
-    const res = await postJson('/api/zoom_calibration/settings', payload);
-    setStatus('settings saved');
-    return res;
-  }
-
-  async function runCalib() {
-    await saveSettingsNow();
-
-    const payload = readPayload();
-    payload.mode = 'apriltag_zoom_table';
-
-    setStatus('calibration starting...');
-
-    const res = await postJson('/api/zoom_calibration', payload);
-
-    if (res.started || res.ok) {
-      setStatus('calibration running...');
-    } else {
-      setStatus('calibration not started');
-    }
-
-    console.log('[zoom-calib] run result', res);
-    return res;
-  }
-
+  async function runAnchor(label) { activeLabel = label; updateSummary(); return runActive(); }
   async function buildMaster() {
-    setStatus('building master profile...');
+    status('building master profile...');
     const res = await postJson('/api/zoom_calibration/build_master_profile', {});
-    setStatus(res.ok ? `master ok points=${res.points_total_clean ?? res.points ?? ''}` : `master failed ${res.error || ''}`);
-    console.log('[zoom-calib] build master result', res);
+    console.log('[zoom-calib] BUILD MASTER PROFILE', res);
+    status(res.ok ? `master ok raw=${res.points_total_raw || 0} clean=${res.points_total_clean || 0}` : `master failed ${res.error || res.message || ''}`);
+    if (typeof window.refreshZoomMasterProfile === 'function') window.refreshZoomMasterProfile().catch?.(() => {});
+    if (typeof window.refreshZoomSamplesForPtzTune === 'function') window.refreshZoomSamplesForPtzTune().catch?.(() => {});
+    if (typeof window.refreshPtzTuneZoomSamples === 'function') window.refreshPtzTuneZoomSamples().catch?.(() => {});
     return res;
   }
-
-  async function testAprilTag() {
-    setStatus('testing apriltag...');
-    const res = await getJson('/api/apriltag/test?ts=' + Date.now());
-    setStatus(`apriltag tags=${res.tags_found || 0} ids=${(res.ids || []).join(',') || 'none'} ${res.message || ''}`);
-    console.log('[zoom-calib] apriltag test', res);
-    return res;
-  }
-
-  function bindHard(id, fn) {
-    const el = $(id);
-    if (!el || el.__zoomHardBound) return;
-    el.__zoomHardBound = true;
-    el.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      fn().catch(err => {
-        console.error(`[zoom-calib] ${id} failed`, err);
-        setStatus(`error: ${String(err.message || err)}`);
-      });
-    }, true);
-  }
-
+  function isField(el) { return el?.id && (String(el.id).startsWith('zoomAnchor') || ['zoomImpulseMs','zoomSettleMs','zoomSamples','zoomCmdAbs','zoomWideHoldMs','zoomCalibDirection','zoomWideSign'].includes(el.id)); }
+  function scheduleSave() { updateSummary(); if (saveTimer) clearTimeout(saveTimer); saveTimer = setTimeout(() => save().catch(e => status(`settings save error: ${e.message || e}`)), 250); }
+  function bindButton(id, fn) { const el = $(id); if (!el) return; el.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); fn().catch(err => { console.error('[zoom-calib]', id, err); status(`error: ${err.message || err}`); }); }, true); }
   function boot() {
-    window.__zoomCalibButtonsHardfixInstalled = true;
-
-    bindHard('zoomRunAprilTagCalibBtn', runCalib);
-    bindHard('zoomBuildMasterProfileBtn', buildMaster);
-    bindHard('apriltagTestBtn', testAprilTag);
-
-    console.log('[zoom-calib] hardfix buttons installed');
+    document.addEventListener('input', e => { if (isField(e.target)) scheduleSave(); }, true);
+    document.addEventListener('change', e => { if (!isField(e.target)) return; if (saveTimer) clearTimeout(saveTimer); save().catch(err => status(`settings save error: ${err.message || err}`)); }, true);
+    defs.forEach(def => { bindButton(`zoomSelect${def.prefix}Btn`, () => selectAnchor(def.label)); bindButton(`zoomRun${def.prefix}Btn`, () => runAnchor(def.label)); });
+    bindButton('zoomRunAprilTagCalibBtn', runActive); bindButton('zoomBuildMasterProfileBtn', buildMaster); bindButton('apriltagTestBtn', testAprilTag);
+    load().catch(e => status(`settings load error: ${e.message || e}`));
   }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
-  } else {
-    boot();
-  }
-
-  window.zoomCalibHardRun = runCalib;
-  window.zoomCalibHardBuildMaster = buildMaster;
-  window.zoomCalibHardTestAprilTag = testAprilTag;
+  window.ZoomCalibUi = { load, save, selectAnchor, runAnchor, runActive, buildMaster, testAprilTag, startPolling, stopPolling };
+  window.getActiveZoomAnchorFromUi = activeAnchor;
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once:true }); else boot();
 })();
-
-// ZOOM_CALIB_BUTTONS_HARDFIX_END
+// ZOOM_CALIB_CONTROLLER_END
 </script>
 
 </body>
