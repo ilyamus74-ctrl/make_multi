@@ -30,7 +30,8 @@
     .stream-wrap.cover iframe,
     .stream-wrap.cover img{object-fit:cover}
     .det-overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:auto;z-index:3}
-    .apriltag-overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+    .apriltag-overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;display:none}
+body.zoom-calib-active .apriltag-overlay{display:block}
     .hidden{display:none !important}
     .stream-settings{display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:absolute;top:10px;left:10px;right:10px;z-index:4;background:var(--controls-bg);border:1px solid var(--controls-border);border-radius:10px;padding:8px}
     .controls-panel{order:2;position:absolute;left:10px;right:10px;bottom:10px;z-index:4;background:var(--controls-bg);border:1px solid var(--controls-border);backdrop-filter:blur(4px);max-height:42dvh;overflow:auto}
@@ -4580,6 +4581,27 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   let running = false;
   let latestAprilTag = null;
 
+  function isZoomCalibOverlayWanted() {
+    const menuOpen = !!$('zoomCalibMenu')?.open;
+    return menuOpen || running;
+  }
+
+  function clearAprilTagOverlay() {
+    const canvas = $('apriltagOverlay');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, canvas.width || 1, canvas.height || 1);
+  }
+
+  function updateAprilTagOverlayVisibility() {
+    const want = isZoomCalibOverlayWanted();
+    document.body.classList.toggle('zoom-calib-active', want);
+    if (!want) clearAprilTagOverlay();
+    else if (latestAprilTag) drawAprilTags(latestAprilTag);
+    return want;
+  }
+
+
   function status(txt) { if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = txt; }
   function debugStatus(txt) { if ($('apriltagDebugStatus')) $('apriltagDebugStatus').textContent = txt; }
   function setRunDisabled(disabled) {
@@ -4598,8 +4620,12 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
   function anchors() { return defs.map(anchor); }
   function activeAnchor() { return anchors().find(a => a.label === activeLabel) || anchors()[0]; }
-  function updateDebugImage() { if ($('apriltagDebugImage')) $('apriltagDebugImage').src = `/debug_apriltag_latest.jpg?ts=${Date.now()}`; }
+  function updateDebugImage() {
+    if (!isZoomCalibOverlayWanted()) return;
+    if ($('apriltagDebugImage')) $('apriltagDebugImage').src = `/debug_apriltag_latest.jpg?ts=${Date.now()}`;
+  }
   function drawAprilTags(res) {
+    if (!isZoomCalibOverlayWanted()) { clearAprilTagOverlay(); return; }
     const canvas = $('apriltagOverlay'); const wrap = $('streamWrap'); if (!canvas || !wrap) return;
     const rect = wrap.getBoundingClientRect(); canvas.width = Math.max(1, Math.round(rect.width)); canvas.height = Math.max(1, Math.round(rect.height));
     const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -4694,13 +4720,20 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     return s;
   }
   function startPolling() {
-    stopPolling(false); running = true; setRunDisabled(true); status('calibration running...');
+    stopPolling(false); running = true; setRunDisabled(true); updateAprilTagOverlayVisibility(); status('calibration running...');
     pollTimer = setInterval(() => pollOnce().catch(e => status(`poll error: ${e.message || e}`)), 1000);
     testTimer = setInterval(() => testAprilTag({ silentStatus: true }).catch(() => updateDebugImage()), 1300);
     pollOnce().catch(() => {}); testAprilTag({ silentStatus: true }).catch(() => updateDebugImage());
   }
   function stopPolling(update = true) {
-    if (pollTimer) clearInterval(pollTimer); if (testTimer) clearInterval(testTimer); pollTimer = null; testTimer = null; running = false; setRunDisabled(false); if (update) updateDebugImage();
+    if (pollTimer) clearInterval(pollTimer);
+    if (testTimer) clearInterval(testTimer);
+    pollTimer = null;
+    testTimer = null;
+    running = false;
+    setRunDisabled(false);
+    updateAprilTagOverlayVisibility();
+    if (update) updateDebugImage();
   }
   async function runActive() {
     const a = activeAnchor();
@@ -4729,6 +4762,17 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   function scheduleSave() { updateSummary(); if (saveTimer) clearTimeout(saveTimer); saveTimer = setTimeout(() => save().catch(e => status(`settings save error: ${e.message || e}`)), 250); }
   function bindButton(id, fn) { const el = $(id); if (!el) return; el.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); fn().catch(err => { console.error('[zoom-calib]', id, err); status(`error: ${err.message || err}`); }); }, true); }
   function boot() {
+    updateAprilTagOverlayVisibility();
+
+    const zoomMenu = $('zoomCalibMenu');
+    if (zoomMenu && !zoomMenu.__apriltagOverlayToggleBound) {
+      zoomMenu.__apriltagOverlayToggleBound = true;
+      zoomMenu.addEventListener('toggle', () => {
+        updateAprilTagOverlayVisibility();
+        if (zoomMenu.open && latestAprilTag) drawAprilTags(latestAprilTag);
+      });
+    }
+
     document.addEventListener('input', e => { if (isField(e.target)) scheduleSave(); }, true);
     document.addEventListener('change', e => { if (!isField(e.target)) return; if (saveTimer) clearTimeout(saveTimer); save().catch(err => status(`settings save error: ${err.message || err}`)); }, true);
     defs.forEach(def => { bindButton(`zoomSelect${def.prefix}Btn`, () => selectAnchor(def.label)); bindButton(`zoomRun${def.prefix}Btn`, () => runAnchor(def.label)); });
