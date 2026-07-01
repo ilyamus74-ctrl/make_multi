@@ -2129,18 +2129,9 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   async function buildPtzSpeedProfileFromZoomMaster() {
     const existing = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile`).catch(() => ({ points: [] }));
     const existingPoints = Array.isArray(existing.points) ? existing.points : [];
-
-    if ($('ptzTuneStatus')) {
-      $('ptzTuneStatus').textContent = `clearing old PTZ speed profile: old=${existingPoints.length}`;
+    if (existingPoints.length && !window.confirm(`PTZ speed profile already has ${existingPoints.length} points. Overwrite matching samples?`)) {
+      return { ok: false, cancelled: true };
     }
-
-    const clearRes = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/clear`, {
-      reason: 'build_from_zoom_master',
-      old_points: existingPoints.length
-    }).catch(e => ({ ok:false, error:String(e.message || e) }));
-
-    ptzLog('PTZ SPEED PROFILE clear before build', clearRes);
-
     const master = await apiGetJson('/api/zoom/master_profile');
     const points = normalizeZoomMasterPoints(master);
 
