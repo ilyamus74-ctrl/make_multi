@@ -1,1 +1,1 @@
-{"ok":true,"detection_mode":"full_frame","rois":[]}
+{"ok":true,"detection_mode":"hybrid","rois":[{"id":"full_frame","enabled":true,"x":0,"y":0,"w":1920,"h":1080,"every_n_frames":1,"classes":[]},{"id":"sky_top","enabled":true,"x":0,"y":0,"w":1920,"h":734,"every_n_frames":1,"classes":[]}]}
