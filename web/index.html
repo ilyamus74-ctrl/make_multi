@@ -2328,13 +2328,33 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   // ZOOM_ANCHOR_DEFS_EARLY_START
   // zoomAnchorDefs moved earlier to avoid TDZ initialization error.
 
+  // Active ZOOM CALIB anchor state.
+  // Required by autosave/load/settings code.
+  let zoomActiveAnchorLabel = 'near';
+
   function updateZoomActiveAnchorSummary() {
+    if (typeof zoomActiveAnchorLabel === 'undefined' || !zoomActiveAnchorLabel) {
+      zoomActiveAnchorLabel = 'near';
+    }
+
     const a = getActiveZoomAnchorFromUi();
+
     if ($('zoomActiveAnchorSummary') && a) {
       $('zoomActiveAnchorSummary').textContent =
         `active=${zoomActiveAnchorLabel} id=${a.tag_id} distance=${(a.distance_mm / 1000).toFixed(2)}m size=${a.tag_size_mm}mm`;
     }
-    if ($('zoomCalibMenuSummary') && a) $('zoomCalibMenuSummary').textContent = `active ${zoomActiveAnchorLabel} id=${a.tag_id}`;
+
+    if ($('zoomCalibMenuSummary') && a) {
+      const mode = $('zoomMoveMode')?.value || 'legacy_impulse';
+      const samples = Number($('zoomSamples')?.value || 1);
+      const full = Number($('zoomFullSweepMs')?.value || $('zoomWideHoldMs')?.value || 0);
+      const step = full / Math.max(1, samples - 1);
+
+      $('zoomCalibMenuSummary').textContent =
+        mode === 'sweep_time_steps'
+          ? `active ${zoomActiveAnchorLabel} id=${a.tag_id} mode=sweep step=${step.toFixed(1)}ms`
+          : `active ${zoomActiveAnchorLabel} id=${a.tag_id} mode=impulse`;
+    }
   }
 
   function zoomStepMsValue() {
