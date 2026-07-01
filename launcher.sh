@@ -93,6 +93,9 @@ AUTOPILOT_MIN_TILT="${AUTOPILOT_MIN_TILT:-3}"
 OBJECT_PRESET_APPLY_ON_START="${OBJECT_PRESET_APPLY_ON_START:-1}"
 OBJECT_PRESET_NAME="${OBJECT_PRESET_NAME:-active}"
 OBJECT_PRESET_APPLIER="${OBJECT_PRESET_APPLIER:-$ROOT_DIR/apply_ptz_object_preset.py}"
+OBJECT_TRACKING_DAEMON_ENABLE="${OBJECT_TRACKING_DAEMON_ENABLE:-1}"
+OBJECT_TRACKING_DAEMON="${OBJECT_TRACKING_DAEMON:-$ROOT_DIR/object_tracking_daemon.py}"
+OBJECT_TRACKING_DAEMON_LOG="${OBJECT_TRACKING_DAEMON_LOG:-$ROOT_DIR/object_tracking_daemon.log}"
 
 MJPEG_PID=""
 BRIDGE_PID=""
@@ -285,6 +288,24 @@ apply_object_preset_on_start() {
   ) &
 }
 
+
+start_object_tracking_daemon() {
+  if [[ "${OBJECT_TRACKING_DAEMON_ENABLE:-1}" != "1" ]]; then
+    log "Object tracking daemon disabled"
+    return 0
+  fi
+
+  if [[ ! -f "$OBJECT_TRACKING_DAEMON" ]]; then
+    log "Object tracking daemon not found: $OBJECT_TRACKING_DAEMON"
+    return 0
+  fi
+
+  log "Starting object tracking daemon: $OBJECT_TRACKING_DAEMON"
+  python3 "$OBJECT_TRACKING_DAEMON" >>"$OBJECT_TRACKING_DAEMON_LOG" 2>&1 &
+  OBJECT_TRACKING_DAEMON_PID=$!
+  log "Object tracking daemon PID: $OBJECT_TRACKING_DAEMON_PID"
+}
+
 start_bridge() {
   log "Starting bridge: $BRIDGE_BIN $UART_DEV $UART_BAUD $WS_PORT"
   "$BRIDGE_BIN" "$UART_DEV" "$UART_BAUD" "$WS_PORT" >>"$BRIDGE_LOG" 2>&1 &
@@ -319,6 +340,7 @@ fi
 if [[ "$AUTOPILOT_ENABLE" == "1" ]]; then
   start_autopilot
   apply_object_preset_on_start
+  start_object_tracking_daemon
 fi
 
 log "Services are up"
