@@ -1,8 +1,8 @@
 {
   "tag_size_mm": 160,
-  "anchor_tag_id": 7,
-  "anchor_distance_mm": 8000,
-  "samples": 8,
+  "anchor_tag_id": 12,
+  "anchor_distance_mm": 10000,
+  "samples": 10,
   "impulse_ms": 170,
   "settle_ms": 190,
   "cmd_abs": 34,
