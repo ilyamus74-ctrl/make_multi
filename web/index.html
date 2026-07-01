@@ -8727,5 +8727,46 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 // PTZ_START_STOP_ACTIVE_STATE_FIX_END
 </script>
 
+
+<script>
+// OBJECT_TRACKING_LOGS_BUTTON_START
+(function () {
+  const $ = (id) => document.getElementById(id);
+
+  function ensureLogsButton() {
+    if ($('objectTrackingLogsBtn')) return;
+
+    const panel = $('objectPresetPanel') || $('ptzPanel') || document.querySelector('.controls-panel');
+    if (!panel) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'objectTrackingLogsBtn';
+    btn.className = 'small-btn';
+    btn.textContent = 'LOGS';
+    btn.title = 'Open object tracking logs in a new window';
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      const url = `${location.protocol}//${location.hostname}:8091/`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    });
+
+    panel.appendChild(btn);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureLogsButton, { once: true });
+  } else {
+    ensureLogsButton();
+  }
+
+  setTimeout(ensureLogsButton, 500);
+  setTimeout(ensureLogsButton, 1500);
+  setTimeout(ensureLogsButton, 3000);
+})();
+// OBJECT_TRACKING_LOGS_BUTTON_END
+</script>
+
 </body>
 </html>

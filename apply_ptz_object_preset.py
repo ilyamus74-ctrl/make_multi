@@ -1,23 +1,28 @@
 #!/usr/bin/env python3
 import argparse
+import atexit
+import signal
 import json
 import os
 import sys
 import time
 import urllib.request
 from pathlib import Path
+from object_tracking_log_paths import runtime_path, archive_current_logs, ensure_log_dirs
 
 ROOT = Path(__file__).resolve().parent
 PRESET_FILE = ROOT / "ptz_object_presets.json"
 SETTINGS_FILE = ROOT / "ui_settings.json"
-EVENT_LOG_FILE = ROOT / "object_tracking_events.jsonl"
-STATE_FILE = ROOT / "object_tracking_state.json"
+EVENT_LOG_FILE = runtime_path("object_tracking_events.jsonl")
+STATE_FILE = runtime_path("object_tracking_state.json")
 
 MAX_EVENT_LOG_BYTES = int(os.environ.get("OBJECT_TRACKING_EVENT_LOG_MAX_BYTES", str(2 * 1024 * 1024)))
 EVENT_LOG_KEEP_FILES = int(os.environ.get("OBJECT_TRACKING_EVENT_LOG_KEEP_FILES", "5"))
 
 MJPEG_BASE = "http://127.0.0.1:8080"
 AUTOPILOT_BASE = "http://127.0.0.1:8090"
+
+ensure_log_dirs()
 
 
 def now_ts():
@@ -1303,6 +1308,43 @@ def main():
         write_state(mode="error", result=out)
         print(json.dumps(out, indent=2, ensure_ascii=False))
         return 1
+
+
+
+# tmpfs logs are archived to disk on normal process exit / SIGTERM.
+_ARCHIVE_DONE = False
+
+def _archive_logs_once(reason="exit"):
+    global _ARCHIVE_DONE
+    if _ARCHIVE_DONE:
+        return
+    _ARCHIVE_DONE = True
+
+    try:
+        archive_current_logs(reason=reason)
+    except Exception:
+        pass
+
+
+def _signal_archive_handler(signum, frame):
+    try:
+        stopper = globals().get("stop_ptz")
+        if callable(stopper):
+            stopper()
+    except Exception:
+        pass
+
+    _archive_logs_once(reason=f"signal_{signum}")
+    raise SystemExit(0)
+
+
+atexit.register(lambda: _archive_logs_once(reason="atexit"))
+
+try:
+    signal.signal(signal.SIGTERM, _signal_archive_handler)
+    signal.signal(signal.SIGINT, _signal_archive_handler)
+except Exception:
+    pass
 
 
 if __name__ == "__main__":

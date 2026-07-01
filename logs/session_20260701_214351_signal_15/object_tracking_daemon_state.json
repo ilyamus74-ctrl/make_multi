@@ -1,0 +1,7 @@
+{
+  "ts": 1782942231.141,
+  "event": "child_stop",
+  "reason": "ptzArmed_false",
+  "preset": "person_single",
+  "pid": 2159517
+}

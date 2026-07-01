@@ -1,0 +1,6 @@
+Object log server: http://0.0.0.0:8091
+192.168.2.142 - - [01/Jul/2026 21:41:13] "GET /api/logs?tail=120 HTTP/1.1" 200 -
+192.168.2.142 - - [01/Jul/2026 21:41:15] "GET /api/logs?tail=120 HTTP/1.1" 200 -
+192.168.2.142 - - [01/Jul/2026 21:41:17] "GET /api/logs?tail=120 HTTP/1.1" 200 -
+192.168.2.142 - - [01/Jul/2026 21:41:19] "GET /api/logs?tail=120 HTTP/1.1" 200 -
+192.168.2.142 - - [01/Jul/2026 21:41:21] "GET /api/logs?tail=120 HTTP/1.1" 200 -

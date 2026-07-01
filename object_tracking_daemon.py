@@ -6,12 +6,13 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from object_tracking_log_paths import runtime_path, archive_current_logs, ensure_log_dirs
 
 ROOT = Path(__file__).resolve().parent
 SETTINGS_FILE = ROOT / "ui_settings.json"
 PRESET_FILE = ROOT / "ptz_object_presets.json"
-LOG_FILE = ROOT / "object_tracking_daemon.log"
-STATE_FILE = ROOT / "object_tracking_daemon_state.json"
+LOG_FILE = runtime_path("object_tracking_daemon.log")
+STATE_FILE = runtime_path("object_tracking_daemon_state.json")
 
 MAX_DAEMON_LOG_BYTES = int(os.environ.get("OBJECT_TRACKING_DAEMON_LOG_MAX_BYTES", str(1024 * 1024)))
 DAEMON_LOG_KEEP_FILES = int(os.environ.get("OBJECT_TRACKING_DAEMON_LOG_KEEP_FILES", "5"))
@@ -19,6 +20,8 @@ DAEMON_LOG_KEEP_FILES = int(os.environ.get("OBJECT_TRACKING_DAEMON_LOG_KEEP_FILE
 _last_log_ts = {}
 _last_log_sig = {}
 APPLIER = ROOT / "apply_ptz_object_preset.py"
+
+ensure_log_dirs()
 
 POLL_SEC = 1.0
 RESTART_DELAY_SEC = 2.0
@@ -179,6 +182,13 @@ def stop_child(reason):
     child = None
     child_preset = None
 
+    try:
+        archived = archive_current_logs(reason=reason)
+        if archived:
+            log("logs_archived", reason=reason, archived=archived)
+    except Exception as e:
+        log("logs_archive_failed", reason=reason, error=str(e))
+
 
 def start_child(preset_name):
     global child, child_preset
@@ -212,6 +222,14 @@ def start_child(preset_name):
 
 def handle_signal(signum, frame):
     stop_child(f"signal_{signum}")
+
+    try:
+        archived = archive_current_logs(reason=f"daemon_signal_{signum}")
+        if archived:
+            log("logs_archived", reason=f"daemon_signal_{signum}", archived=archived)
+    except Exception as e:
+        log("logs_archive_failed", reason=f"daemon_signal_{signum}", error=str(e))
+
     log("daemon_stop", signal=signum)
     raise SystemExit(0)
 
