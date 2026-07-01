@@ -5173,8 +5173,35 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
         throw new Error('No enabled anchors with valid tag_id/distance');
       }
 
+      const moveMode = $('zoomMoveMode')?.value || 'legacy_impulse';
+      const samples = num('zoomSamples', 10);
+      const fullSweepMs = num('zoomFullSweepMs', num('zoomWideHoldMs', 1500));
+      const stepMs = fullSweepMs / Math.max(1, samples - 1);
+
       const names = anchors.map(a => `${a.label}:id=${a.tag_id}@${(a.distance_mm / 1000).toFixed(2)}m`).join(', ');
-      setZoomStatus(`FULL CALIB: anchors=${names}`);
+
+      setZoomStatus(
+        moveMode === 'sweep_time_steps'
+          ? `FULL CALIB AUTO: saving mode=sweep time steps samples=${samples} full=${fullSweepMs}ms step=${stepMs.toFixed(1)}ms`
+          : `FULL CALIB AUTO: saving mode=legacy impulse samples=${samples}`
+      );
+
+      // Force-save current UI mode before clearing/running.
+      await saveSettingsForAnchor(anchors[0]);
+
+      const savedSettings = await getJson('/api/zoom_calibration/settings').catch(() => null);
+      if (savedSettings) {
+        const savedMode = savedSettings.zoom_move_mode === 'sweep_time_steps' ? 'sweep_time_steps' : 'legacy_impulse';
+        if (savedMode !== moveMode) {
+          throw new Error(`movement mode was not saved: ui=${moveMode} backend=${savedMode}`);
+        }
+      }
+
+      setZoomStatus(
+        moveMode === 'sweep_time_steps'
+          ? `FULL CALIB: mode=sweep time steps step=${stepMs.toFixed(1)}ms anchors=${names}`
+          : `FULL CALIB: mode=legacy impulse anchors=${names}`
+      );
 
       await clearOldProfilesOnce();
 
@@ -5207,12 +5234,23 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       e.stopImmediatePropagation();
 
       const anchors = enabledAnchors();
+      const moveMode = $('zoomMoveMode')?.value || 'legacy_impulse';
+      const samples = num('zoomSamples', 10);
+      const fullSweepMs = num('zoomFullSweepMs', num('zoomWideHoldMs', 1500));
+      const stepMs = fullSweepMs / Math.max(1, samples - 1);
+
+      const movementLine = moveMode === 'sweep_time_steps'
+        ? `Movement: SWEEP TIME STEPS, samples=${samples}, full=${fullSweepMs}ms, step=${stepMs.toFixed(1)}ms`
+        : `Movement: LEGACY IMPULSE, samples=${samples}, impulse=${num('zoomImpulseMs', 170)}ms`;
+
       const msg = [
-        `Run full calibration for ${anchors.length} anchors?`,
+        `Run full automatic calibration for ${anchors.length} anchors?`,
+        '',
+        movementLine,
         '',
         ...anchors.map(a => `${a.label}: id=${a.tag_id}, distance=${(a.distance_mm / 1000).toFixed(2)}m`),
         '',
-        'This will archive old zoom calibration profiles, build master profile, and generate PTZ speed profile.'
+        'This will archive old zoom calibration profiles, run anchors, build master profile, and generate PTZ speed profile.'
       ].join('\n');
 
       if (!window.confirm(msg)) return;
