@@ -1,7 +1,7 @@
 {
   "tag_size_mm": 160,
-  "anchor_tag_id": 11,
-  "anchor_distance_mm": 2400,
+  "anchor_tag_id": 7,
+  "anchor_distance_mm": 6600,
   "samples": 12,
   "impulse_ms": 170,
   "settle_ms": 190,
@@ -9,7 +9,7 @@
   "wide_cmd_sign": -1,
   "wide_hold_ms": 1500,
   "calibration_direction": "wide_to_tele",
-  "active_anchor_label": "mid",
+  "active_anchor_label": "far",
   "anchors": [
     { "label": "near", "enabled": true, "tag_id": 12, "distance_mm": 1000, "tag_size_mm": 160 },
     { "label": "mid", "enabled": true, "tag_id": 11, "distance_mm": 2400, "tag_size_mm": 160 },
