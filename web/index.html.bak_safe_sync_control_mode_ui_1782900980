@@ -1109,7 +1109,7 @@ const target = selectedCandidate || [...candidates].sort((a, b) => Number(b.prop
       });
       if ($('controlMode').value === 'auto') {
         $('controlMode').value = 'assist';
-        safeSyncControlModeUi();
+        syncControlModeUi();
         saveSettings();
         panicStop('reacquire-timeout');
       }
@@ -1429,7 +1429,7 @@ async function ptzApplyConfig() {
 async function ptzStart() {
   $('controlMode').value = 'ptz';
   if ($('auto')) $('auto').checked = false;
-  safeSyncControlModeUi();
+  syncControlModeUi();
   saveSettings();
   disconnectWs();
 
@@ -1520,7 +1520,7 @@ async function ptzStart() {
   const enterPtzMode = async () => {
     $('controlMode').value = 'ptz';
     if ($('auto')) $('auto').checked = false;
-    safeSyncControlModeUi();
+    syncControlModeUi();
     saveSettings();
     disconnectWs();
     await ptzPrecheck();
@@ -2273,63 +2273,17 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     return res;
   }
   let zoomCalibSettingsSaveTimer = null;
-
-  function scheduleZoomCalibSettingsSave(delayMs = 400) {
+  function scheduleZoomCalibSettingsSave() {
     updateZoomActiveAnchorSummary();
     if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings saving...';
     if (zoomCalibSettingsSaveTimer) clearTimeout(zoomCalibSettingsSaveTimer);
     zoomCalibSettingsSaveTimer = setTimeout(() => {
-      zoomCalibSettingsSaveTimer = null;
       saveZoomCalibSettingsFromUi().catch(e => {
         if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings save error';
         ptzLog('ZOOM CALIB SETTINGS save error', { error: String(e.message || e) });
       });
-    }, Math.max(0, Number(delayMs || 0)));
+    }, 400);
   }
-
-  function flushZoomCalibSettingsSaveNow() {
-    updateZoomActiveAnchorSummary();
-    if (zoomCalibSettingsSaveTimer) {
-      clearTimeout(zoomCalibSettingsSaveTimer);
-      zoomCalibSettingsSaveTimer = null;
-    }
-    if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings saving...';
-    return saveZoomCalibSettingsFromUi().catch(e => {
-      if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings save error';
-      ptzLog('ZOOM CALIB SETTINGS save error', { error: String(e.message || e) });
-    });
-  }
-
-  function isZoomCalibAutosaveElement(el) {
-    if (!el || !el.id) return false;
-    if (String(el.id).startsWith('zoomAnchor')) return true;
-    return [
-      'zoomImpulseMs',
-      'zoomSettleMs',
-      'zoomSamples',
-      'zoomCmdAbs',
-      'zoomWideHoldMs',
-      'zoomCalibDirection',
-      'zoomWideSign'
-    ].includes(el.id);
-  }
-
-  function installZoomCalibAutosaveDelegate() {
-    if (window.__zoomCalibAutosaveDelegateInstalled) return;
-    window.__zoomCalibAutosaveDelegateInstalled = true;
-
-    document.addEventListener('input', (e) => {
-      if (!isZoomCalibAutosaveElement(e.target)) return;
-      scheduleZoomCalibSettingsSave(250);
-    }, true);
-
-    document.addEventListener('change', (e) => {
-      if (!isZoomCalibAutosaveElement(e.target)) return;
-      flushZoomCalibSettingsSaveNow();
-    }, true);
-  }
-
-  installZoomCalibAutosaveDelegate();
 
   async function selectZoomAnchor(label, run = false) {
     zoomActiveAnchorLabel = label;
@@ -2392,37 +2346,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     return res;
   }
 
-  function safeSyncControlModeUi() {
-    try {
-      if (typeof syncControlModeUi === 'function') {
-        safeSyncControlModeUi();
-        return;
-      }
-    } catch (_) {}
-
-    try {
-      const selectedMode = $('controlMode')?.value || 'manual';
-      const mode = selectedMode.toUpperCase();
-      const isAuto = selectedMode === 'auto';
-
-      $('modeManualBtn')?.classList.toggle('active', selectedMode === 'manual');
-      $('modePtzBtn')?.classList.toggle('active', selectedMode === 'ptz');
-      $('ptzModeManualBtn')?.classList.toggle('active', selectedMode === 'manual');
-      $('ptzModePtzBtn')?.classList.toggle('active', selectedMode === 'ptz');
-      $('modeAssistBtn')?.classList.toggle('active', selectedMode === 'assist');
-      $('modeAutoBtn')?.classList.toggle('active', isAuto);
-
-      if ($('controlModeChip')) {
-        $('controlModeChip').textContent =
-          zoomAprilTagCalibrationActive && selectedMode === 'ptz'
-            ? 'ACTIVE MODE: PTZ / CALIB SAFE'
-            : `ACTIVE MODE: ${mode}`;
-      }
-    } catch (e) {
-      try { ptzLog('safeSyncControlModeUi error', { error: String(e.message || e) }); } catch (_) {}
-    }
-  }
-
   async function runAprilTagZoomCalibrationFromUi() {
     const prevMode = $('controlMode')?.value || 'manual';
 
@@ -2446,7 +2369,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
       zoomAprilTagCalibrationActive = true;
       zoomCalibInProgress = true;
-      safeSyncControlModeUi();
+      syncControlModeUi();
 
       $('zoomRunAprilTagCalibBtn').disabled = true;
       $('zoomRunAprilTagCalibBtn').classList.add('active');
@@ -2500,7 +2423,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       keyboardState = { up: false, down: false, left: false, right: false, zin: false, zout: false };
 
       panicStop('zoom-apriltag-calibration-end');
-      safeSyncControlModeUi();
+      syncControlModeUi();
     }
   }
 
@@ -2566,7 +2489,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     renderZoomState();
     updateMicrostepLegend();
     syncSafeThresholds();
-    safeSyncControlModeUi();
+    syncControlModeUi();
     setLandscapeToggleState(Boolean(saved.landscapeLock));
     pushConfidenceLayerConfig();
   }

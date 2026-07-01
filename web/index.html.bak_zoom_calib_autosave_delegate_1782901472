@@ -2273,63 +2273,17 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     return res;
   }
   let zoomCalibSettingsSaveTimer = null;
-
-  function scheduleZoomCalibSettingsSave(delayMs = 400) {
+  function scheduleZoomCalibSettingsSave() {
     updateZoomActiveAnchorSummary();
     if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings saving...';
     if (zoomCalibSettingsSaveTimer) clearTimeout(zoomCalibSettingsSaveTimer);
     zoomCalibSettingsSaveTimer = setTimeout(() => {
-      zoomCalibSettingsSaveTimer = null;
       saveZoomCalibSettingsFromUi().catch(e => {
         if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings save error';
         ptzLog('ZOOM CALIB SETTINGS save error', { error: String(e.message || e) });
       });
-    }, Math.max(0, Number(delayMs || 0)));
+    }, 400);
   }
-
-  function flushZoomCalibSettingsSaveNow() {
-    updateZoomActiveAnchorSummary();
-    if (zoomCalibSettingsSaveTimer) {
-      clearTimeout(zoomCalibSettingsSaveTimer);
-      zoomCalibSettingsSaveTimer = null;
-    }
-    if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings saving...';
-    return saveZoomCalibSettingsFromUi().catch(e => {
-      if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings save error';
-      ptzLog('ZOOM CALIB SETTINGS save error', { error: String(e.message || e) });
-    });
-  }
-
-  function isZoomCalibAutosaveElement(el) {
-    if (!el || !el.id) return false;
-    if (String(el.id).startsWith('zoomAnchor')) return true;
-    return [
-      'zoomImpulseMs',
-      'zoomSettleMs',
-      'zoomSamples',
-      'zoomCmdAbs',
-      'zoomWideHoldMs',
-      'zoomCalibDirection',
-      'zoomWideSign'
-    ].includes(el.id);
-  }
-
-  function installZoomCalibAutosaveDelegate() {
-    if (window.__zoomCalibAutosaveDelegateInstalled) return;
-    window.__zoomCalibAutosaveDelegateInstalled = true;
-
-    document.addEventListener('input', (e) => {
-      if (!isZoomCalibAutosaveElement(e.target)) return;
-      scheduleZoomCalibSettingsSave(250);
-    }, true);
-
-    document.addEventListener('change', (e) => {
-      if (!isZoomCalibAutosaveElement(e.target)) return;
-      flushZoomCalibSettingsSaveNow();
-    }, true);
-  }
-
-  installZoomCalibAutosaveDelegate();
 
   async function selectZoomAnchor(label, run = false) {
     zoomActiveAnchorLabel = label;
