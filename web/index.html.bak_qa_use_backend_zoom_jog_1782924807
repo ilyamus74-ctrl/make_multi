@@ -4354,14 +4354,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       count: Math.max(2, count)
     };
 
-    const jogRes = await apiPostJson('/api/zoom/jog', {
-      action: 'start',
-      cmd,
-      hold_ms: keyboardQaFullSweepMs(),
-      source
-    });
-
-    ptzLog('KEYBOARD QA SWEEP JOG START', jogRes);
+    sendZoomOnly(cmd);
 
     ptzLog('KEYBOARD QA SWEEP HOLD START', {
       source,
@@ -4384,13 +4377,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     const h = keyboardQaSweepHold;
     keyboardQaSweepHold = null;
 
-    const jogStopRes = await apiPostJson('/api/zoom/jog', {
-      action: 'stop',
-      cmd: 0,
-      source: 'keyboard_qa_sweep_hold_stop'
-    });
-
-    ptzLog('KEYBOARD QA SWEEP JOG STOP', jogStopRes);
+    sendZoomOnly(0);
 
     const heldMs = Math.max(0, performance.now() - h.startTs);
     const step = keyboardQaStepMs();
@@ -4463,7 +4450,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       if (keyboardQaIsSweepMode()) {
         keyboardQaSweepStart(isQ, isQ ? 'Q_TELE_SWEEP_HOLD' : 'A_WIDE_SWEEP_HOLD')
           .catch(e => {
-            apiPostJson('/api/zoom/jog', { action: 'stop', cmd: 0 }).catch(() => sendZoomOnly(0));
+            sendZoomOnly(0);
             keyboardQaSweepHold = null;
             ptzLog('KEYBOARD QA SWEEP START error', { error: String(e.message || e) });
           });
