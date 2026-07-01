@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "active": "bird_single",
+  "version": 2,
+  "active": "person_single",
   "presets": {
     "person_single": {
       "label": "Человек",
@@ -25,7 +25,40 @@
         "auto_zoom_period_ms": 350
       },
       "tracking_mode": "single_auto",
-      "auto_arm_on_click": true
+      "auto_arm_on_click": true,
+      "loss_behavior": "continuous_wide_scan_x",
+      "search_plan": {
+        "zoom_wide_on_start": true,
+        "zoom_wide_on_lost": true,
+        "zoom_wide_every_cycles": 4,
+        "detect_attempts_per_sector": 8,
+        "detect_delay_sec": 0.25,
+        "tracker_wait_sec": 4.5,
+        "pan_pulse_ms": 110,
+        "tilt_pulse_ms": 90,
+        "pan_norm": 0.65,
+        "tilt_norm": 0.0,
+        "pattern": [
+          {
+            "name": "scan_left",
+            "pan": -0.65,
+            "tilt": 0.0,
+            "repeat": 4
+          },
+          {
+            "name": "scan_right",
+            "pan": 0.65,
+            "tilt": 0.0,
+            "repeat": 8
+          },
+          {
+            "name": "scan_left_return",
+            "pan": -0.65,
+            "tilt": 0.0,
+            "repeat": 4
+          }
+        ]
+      }
     },
     "people": {
       "label": "Люди",
@@ -50,7 +83,49 @@
         "auto_zoom_period_ms": 450
       },
       "tracking_mode": "multi_operator",
-      "auto_arm_on_click": false
+      "auto_arm_on_click": false,
+      "loss_behavior": "operator_select",
+      "search_plan": {
+        "zoom_wide_on_start": true,
+        "steps": [
+          {
+            "name": "left_wide",
+            "zoom": "wide",
+            "pan": -0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 6,
+            "detect_attempts": 8
+          },
+          {
+            "name": "center_wide",
+            "zoom": "none",
+            "pan": 0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 6,
+            "detect_attempts": 8
+          },
+          {
+            "name": "right_wide",
+            "zoom": "none",
+            "pan": 0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 6,
+            "detect_attempts": 8
+          },
+          {
+            "name": "return_left",
+            "zoom": "wide",
+            "pan": -0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 12,
+            "detect_attempts": 8
+          }
+        ]
+      }
     },
     "car_single": {
       "label": "Машина",
@@ -78,7 +153,40 @@
         "auto_zoom_period_ms": 450
       },
       "tracking_mode": "single_auto",
-      "auto_arm_on_click": true
+      "auto_arm_on_click": true,
+      "loss_behavior": "continuous_wide_scan_x",
+      "search_plan": {
+        "zoom_wide_on_start": true,
+        "zoom_wide_on_lost": true,
+        "zoom_wide_every_cycles": 4,
+        "detect_attempts_per_sector": 8,
+        "detect_delay_sec": 0.25,
+        "tracker_wait_sec": 4.5,
+        "pan_pulse_ms": 110,
+        "tilt_pulse_ms": 90,
+        "pan_norm": 0.65,
+        "tilt_norm": 0.0,
+        "pattern": [
+          {
+            "name": "scan_left",
+            "pan": -0.65,
+            "tilt": 0.0,
+            "repeat": 4
+          },
+          {
+            "name": "scan_right",
+            "pan": 0.65,
+            "tilt": 0.0,
+            "repeat": 8
+          },
+          {
+            "name": "scan_left_return",
+            "pan": -0.65,
+            "tilt": 0.0,
+            "repeat": 4
+          }
+        ]
+      }
     },
     "cars": {
       "label": "Машины",
@@ -106,7 +214,49 @@
         "auto_zoom_period_ms": 500
       },
       "tracking_mode": "multi_operator",
-      "auto_arm_on_click": false
+      "auto_arm_on_click": false,
+      "loss_behavior": "operator_select",
+      "search_plan": {
+        "zoom_wide_on_start": true,
+        "steps": [
+          {
+            "name": "left_wide",
+            "zoom": "wide",
+            "pan": -0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 6,
+            "detect_attempts": 8
+          },
+          {
+            "name": "center_wide",
+            "zoom": "none",
+            "pan": 0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 6,
+            "detect_attempts": 8
+          },
+          {
+            "name": "right_wide",
+            "zoom": "none",
+            "pan": 0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 6,
+            "detect_attempts": 8
+          },
+          {
+            "name": "return_left",
+            "zoom": "wide",
+            "pan": -0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 12,
+            "detect_attempts": 8
+          }
+        ]
+      }
     },
     "airplane_single": {
       "label": "Самолёт",
@@ -131,7 +281,40 @@
         "auto_zoom_period_ms": 350
       },
       "tracking_mode": "single_auto",
-      "auto_arm_on_click": true
+      "auto_arm_on_click": true,
+      "loss_behavior": "continuous_wide_scan_x",
+      "search_plan": {
+        "zoom_wide_on_start": true,
+        "zoom_wide_on_lost": true,
+        "zoom_wide_every_cycles": 4,
+        "detect_attempts_per_sector": 8,
+        "detect_delay_sec": 0.25,
+        "tracker_wait_sec": 4.5,
+        "pan_pulse_ms": 110,
+        "tilt_pulse_ms": 90,
+        "pan_norm": 0.65,
+        "tilt_norm": 0.0,
+        "pattern": [
+          {
+            "name": "scan_left",
+            "pan": -0.65,
+            "tilt": 0.0,
+            "repeat": 4
+          },
+          {
+            "name": "scan_right",
+            "pan": 0.65,
+            "tilt": 0.0,
+            "repeat": 8
+          },
+          {
+            "name": "scan_left_return",
+            "pan": -0.65,
+            "tilt": 0.0,
+            "repeat": 4
+          }
+        ]
+      }
     },
     "airplanes": {
       "label": "Самолёты",
@@ -156,7 +339,49 @@
         "auto_zoom_period_ms": 400
       },
       "tracking_mode": "multi_operator",
-      "auto_arm_on_click": false
+      "auto_arm_on_click": false,
+      "loss_behavior": "operator_select",
+      "search_plan": {
+        "zoom_wide_on_start": true,
+        "steps": [
+          {
+            "name": "left_wide",
+            "zoom": "wide",
+            "pan": -0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 6,
+            "detect_attempts": 8
+          },
+          {
+            "name": "center_wide",
+            "zoom": "none",
+            "pan": 0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 6,
+            "detect_attempts": 8
+          },
+          {
+            "name": "right_wide",
+            "zoom": "none",
+            "pan": 0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 6,
+            "detect_attempts": 8
+          },
+          {
+            "name": "return_left",
+            "zoom": "wide",
+            "pan": -0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 12,
+            "detect_attempts": 8
+          }
+        ]
+      }
     },
     "bird_single": {
       "label": "Птица",
@@ -181,7 +406,40 @@
         "auto_zoom_period_ms": 300
       },
       "tracking_mode": "single_auto",
-      "auto_arm_on_click": true
+      "auto_arm_on_click": true,
+      "loss_behavior": "continuous_wide_scan_x",
+      "search_plan": {
+        "zoom_wide_on_start": true,
+        "zoom_wide_on_lost": true,
+        "zoom_wide_every_cycles": 4,
+        "detect_attempts_per_sector": 8,
+        "detect_delay_sec": 0.25,
+        "tracker_wait_sec": 4.5,
+        "pan_pulse_ms": 110,
+        "tilt_pulse_ms": 90,
+        "pan_norm": 0.65,
+        "tilt_norm": 0.0,
+        "pattern": [
+          {
+            "name": "scan_left",
+            "pan": -0.65,
+            "tilt": 0.0,
+            "repeat": 4
+          },
+          {
+            "name": "scan_right",
+            "pan": 0.65,
+            "tilt": 0.0,
+            "repeat": 8
+          },
+          {
+            "name": "scan_left_return",
+            "pan": -0.65,
+            "tilt": 0.0,
+            "repeat": 4
+          }
+        ]
+      }
     },
     "birds": {
       "label": "Птицы",
@@ -206,7 +464,49 @@
         "auto_zoom_period_ms": 300
       },
       "tracking_mode": "multi_operator",
-      "auto_arm_on_click": false
+      "auto_arm_on_click": false,
+      "loss_behavior": "operator_select",
+      "search_plan": {
+        "zoom_wide_on_start": true,
+        "steps": [
+          {
+            "name": "left_wide",
+            "zoom": "wide",
+            "pan": -0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 6,
+            "detect_attempts": 8
+          },
+          {
+            "name": "center_wide",
+            "zoom": "none",
+            "pan": 0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 6,
+            "detect_attempts": 8
+          },
+          {
+            "name": "right_wide",
+            "zoom": "none",
+            "pan": 0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 6,
+            "detect_attempts": 8
+          },
+          {
+            "name": "return_left",
+            "zoom": "wide",
+            "pan": -0.7,
+            "tilt": 0.0,
+            "pulse_ms": 120,
+            "repeat": 12,
+            "detect_attempts": 8
+          }
+        ]
+      }
     }
   }
 }

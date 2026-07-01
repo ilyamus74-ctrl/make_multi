@@ -9,9 +9,47 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 PRESET_FILE = ROOT / "ptz_object_presets.json"
 SETTINGS_FILE = ROOT / "ui_settings.json"
+EVENT_LOG_FILE = ROOT / "object_tracking_events.jsonl"
+STATE_FILE = ROOT / "object_tracking_state.json"
 
 MJPEG_BASE = "http://127.0.0.1:8080"
 AUTOPILOT_BASE = "http://127.0.0.1:8090"
+
+
+def now_ts():
+    return time.time()
+
+
+def event_log(event, **payload):
+    row = {
+        "ts": round(now_ts(), 3),
+        "event": event,
+        **payload
+    }
+
+    try:
+        with EVENT_LOG_FILE.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+    except Exception:
+        pass
+
+    return row
+
+
+def write_state(**payload):
+    row = {
+        "ts": round(now_ts(), 3),
+        **payload
+    }
+
+    try:
+        tmp = STATE_FILE.with_suffix(".json.tmp")
+        tmp.write_text(json.dumps(row, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        tmp.replace(STATE_FILE)
+    except Exception:
+        pass
+
+    return row
 
 
 def http_json(method, url, payload=None, timeout=3):
@@ -37,8 +75,8 @@ def get_json(url, timeout=3):
     return http_json("GET", url, None, timeout)
 
 
-def post_json(url, payload, timeout=3):
-    return http_json("POST", url, payload, timeout)
+def post_json(url, payload=None, timeout=3):
+    return http_json("POST", url, payload or {}, timeout)
 
 
 def load_json_file(path, default):
@@ -46,7 +84,7 @@ def load_json_file(path, default):
         if path.exists():
             return json.loads(path.read_text(encoding="utf-8"))
     except Exception as e:
-        print(f"WARN: failed to read {path}: {e}", file=sys.stderr)
+        event_log("json_load_error", path=str(path), error=str(e))
     return default
 
 
@@ -57,12 +95,12 @@ def save_json_file(path, data):
 
 
 def load_all_presets():
-    base = load_json_file(PRESET_FILE, {"version": 1, "active": "person_single", "presets": {}})
+    base = load_json_file(PRESET_FILE, {"version": 2, "active": "person_single", "presets": {}})
     settings = load_json_file(SETTINGS_FILE, {})
 
     presets = dict(base.get("presets") or {})
-    custom = settings.get("objectPresetsCustom") or {}
 
+    custom = settings.get("objectPresetsCustom") or {}
     if isinstance(custom, dict):
         presets.update(custom)
 
@@ -162,9 +200,595 @@ def roi_payload(mode):
     return {"detection_mode": "full_frame", "rois": []}
 
 
+def item_score(item):
+    try:
+        return float(item.get("prop") or item.get("score") or item.get("conf") or 0)
+    except Exception:
+        return 0.0
+
+
+def item_track_id(item):
+    try:
+        return int(item.get("id"))
+    except Exception:
+        return None
+
+
+def item_class(item):
+    try:
+        return int(item.get("cls"))
+    except Exception:
+        return None
+
+
+def item_box(item):
+    for keys in [
+        ("left", "top", "right", "bottom"),
+        ("l", "t", "r", "b"),
+        ("x1", "y1", "x2", "y2"),
+    ]:
+        if all(k in item for k in keys):
+            try:
+                return (
+                    float(item[keys[0]]),
+                    float(item[keys[1]]),
+                    float(item[keys[2]]),
+                    float(item[keys[3]]),
+                )
+            except Exception:
+                pass
+
+    if all(k in item for k in ("x", "y", "w", "h")):
+        try:
+            x = float(item["x"])
+            y = float(item["y"])
+            w = float(item["w"])
+            h = float(item["h"])
+            return (x, y, x + w, y + h)
+        except Exception:
+            pass
+
+    bbox = item.get("bbox")
+    if isinstance(bbox, list) and len(bbox) >= 4:
+        try:
+            a, b, c, d = [float(x) for x in bbox[:4]]
+            if c > 0 and d > 0 and c < 1.5 and d < 1.5:
+                return (a, b, a + c, b + d)
+            return (a, b, c, d)
+        except Exception:
+            pass
+
+    return None
+
+
+def detection_frame_size(det):
+    try:
+        w = int(det.get("width") or 1920)
+        h = int(det.get("height") or 1080)
+        return max(1, w), max(1, h)
+    except Exception:
+        return 1920, 1080
+
+
+def item_center_norm(item, det=None):
+    box = item_box(item)
+    if not box:
+        return None
+
+    l, t, r, b = box
+    cx = (l + r) * 0.5
+    cy = (t + b) * 0.5
+
+    if 0 <= cx <= 1.5 and 0 <= cy <= 1.5:
+        return cx, cy
+
+    w, h = detection_frame_size(det or {})
+    return cx / max(1, w), cy / max(1, h)
+
+
+def choose_best_detection_once(classes):
+    wanted = {int(x) for x in classes or []}
+    det = get_json(f"{MJPEG_BASE}/api/detections", timeout=3)
+
+    items = det.get("items") if isinstance(det, dict) else []
+    items = items if isinstance(items, list) else []
+
+    candidates = []
+
+    for item in items:
+        cls = item_class(item)
+        if wanted and cls not in wanted:
+            continue
+
+        tid = item_track_id(item)
+        if tid is None:
+            continue
+
+        candidates.append({
+            "item": item,
+            "score": item_score(item),
+            "track_id": tid,
+            "cls": cls,
+            "center": item_center_norm(item, det)
+        })
+
+    candidates.sort(key=lambda x: x["score"], reverse=True)
+
+    return {
+        "det": det,
+        "items_total": len(items),
+        "candidates": candidates,
+        "best": candidates[0]["item"] if candidates else None
+    }
+
+
+def zoom_wide_pulse(reason="search", hold_ms=220):
+    try:
+        settings = {}
+        try:
+            settings = get_json(f"{MJPEG_BASE}/api/zoom_calibration/settings", timeout=2)
+        except Exception:
+            settings = {}
+
+        cmd_abs = int(settings.get("cmd_abs") or 12)
+        wide_sign = int(settings.get("wide_cmd_sign") or -1)
+        cmd = wide_sign * max(1, min(34, cmd_abs))
+        hold_ms = max(80, min(2000, int(hold_ms)))
+
+        post_json(f"{MJPEG_BASE}/api/zoom/jog", {
+            "action": "start",
+            "cmd": cmd,
+            "hold_ms": hold_ms,
+            "source": f"auto_arm_{reason}"
+        }, timeout=2)
+
+        time.sleep((hold_ms + 80) / 1000.0)
+
+        try:
+            post_json(f"{MJPEG_BASE}/api/zoom/jog", {
+                "action": "stop",
+                "cmd": 0,
+                "source": f"auto_arm_{reason}_stop"
+            }, timeout=2)
+        except Exception:
+            pass
+
+        event_log("zoom_wide_pulse", reason=reason, ok=True, cmd=cmd, hold_ms=hold_ms)
+        return {"ok": True, "cmd": cmd, "hold_ms": hold_ms}
+
+    except Exception as e:
+        event_log("zoom_wide_pulse", reason=reason, ok=False, error=str(e))
+        return {"ok": False, "error": str(e)}
+
+
+def manual_search_pulse(pan=0.0, tilt=0.0, pulse_ms=100, source="auto_arm_search"):
+    try:
+        res = post_json(f"{AUTOPILOT_BASE}/api/control/manual_j_pulse", {
+            "pan": float(pan),
+            "tilt": float(tilt),
+            "pulse_ms": int(pulse_ms),
+            "source": source
+        }, timeout=2)
+
+        time.sleep(max(0.05, min(0.4, pulse_ms / 1000.0 + 0.05)))
+
+        event_log("manual_search_pulse", ok=True, pan=pan, tilt=tilt, pulse_ms=pulse_ms, res=res)
+        return {"ok": True, "pan": pan, "tilt": tilt, "pulse_ms": pulse_ms, "res": res}
+
+    except Exception as e:
+        event_log("manual_search_pulse", ok=False, pan=pan, tilt=tilt, pulse_ms=pulse_ms, error=str(e))
+        return {"ok": False, "error": str(e)}
+
+
+def wait_tracker_ready(track_id=None, max_wait_s=4.0, delay=0.25):
+    deadline = time.time() + max_wait_s
+    last = None
+
+    while time.time() < deadline:
+        try:
+            tr = get_json(f"{MJPEG_BASE}/api/tracker/state", timeout=3)
+            last = tr
+
+            mode = tr.get("mode")
+            valid = tr.get("selected_box_valid") is True
+            selected = tr.get("selected_track_id")
+
+            try:
+                selected_int = int(selected)
+            except Exception:
+                selected_int = None
+
+            if mode == "TRACKING" and valid:
+                if track_id is None or selected_int == int(track_id):
+                    return {"ok": True, "tracker": tr}
+
+                if time.time() > deadline - max_wait_s + 1.2:
+                    return {"ok": True, "tracker": tr}
+
+        except Exception as e:
+            last = {"error": str(e)}
+
+        time.sleep(delay)
+
+    return {"ok": False, "tracker": last}
+
+
+def stop_ptz():
+    try:
+        post_json(f"{AUTOPILOT_BASE}/api/autopilot/stop", {}, timeout=2)
+    except Exception:
+        pass
+
+    try:
+        post_json(f"{AUTOPILOT_BASE}/api/control/stop", {}, timeout=2)
+    except Exception:
+        pass
+
+
+def start_selected_target():
+    try:
+        tr = get_json(f"{MJPEG_BASE}/api/tracker/state", timeout=3)
+
+        if tr.get("mode") != "TRACKING" or tr.get("selected_box_valid") is not True:
+            return {"ok": False, "reason": "tracker_not_ready", "tracker": tr}
+
+        start_res = post_json(f"{AUTOPILOT_BASE}/api/autopilot/start", {}, timeout=3)
+
+        ap_last = None
+        for _ in range(12):
+            time.sleep(0.25)
+            ap_last = get_json(f"{AUTOPILOT_BASE}/api/autopilot/state", timeout=3)
+            if ap_last.get("enabled") is True:
+                return {
+                    "ok": True,
+                    "start": start_res,
+                    "autopilot": ap_last,
+                    "tracker": tr
+                }
+
+        return {
+            "ok": False,
+            "reason": "autopilot_not_enabled_after_start",
+            "start": start_res,
+            "autopilot": ap_last,
+            "tracker": tr
+        }
+
+    except Exception as e:
+        return {"ok": False, "reason": "start_exception", "error": str(e)}
+
+
+def try_acquire_once(classes, tracker_wait_sec=4.5):
+    found = choose_best_detection_once(classes)
+    target = found["best"]
+
+    if target is None:
+        return {
+            "ok": False,
+            "reason": "no_candidate",
+            "items_total": found.get("items_total"),
+            "candidates": len(found.get("candidates") or [])
+        }
+
+    tid = item_track_id(target)
+
+    event_log(
+        "candidate_found",
+        track_id=tid,
+        cls=item_class(target),
+        score=item_score(target),
+        center=item_center_norm(target, found.get("det"))
+    )
+
+    try:
+        post_json(f"{MJPEG_BASE}/api/tracker/clear", {}, timeout=2)
+    except Exception:
+        pass
+
+    time.sleep(0.12)
+
+    select_res = post_json(f"{MJPEG_BASE}/api/tracker/select", {"track_id": tid}, timeout=3)
+    ready = wait_tracker_ready(track_id=tid, max_wait_s=tracker_wait_sec, delay=0.25)
+
+    if not ready.get("ok"):
+        event_log("tracker_not_ready_after_select", track_id=tid, tracker=ready.get("tracker"))
+        return {
+            "ok": False,
+            "reason": "tracker_not_ready",
+            "target": target,
+            "select": select_res,
+            "tracker": ready.get("tracker")
+        }
+
+    start_res = start_selected_target()
+
+    if start_res.get("ok"):
+        event_log("tracking_started", track_id=tid, cls=item_class(target), score=item_score(target))
+        return {
+            "ok": True,
+            "target": target,
+            "select": select_res,
+            "tracker": ready.get("tracker"),
+            "start": start_res
+        }
+
+    event_log("tracking_start_failed", track_id=tid, result=start_res)
+    return {
+        "ok": False,
+        "reason": "autopilot_start_failed",
+        "target": target,
+        "select": select_res,
+        "tracker": ready.get("tracker"),
+        "start": start_res
+    }
+
+
+def scan_step_default(plan, step_index):
+    pattern = plan.get("pattern") or [
+        {"name": "scan_left", "pan": -0.65, "tilt": 0.0, "repeat": 4},
+        {"name": "scan_right", "pan": 0.65, "tilt": 0.0, "repeat": 8},
+        {"name": "scan_left_return", "pan": -0.65, "tilt": 0.0, "repeat": 4},
+    ]
+
+    return pattern[step_index % len(pattern)]
+
+
+def run_once_fail_stop(classes, max_seconds, preset_name):
+    stop_ptz()
+
+    deadline = time.time() + max(3.0, float(max_seconds or 20))
+    events = []
+
+    while time.time() < deadline:
+        res = try_acquire_once(classes, tracker_wait_sec=4.5)
+        events.append(res)
+
+        if res.get("ok"):
+            write_state(mode="tracking", preset=preset_name, result=res)
+            return {"ok": True, "mode": "once_fail_stop", "result": res, "events": events[-10:]}
+
+        time.sleep(0.35)
+
+    stop_ptz()
+
+    out = {
+        "ok": False,
+        "mode": "once_fail_stop",
+        "reason": "target_not_acquired",
+        "preset": preset_name,
+        "events": events[-20:]
+    }
+
+    event_log("target_not_acquired_stop", preset=preset_name, mode="once_fail_stop")
+    write_state(mode="stopped", preset=preset_name, result=out)
+    return out
+
+
+def run_continuous_wide_scan_x(classes, preset_name, plan, max_seconds=0):
+    stop_ptz()
+
+    if plan.get("zoom_wide_on_start", True):
+        zoom_wide_pulse("scan_start", hold_ms=260)
+
+    deadline = None
+    if max_seconds and float(max_seconds) > 0:
+        deadline = time.time() + float(max_seconds)
+
+    cycle = 0
+    last_status = None
+
+    event_log("continuous_scan_start", preset=preset_name, classes=classes)
+
+    while True:
+        if deadline and time.time() >= deadline:
+            stop_ptz()
+            out = {
+                "ok": False,
+                "mode": "continuous_wide_scan_x",
+                "reason": "max_seconds_reached",
+                "preset": preset_name
+            }
+            event_log("continuous_scan_finished", **out)
+            write_state(mode="stopped", preset=preset_name, result=out)
+            return out
+
+        try:
+            tr = get_json(f"{MJPEG_BASE}/api/tracker/state", timeout=3)
+            ap = get_json(f"{AUTOPILOT_BASE}/api/autopilot/state", timeout=3)
+
+            tracking_ok = (
+                ap.get("enabled") is True
+                and tr.get("mode") == "TRACKING"
+                and tr.get("selected_box_valid") is True
+            )
+
+            if tracking_ok:
+                status = {
+                    "mode": "tracking",
+                    "preset": preset_name,
+                    "track_id": tr.get("selected_track_id"),
+                    "ptz": ap.get("mode"),
+                    "cmd_pan": ap.get("cmd_pan"),
+                    "cmd_tilt": ap.get("cmd_tilt")
+                }
+
+                if status != last_status:
+                    event_log("tracking", **status)
+                    write_state(**status)
+                    last_status = status
+
+                time.sleep(0.5)
+                continue
+
+            if ap.get("enabled") is True:
+                event_log("lost_object", preset=preset_name, tracker=tr, autopilot=ap)
+                stop_ptz()
+
+                if plan.get("zoom_wide_on_lost", True):
+                    zoom_wide_pulse("lost", hold_ms=260)
+
+            acquire = try_acquire_once(classes, tracker_wait_sec=float(plan.get("tracker_wait_sec") or 4.5))
+
+            if acquire.get("ok"):
+                write_state(mode="tracking", preset=preset_name, result=acquire)
+                cycle = 0
+                continue
+
+            step = scan_step_default(plan, cycle)
+            repeat = max(1, int(step.get("repeat") or 1))
+            pan = float(step.get("pan") or 0.0)
+            tilt = float(step.get("tilt") or 0.0)
+            pulse_ms = int(step.get("pulse_ms") or plan.get("pan_pulse_ms") or 110)
+
+            event_log(
+                "scan_step",
+                preset=preset_name,
+                cycle=cycle,
+                step=step.get("name") or f"step_{cycle}",
+                pan=pan,
+                tilt=tilt,
+                repeat=repeat
+            )
+
+            if plan.get("zoom_wide_every_cycles", 0):
+                n = int(plan.get("zoom_wide_every_cycles") or 0)
+                if n > 0 and cycle > 0 and cycle % n == 0:
+                    zoom_wide_pulse("scan_cycle", hold_ms=220)
+
+            for _ in range(repeat):
+                manual_search_pulse(pan=pan, tilt=tilt, pulse_ms=pulse_ms)
+                acquire = try_acquire_once(classes, tracker_wait_sec=float(plan.get("tracker_wait_sec") or 4.5))
+
+                if acquire.get("ok"):
+                    write_state(mode="tracking", preset=preset_name, result=acquire)
+                    break
+
+            cycle += 1
+
+        except KeyboardInterrupt:
+            stop_ptz()
+            out = {"ok": False, "mode": "continuous_wide_scan_x", "reason": "interrupted"}
+            event_log("continuous_scan_interrupted", preset=preset_name)
+            write_state(mode="stopped", preset=preset_name, result=out)
+            return out
+
+        except Exception as e:
+            event_log("continuous_scan_exception", preset=preset_name, error=str(e))
+            write_state(mode="search_error", preset=preset_name, error=str(e))
+            time.sleep(0.5)
+
+
+def run_custom_search_plan(classes, preset_name, plan, max_seconds=0):
+    stop_ptz()
+
+    deadline = None
+    if max_seconds and float(max_seconds) > 0:
+        deadline = time.time() + float(max_seconds)
+
+    steps = plan.get("steps") or []
+    if not steps:
+        return run_continuous_wide_scan_x(classes, preset_name, plan, max_seconds=max_seconds)
+
+    if plan.get("zoom_wide_on_start", True):
+        zoom_wide_pulse("plan_start", hold_ms=260)
+
+    event_log("custom_plan_start", preset=preset_name, classes=classes, steps=len(steps))
+
+    step_index = 0
+
+    while True:
+        if deadline and time.time() >= deadline:
+            stop_ptz()
+            out = {
+                "ok": False,
+                "mode": "custom_search_plan",
+                "reason": "max_seconds_reached",
+                "preset": preset_name
+            }
+            event_log("custom_plan_finished", **out)
+            write_state(mode="stopped", preset=preset_name, result=out)
+            return out
+
+        try:
+            tr = get_json(f"{MJPEG_BASE}/api/tracker/state", timeout=3)
+            ap = get_json(f"{AUTOPILOT_BASE}/api/autopilot/state", timeout=3)
+
+            tracking_ok = (
+                ap.get("enabled") is True
+                and tr.get("mode") == "TRACKING"
+                and tr.get("selected_box_valid") is True
+            )
+
+            if tracking_ok:
+                write_state(
+                    mode="tracking",
+                    preset=preset_name,
+                    track_id=tr.get("selected_track_id"),
+                    cmd_pan=ap.get("cmd_pan"),
+                    cmd_tilt=ap.get("cmd_tilt")
+                )
+                time.sleep(0.5)
+                continue
+
+            if ap.get("enabled") is True:
+                event_log("lost_object_custom_plan", preset=preset_name, tracker=tr)
+                stop_ptz()
+
+            acquire = try_acquire_once(classes, tracker_wait_sec=float(plan.get("tracker_wait_sec") or 4.5))
+            if acquire.get("ok"):
+                write_state(mode="tracking", preset=preset_name, result=acquire)
+                continue
+
+            step = steps[step_index % len(steps)]
+            step_index += 1
+
+            name = step.get("name") or f"step_{step_index}"
+            zoom = str(step.get("zoom") or "none")
+            repeat = max(1, int(step.get("repeat") or 1))
+            pulse_ms = int(step.get("pulse_ms") or 110)
+            pan = float(step.get("pan") or 0.0)
+            tilt = float(step.get("tilt") or 0.0)
+            detect_attempts = max(1, int(step.get("detect_attempts") or 6))
+
+            event_log(
+                "custom_plan_step",
+                preset=preset_name,
+                name=name,
+                zoom=zoom,
+                repeat=repeat,
+                pan=pan,
+                tilt=tilt,
+                detect_attempts=detect_attempts
+            )
+
+            if zoom == "wide":
+                zoom_wide_pulse(f"custom_{name}", hold_ms=int(step.get("zoom_hold_ms") or 260))
+
+            for _ in range(repeat):
+                manual_search_pulse(pan=pan, tilt=tilt, pulse_ms=pulse_ms)
+
+                for _ in range(detect_attempts):
+                    acquire = try_acquire_once(classes, tracker_wait_sec=float(plan.get("tracker_wait_sec") or 4.5))
+                    if acquire.get("ok"):
+                        write_state(mode="tracking", preset=preset_name, result=acquire)
+                        break
+                    time.sleep(float(step.get("detect_delay_sec") or 0.2))
+
+        except KeyboardInterrupt:
+            stop_ptz()
+            out = {"ok": False, "mode": "custom_search_plan", "reason": "interrupted"}
+            event_log("custom_plan_interrupted", preset=preset_name)
+            write_state(mode="stopped", preset=preset_name, result=out)
+            return out
+
+        except Exception as e:
+            event_log("custom_plan_exception", preset=preset_name, error=str(e))
+            write_state(mode="search_error", preset=preset_name, error=str(e))
+            time.sleep(0.5)
+
+
 def merge_settings(settings, preset_name, preset, ptz_armed=None):
     out = dict(settings or {})
-
     classes = list(preset.get("classes") or [])
     ptz = dict(preset.get("ptz") or {})
 
@@ -176,6 +800,7 @@ def merge_settings(settings, preset_name, preset, ptz_armed=None):
     out["operatorDetectEvery"] = int(preset.get("detect_every_n_frames") or 1)
     out["operatorDetectionAreaMode"] = str(preset.get("detection_mode") or "full_frame")
     out["objectPresetTrackingMode"] = str(preset.get("tracking_mode") or "manual_select")
+    out["objectPresetLossBehavior"] = str(preset.get("loss_behavior") or "once_fail_stop")
 
     if ptz_armed is not None:
         out["ptzArmed"] = bool(ptz_armed)
@@ -193,129 +818,20 @@ def merge_settings(settings, preset_name, preset, ptz_armed=None):
         "name": preset_name,
         "label": preset.get("label") or preset_name,
         "tracking_mode": preset.get("tracking_mode") or "manual_select",
+        "loss_behavior": preset.get("loss_behavior") or "once_fail_stop",
         "ts": int(time.time())
     }
 
     return out
 
 
-def choose_best_detection(classes, attempts=30, delay=0.25):
-    wanted = {int(x) for x in classes or []}
-    last_count = 0
-
-    for _ in range(max(1, attempts)):
-        det = get_json(f"{MJPEG_BASE}/api/detections", timeout=3)
-        items = det.get("items") if isinstance(det, dict) else []
-        items = items if isinstance(items, list) else []
-        last_count = len(items)
-
-        candidates = []
-
-        for item in items:
-            try:
-                cls = int(item.get("cls"))
-            except Exception:
-                cls = None
-
-            if wanted and cls not in wanted:
-                continue
-
-            try:
-                score = float(item.get("prop") or item.get("score") or item.get("conf") or 0)
-            except Exception:
-                score = 0.0
-
-            try:
-                tid = int(item.get("id"))
-            except Exception:
-                continue
-
-            candidates.append((score, tid, item))
-
-        if candidates:
-            candidates.sort(key=lambda x: x[0], reverse=True)
-            return candidates[0][2]
-
-        time.sleep(delay)
-
-    raise RuntimeError(f"no matching detections after attempts; total_last={last_count}; classes={sorted(wanted)}")
-
-
-def select_target_and_start(classes, attempts=30, delay=0.25):
-    target = choose_best_detection(classes, attempts=attempts, delay=delay)
-    track_id = int(target["id"])
-
-    post_json(f"{MJPEG_BASE}/api/tracker/clear", {})
-    select_res = post_json(f"{MJPEG_BASE}/api/tracker/select", {"track_id": track_id})
-
-    time.sleep(0.4)
-
-    tr = get_json(f"{MJPEG_BASE}/api/tracker/state", timeout=3)
-
-    if tr.get("mode") != "TRACKING" or tr.get("selected_box_valid") is not True:
-        raise RuntimeError(f"tracker not ready after select: {tr}")
-
-    start_res = post_json(f"{AUTOPILOT_BASE}/api/autopilot/start", {})
-
-    time.sleep(0.2)
-
-    ap = get_json(f"{AUTOPILOT_BASE}/api/autopilot/state", timeout=3)
-
-    return {
-        "target": target,
-        "select": select_res,
-        "tracker": tr,
-        "start": start_res,
-        "autopilot": ap
-    }
-
-
-def stop_ptz():
-    try:
-        post_json(f"{AUTOPILOT_BASE}/api/autopilot/stop", {})
-    except Exception:
-        pass
-
-    try:
-        post_json(f"{AUTOPILOT_BASE}/api/control/stop", {})
-    except Exception:
-        pass
-
-
-def apply_preset(preset_name, preset, set_active=True, dry_run=False, arm="off", select_attempts=30, select_delay=0.25):
+def apply_preset_config(preset_name, preset, set_active=True, ptz_armed=None):
     classes = [int(x) for x in (preset.get("classes") or [])]
     mode = str(preset.get("detection_mode") or "full_frame")
     max_det = int(preset.get("max_detections") or 10)
     max_raw = int(preset.get("max_raw_candidates") or max(20, max_det * 5))
     every = int(preset.get("detect_every_n_frames") or 1)
     ptz = dict(preset.get("ptz") or {})
-    tracking_mode = str(preset.get("tracking_mode") or "manual_select")
-
-    base, settings, presets, active = load_all_presets()
-
-    should_arm = False
-    if arm == "force":
-        should_arm = tracking_mode == "single_auto"
-    elif arm == "auto":
-        should_arm = bool(settings.get("ptzArmed")) and tracking_mode == "single_auto"
-
-    report = {
-        "preset": preset_name,
-        "label": preset.get("label") or preset_name,
-        "tracking_mode": tracking_mode,
-        "classes": classes,
-        "detection_mode": mode,
-        "max_detections": max_det,
-        "max_raw_candidates": max_raw,
-        "detect_every_n_frames": every,
-        "ptz": ptz,
-        "arm": arm,
-        "should_arm": should_arm
-    }
-
-    if dry_run:
-        print(json.dumps({"ok": True, "dry_run": True, "would_apply": report}, indent=2, ensure_ascii=False))
-        return report
 
     wait_api(f"{MJPEG_BASE}/api/ping", attempts=30, delay=0.25)
     wait_api(f"{AUTOPILOT_BASE}/api/autopilot/state", attempts=30, delay=0.25)
@@ -340,15 +856,10 @@ def apply_preset(preset_name, preset, set_active=True, dry_run=False, arm="off",
     if ptz:
         ptz_res = post_json(f"{AUTOPILOT_BASE}/api/autopilot/config", ptz)
 
-    arm_res = None
-    if should_arm:
-        arm_res = select_target_and_start(classes, attempts=select_attempts, delay=select_delay)
+    base, settings, presets, active = load_all_presets()
 
     if set_active:
-        settings = merge_settings(settings, preset_name, preset, ptz_armed=should_arm if arm == "force" else None)
-        if arm == "force":
-            settings["controlMode"] = "ptz"
-
+        settings = merge_settings(settings, preset_name, preset, ptz_armed=ptz_armed)
         save_json_file(SETTINGS_FILE, settings)
 
         base["active"] = preset_name
@@ -357,24 +868,83 @@ def apply_preset(preset_name, preset, set_active=True, dry_run=False, arm="off",
         try:
             post_json(f"{MJPEG_BASE}/api/settings", settings)
         except Exception as e:
-            print(f"WARN: /api/settings update failed: {e}", file=sys.stderr)
+            event_log("settings_api_update_failed", error=str(e))
 
-    result = {
-        "ok": True,
-        "applied": report,
+    report = {
+        "preset": preset_name,
+        "label": preset.get("label") or preset_name,
+        "tracking_mode": preset.get("tracking_mode") or "manual_select",
+        "loss_behavior": preset.get("loss_behavior") or "once_fail_stop",
+        "classes": classes,
+        "detection_mode": mode,
+        "max_detections": max_det,
+        "max_raw_candidates": max_raw,
+        "detect_every_n_frames": every,
+        "ptz": ptz,
         "detector": det_res,
         "limits": lim_res,
         "throttle": thr_res,
         "roi": roi_res,
-        "autopilot": ptz_res,
-        "arm_result": arm_res
+        "autopilot": ptz_res
     }
 
-    print(json.dumps(result, indent=2, ensure_ascii=False))
-    return result
+    event_log("preset_config_applied", **report)
+    return report
 
 
-def main():
+def resolve_behavior(preset, strategy):
+    if strategy and strategy != "preset":
+        if strategy == "once":
+            return "once_fail_stop"
+        if strategy == "scan":
+            return "continuous_wide_scan_x"
+        if strategy == "plan":
+            return "custom_search_plan"
+
+    return str(preset.get("loss_behavior") or "once_fail_stop")
+
+
+def run_arm_behavior(preset_name, preset, behavior, max_seconds):
+    classes = [int(x) for x in (preset.get("classes") or [])]
+    plan = dict(preset.get("search_plan") or {})
+
+    if behavior == "operator_select":
+        return {
+            "ok": True,
+            "mode": "operator_select",
+            "reason": "multi_target_requires_operator_selection"
+        }
+
+    if behavior == "custom_search_plan":
+        return run_custom_search_plan(classes, preset_name, plan, max_seconds=max_seconds)
+
+    if behavior == "continuous_wide_scan_x":
+        return run_continuous_wide_scan_x(classes, preset_name, plan, max_seconds=max_seconds)
+
+    return run_once_fail_stop(classes, max_seconds=max_seconds or 20, preset_name=preset_name)
+
+
+def disarm():
+    stop_ptz()
+
+    base, settings, presets, active = load_all_presets()
+    settings["ptzArmed"] = False
+    settings["controlMode"] = settings.get("controlMode") or "ptz"
+
+    save_json_file(SETTINGS_FILE, settings)
+
+    try:
+        post_json(f"{MJPEG_BASE}/api/settings", settings)
+    except Exception:
+        pass
+
+    event_log("disarmed")
+    write_state(mode="stopped", preset=active, reason="disarmed")
+
+    return {"ok": True, "disarmed": True}
+
+
+def main_inner():
     ap = argparse.ArgumentParser()
     ap.add_argument("--preset", default="active", help="preset name or active")
     ap.add_argument("--list", action="store_true")
@@ -382,8 +952,9 @@ def main():
     ap.add_argument("--no-set-active", action="store_true")
     ap.add_argument("--arm", choices=["off", "auto", "force"], default="off")
     ap.add_argument("--disarm", action="store_true")
-    ap.add_argument("--select-attempts", type=int, default=30)
-    ap.add_argument("--select-delay", type=float, default=0.25)
+    ap.add_argument("--strategy", choices=["preset", "once", "scan", "plan"], default="preset")
+    ap.add_argument("--watch", action="store_true")
+    ap.add_argument("--max-seconds", type=float, default=0)
     args = ap.parse_args()
 
     base, settings, presets, active = load_all_presets()
@@ -392,40 +963,130 @@ def main():
         print("active =", active)
         print("ptzArmed =", bool(settings.get("ptzArmed")))
         for name, preset in presets.items():
-            print(name, "=", preset.get("label") or name, "|", preset.get("tracking_mode") or "manual_select")
+            print(
+                name,
+                "=",
+                preset.get("label") or name,
+                "|",
+                preset.get("tracking_mode") or "manual_select",
+                "|",
+                preset.get("loss_behavior") or "once_fail_stop"
+            )
         return 0
 
     if args.disarm:
-        stop_ptz()
-        settings["ptzArmed"] = False
-        settings["controlMode"] = settings.get("controlMode") or "ptz"
-        save_json_file(SETTINGS_FILE, settings)
-        try:
-            post_json(f"{MJPEG_BASE}/api/settings", settings)
-        except Exception:
-            pass
-        print(json.dumps({"ok": True, "disarmed": True}, indent=2, ensure_ascii=False))
+        print(json.dumps(disarm(), indent=2, ensure_ascii=False))
         return 0
 
     name = active if args.preset == "active" else args.preset
 
     if name not in presets:
-        print(f"ERROR: preset not found: {name}", file=sys.stderr)
-        print("Available:", file=sys.stderr)
-        for k in presets:
-            print(f"  {k}", file=sys.stderr)
+        print(json.dumps({
+            "ok": False,
+            "error": "preset_not_found",
+            "preset": name,
+            "available": sorted(presets.keys())
+        }, indent=2, ensure_ascii=False))
         return 2
 
-    apply_preset(
+    preset = presets[name]
+    tracking_mode = str(preset.get("tracking_mode") or "manual_select")
+    behavior = resolve_behavior(preset, args.strategy)
+
+    should_arm = False
+
+    if args.arm == "force":
+        should_arm = tracking_mode == "single_auto"
+    elif args.arm == "auto":
+        should_arm = bool(settings.get("ptzArmed")) and tracking_mode == "single_auto"
+
+    if args.dry_run:
+        print(json.dumps({
+            "ok": True,
+            "dry_run": True,
+            "preset": name,
+            "tracking_mode": tracking_mode,
+            "behavior": behavior,
+            "should_arm": should_arm,
+            "watch": args.watch,
+            "max_seconds": args.max_seconds,
+            "preset_data": preset
+        }, indent=2, ensure_ascii=False))
+        return 0
+
+    config_result = apply_preset_config(
         name,
-        presets[name],
+        preset,
         set_active=not args.no_set_active,
-        dry_run=args.dry_run,
-        arm=args.arm,
-        select_attempts=args.select_attempts,
-        select_delay=args.select_delay,
+        ptz_armed=should_arm if args.arm == "force" else None
     )
+
+    arm_result = None
+
+    if should_arm:
+        # For continuous/plan without --watch, use max_seconds as bounded run.
+        # With --watch and max_seconds=0, it runs until Ctrl+C / service stop.
+        max_seconds = args.max_seconds
+
+        if not args.watch and behavior in {"continuous_wide_scan_x", "custom_search_plan"} and max_seconds <= 0:
+            max_seconds = 45
+
+        arm_result = run_arm_behavior(name, preset, behavior, max_seconds=max_seconds)
+
+        # Save final armed status.
+        base2, settings2, presets2, active2 = load_all_presets()
+        if arm_result.get("ok") is True and behavior != "operator_select":
+            settings2["ptzArmed"] = True
+            settings2["controlMode"] = "ptz"
+        elif args.arm == "force":
+            settings2["ptzArmed"] = False
+
+        save_json_file(SETTINGS_FILE, settings2)
+
+        try:
+            post_json(f"{MJPEG_BASE}/api/settings", settings2)
+        except Exception:
+            pass
+
+    result = {
+        "ok": True,
+        "preset": name,
+        "tracking_mode": tracking_mode,
+        "behavior": behavior,
+        "should_arm": should_arm,
+        "config": config_result,
+        "arm_result": arm_result
+    }
+
+    print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0
+
+
+def main():
+    try:
+        return main_inner()
+    except KeyboardInterrupt:
+        stop_ptz()
+        out = {
+            "ok": False,
+            "error": "interrupted",
+            "message": "Stopped by KeyboardInterrupt"
+        }
+        event_log("interrupted")
+        write_state(mode="stopped", result=out)
+        print(json.dumps(out, indent=2, ensure_ascii=False))
+        return 130
+    except Exception as e:
+        stop_ptz()
+        out = {
+            "ok": False,
+            "error": "unhandled_exception",
+            "message": str(e)
+        }
+        event_log("unhandled_exception", error=str(e))
+        write_state(mode="error", result=out)
+        print(json.dumps(out, indent=2, ensure_ascii=False))
+        return 1
 
 
 if __name__ == "__main__":

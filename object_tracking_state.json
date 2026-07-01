@@ -1,0 +1,11 @@
+{
+  "ts": 1782939101.178,
+  "mode": "stopped",
+  "preset": "person_single",
+  "result": {
+    "ok": false,
+    "mode": "continuous_wide_scan_x",
+    "reason": "max_seconds_reached",
+    "preset": "person_single"
+  }
+}
