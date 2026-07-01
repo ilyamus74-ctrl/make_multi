@@ -410,12 +410,37 @@ Stream:
         <button id="zoomRunAprilTagCalibBtn" class="small-btn">RUN APRILTAG ZOOM CALIB</button>
         <button id="zoomBuildMasterProfileBtn" class="small-btn">BUILD MASTER PROFILE</button>
         <button id="apriltagTestBtn" class="small-btn">TEST APRILTAG</button>
-        <label>Tag mm <input id="zoomTagSizeMm" type="number" value="160"></label>
-        <label>Anchor ID <input id="zoomAnchorTagId" type="number" value="7"></label>
-        <label>Anchor distance m <input id="zoomAnchorDistanceM" type="number" value="1" step="0.1"></label>
-        <button id="zoomAnchor1mBtn" class="small-btn">1 m</button>
-        <button id="zoomAnchor5mBtn" class="small-btn">5 m</button>
-        <button id="zoomAnchor10mBtn" class="small-btn">10 m</button>
+        <div class="zoom-anchor-block">
+          <strong>ZOOM ANCHORS</strong>
+          <code id="zoomActiveAnchorSummary">active=near id=7 distance=1.00m size=160mm</code>
+          <div class="zoom-anchor-row" data-anchor="near">
+            <strong>Near / 1m</strong>
+            <label><input id="zoomAnchorNearEnabled" type="checkbox" checked> enabled</label>
+            <label>distance m <input id="zoomAnchorNearDistanceM" type="number" value="1" step="0.01"></label>
+            <label>tag ID <input id="zoomAnchorNearTagId" type="number" value="7"></label>
+            <label>size mm <input id="zoomAnchorNearSizeMm" type="number" value="160"></label>
+            <button id="zoomSelectNearBtn" class="small-btn">SELECT NEAR</button>
+            <button id="zoomRunNearBtn" class="small-btn">RUN NEAR</button>
+          </div>
+          <div class="zoom-anchor-row" data-anchor="mid">
+            <strong>Mid / 5m</strong>
+            <label><input id="zoomAnchorMidEnabled" type="checkbox" checked> enabled</label>
+            <label>distance m <input id="zoomAnchorMidDistanceM" type="number" value="5" step="0.01"></label>
+            <label>tag ID <input id="zoomAnchorMidTagId" type="number" value="-1"></label>
+            <label>size mm <input id="zoomAnchorMidSizeMm" type="number" value="160"></label>
+            <button id="zoomSelectMidBtn" class="small-btn">SELECT MID</button>
+            <button id="zoomRunMidBtn" class="small-btn">RUN MID</button>
+          </div>
+          <div class="zoom-anchor-row" data-anchor="far">
+            <strong>Far / 10m</strong>
+            <label><input id="zoomAnchorFarEnabled" type="checkbox" checked> enabled</label>
+            <label>distance m <input id="zoomAnchorFarDistanceM" type="number" value="10" step="0.01"></label>
+            <label>tag ID <input id="zoomAnchorFarTagId" type="number" value="12"></label>
+            <label>size mm <input id="zoomAnchorFarSizeMm" type="number" value="160"></label>
+            <button id="zoomSelectFarBtn" class="small-btn">SELECT FAR</button>
+            <button id="zoomRunFarBtn" class="small-btn">RUN FAR</button>
+          </div>
+        </div>
         <label>Impulse ms <input id="zoomImpulseMs" type="number" value="170"></label>
         <label>Settle ms <input id="zoomSettleMs" type="number" value="250"></label>
         <label>Samples <input id="zoomSamples" type="number" value="12"></label>
@@ -437,7 +462,7 @@ Stream:
         <button id="zoomTestTeleBtn" class="small-btn">TEST TELE</button>
         <button id="zoomStopBtn" class="small-btn">STOP ZOOM</button>
         <code id="zoomAprilTagCalibStatus">idle</code>
-        <span style="opacity:.8">Manual 3-run flow: set Anchor distance 1m/5m/10m, move marker, press RUN each time.</span>
+        <span style="opacity:.8">Manual 3-run flow: configure Near/Mid/Far anchors, SELECT or RUN the desired anchor. Edits auto-save.</span>
         </div>
       </details>
       <details id="ptzLogMenu" class="operator-menu compact">
@@ -2183,13 +2208,20 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     ptzLog('PTZ SPEED SAMPLES init error', { error: String(e.message || e) })
   );
 
-  if ($('zoomAnchor1mBtn')) $('zoomAnchor1mBtn').onclick = () => { $('zoomAnchorDistanceM').value = 1; scheduleZoomCalibSettingsSave(); };
-  if ($('zoomAnchor5mBtn')) $('zoomAnchor5mBtn').onclick = () => { $('zoomAnchorDistanceM').value = 5; scheduleZoomCalibSettingsSave(); };
-  if ($('zoomAnchor10mBtn')) $('zoomAnchor10mBtn').onclick = () => { $('zoomAnchorDistanceM').value = 10; scheduleZoomCalibSettingsSave(); };
+  zoomAnchorDefs.forEach(def => {
+    const cap = def.prefix;
+    if ($(`zoomSelect${cap}Btn`)) $(`zoomSelect${cap}Btn`).onclick = () =>
+      selectZoomAnchor(def.label, false).catch(e => ptzLog('ZOOM ANCHOR select error', { error: String(e.message || e) }));
+    if ($(`zoomRun${cap}Btn`)) $(`zoomRun${cap}Btn`).onclick = () =>
+      selectZoomAnchor(def.label, true).catch(e => ptzLog('ZOOM ANCHOR run error', { error: String(e.message || e) }));
+  });
   [
-    'zoomTagSizeMm',
-    'zoomAnchorTagId',
-    'zoomAnchorDistanceM',
+    ...zoomAnchorDefs.flatMap(def => [
+      zoomAnchorInputId(def, 'Enabled'),
+      zoomAnchorInputId(def, 'TagId'),
+      zoomAnchorInputId(def, 'DistanceM'),
+      zoomAnchorInputId(def, 'SizeMm'),
+    ]),
     'zoomImpulseMs',
     'zoomSettleMs',
     'zoomSamples',
@@ -2198,7 +2230,10 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     'zoomCalibDirection',
     'zoomWideSign',
   ].forEach(id => {
-    if ($(id)) $(id).onchange = scheduleZoomCalibSettingsSave;
+    if ($(id)) {
+      $(id).addEventListener('input', scheduleZoomCalibSettingsSave);
+      $(id).addEventListener('change', scheduleZoomCalibSettingsSave);
+    }
   });
   ['pidKp','pidKi','pidKd','pidDeadzone','pidMaxSpeed','pidMaxAccel','pidPanHold','pidPanRelease','reacquirePanStep','reacquireTiltStep','reacquirePanCadence','reacquireTiltCadence','reacquireMaxLostSec'].forEach(id => {
     $(id).onchange = () => saveSettings();
@@ -2436,11 +2471,58 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     } catch (_) {}
   }
 
+  let zoomActiveAnchorLabel = 'near';
+  const zoomAnchorDefs = [
+    { label: 'near', prefix: 'Near', defaultDistanceM: 1, defaultTagId: 7 },
+    { label: 'mid', prefix: 'Mid', defaultDistanceM: 5, defaultTagId: -1 },
+    { label: 'far', prefix: 'Far', defaultDistanceM: 10, defaultTagId: 12 },
+  ];
+
+  function zoomAnchorInputId(def, field) {
+    return `zoomAnchor${def.prefix}${field}`;
+  }
+
+  function readZoomAnchorFromUi(def) {
+    return {
+      label: def.label,
+      enabled: !!$(zoomAnchorInputId(def, 'Enabled'))?.checked,
+      tag_id: Number($(zoomAnchorInputId(def, 'TagId'))?.value ?? def.defaultTagId),
+      distance_mm: Number($(zoomAnchorInputId(def, 'DistanceM'))?.value || def.defaultDistanceM) * 1000,
+      tag_size_mm: Number($(zoomAnchorInputId(def, 'SizeMm'))?.value || 160),
+    };
+  }
+
+  function getActiveZoomAnchorFromUi() {
+    const anchors = zoomAnchorDefs.map(readZoomAnchorFromUi);
+    return anchors.find(a => a.label === zoomActiveAnchorLabel && a.enabled) ||
+      anchors.find(a => a.enabled) || anchors.find(a => a.label === zoomActiveAnchorLabel) || anchors[0];
+  }
+
+  function updateZoomActiveAnchorSummary() {
+    const a = getActiveZoomAnchorFromUi();
+    if ($('zoomActiveAnchorSummary') && a) {
+      $('zoomActiveAnchorSummary').textContent =
+        `active=${zoomActiveAnchorLabel} id=${a.tag_id} distance=${(a.distance_mm / 1000).toFixed(2)}m size=${a.tag_size_mm}mm`;
+    }
+    if ($('zoomCalibMenuSummary') && a) $('zoomCalibMenuSummary').textContent = `active ${zoomActiveAnchorLabel} id=${a.tag_id}`;
+  }
+
   async function loadZoomCalibSettings() {
     const s = await apiGetJson('/api/zoom_calibration/settings');
-    if ($('zoomTagSizeMm')) $('zoomTagSizeMm').value = Number(s.tag_size_mm || 160);
-    if ($('zoomAnchorTagId')) $('zoomAnchorTagId').value = Number(s.anchor_tag_id ?? 7);
-    if ($('zoomAnchorDistanceM')) $('zoomAnchorDistanceM').value = Number((s.anchor_distance_mm ?? 1000) / 1000).toFixed(2).replace(/\.00$/, '');
+    zoomActiveAnchorLabel = s.active_anchor_label || 'near';
+    const byLabel = new Map((Array.isArray(s.anchors) ? s.anchors : []).map(a => [a.label, a]));
+    zoomAnchorDefs.forEach(def => {
+      const a = byLabel.get(def.label) || {
+        enabled: true,
+        tag_id: def.label === 'near' ? Number(s.anchor_tag_id ?? def.defaultTagId) : def.defaultTagId,
+        distance_mm: def.defaultDistanceM * 1000,
+        tag_size_mm: Number(s.tag_size_mm || 160),
+      };
+      if ($(zoomAnchorInputId(def, 'Enabled'))) $(zoomAnchorInputId(def, 'Enabled')).checked = a.enabled !== false;
+      if ($(zoomAnchorInputId(def, 'TagId'))) $(zoomAnchorInputId(def, 'TagId')).value = Number(a.tag_id ?? def.defaultTagId);
+      if ($(zoomAnchorInputId(def, 'DistanceM'))) $(zoomAnchorInputId(def, 'DistanceM')).value = Number((a.distance_mm ?? def.defaultDistanceM * 1000) / 1000).toFixed(2).replace(/\.00$/, '');
+      if ($(zoomAnchorInputId(def, 'SizeMm'))) $(zoomAnchorInputId(def, 'SizeMm')).value = Number(a.tag_size_mm ?? s.tag_size_mm ?? 160);
+    });
     if ($('zoomImpulseMs')) $('zoomImpulseMs').value = Number(s.impulse_ms || 170);
     if ($('zoomSettleMs')) $('zoomSettleMs').value = Number(s.settle_ms || 250);
     if ($('zoomSamples')) $('zoomSamples').value = Number(s.samples || 12);
@@ -2451,14 +2533,19 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
         s.calibration_direction === 'tele_to_wide' ? 'tele_to_wide' : 'wide_to_tele';
     }
     if ($('zoomWideSign')) $('zoomWideSign').value = String(Number(s.wide_cmd_sign || 1) < 0 ? -1 : 1);
+    updateZoomActiveAnchorSummary();
     if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings loaded';
   }
 
   function readZoomCalibSettingsFromUi() {
+    const anchors = zoomAnchorDefs.map(readZoomAnchorFromUi);
+    const active = anchors.find(a => a.label === zoomActiveAnchorLabel) || anchors[0];
     return {
-      tag_size_mm: Number($('zoomTagSizeMm')?.value || 160),
-      anchor_tag_id: Number($('zoomAnchorTagId')?.value || 7),
-      anchor_distance_mm: Number($('zoomAnchorDistanceM')?.value || 1) * 1000,
+      tag_size_mm: Number(active?.tag_size_mm || 160),
+      anchor_tag_id: Number(active?.tag_id ?? 7),
+      anchor_distance_mm: Number(active?.distance_mm || 1000),
+      anchors,
+      active_anchor_label: zoomActiveAnchorLabel,
       impulse_ms: Number($('zoomImpulseMs')?.value || 170),
       settle_ms: Number($('zoomSettleMs')?.value || 250),
       samples: Number($('zoomSamples')?.value || 12),
@@ -2470,6 +2557,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
 
   async function saveZoomCalibSettingsFromUi() {
+    updateZoomActiveAnchorSummary();
     const payload = readZoomCalibSettingsFromUi();
     const res = await apiPostJson('/api/zoom_calibration/settings', payload);
     if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings saved';
@@ -2478,12 +2566,22 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
   let zoomCalibSettingsSaveTimer = null;
   function scheduleZoomCalibSettingsSave() {
+    updateZoomActiveAnchorSummary();
+    if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings saving...';
     if (zoomCalibSettingsSaveTimer) clearTimeout(zoomCalibSettingsSaveTimer);
     zoomCalibSettingsSaveTimer = setTimeout(() => {
-      saveZoomCalibSettingsFromUi().catch(e =>
-        ptzLog('ZOOM CALIB SETTINGS save error', { error: String(e.message || e) })
-      );
+      saveZoomCalibSettingsFromUi().catch(e => {
+        if ($('zoomAprilTagCalibStatus')) $('zoomAprilTagCalibStatus').textContent = 'settings save error';
+        ptzLog('ZOOM CALIB SETTINGS save error', { error: String(e.message || e) });
+      });
     }, 400);
+  }
+
+  async function selectZoomAnchor(label, run = false) {
+    zoomActiveAnchorLabel = label;
+    updateZoomActiveAnchorSummary();
+    await saveZoomCalibSettingsFromUi();
+    if (run) await runAprilTagZoomCalibrationFromUi();
   }
 
   async function runZoomCalibrationFromUi() {
@@ -2524,7 +2622,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
     if ($('zoomAprilTagCalibStatus')) {
       $('zoomAprilTagCalibStatus').textContent =
-        `apriltag tags=${res.tags_found || 0} ${res.message || ''}`;
+        `apriltag tags=${res.tags_found || 0} detected ids: ${(res.ids || []).join(',') || 'none'} ${res.message || ''}`;
     }
 
     return res;

@@ -385,6 +385,14 @@ struct ZoomMarkerMeasurement {
   double confidence = 0.0;
   std::string message;
 };
+struct ZoomAnchorSlot {
+  std::string label;
+  bool enabled = true;
+  int tag_id = -1;
+  double distance_mm = 1000.0;
+  double tag_size_mm = 160.0;
+};
+
 struct ZoomAprilTagCalibParams {
   double tag_size_mm = 160.0;
   int anchor_tag_id = 7;
@@ -396,12 +404,57 @@ struct ZoomAprilTagCalibParams {
   int wide_cmd_sign = 1;
   int wide_hold_ms = 2000;
   std::string calibration_direction = "wide_to_tele";
+  std::vector<ZoomAnchorSlot> anchors;
+  std::string active_anchor_label = "near";
 };
 
 static ZoomAprilTagCalibParams g_zoomCalibSettings;
 
+static std::string json_escape(const std::string& s) {
+  std::ostringstream os;
+  for (char ch : s) {
+    if (ch == '"' || ch == '\\') os << '\\' << ch;
+    else if (ch == '\n') os << "\\n";
+    else os << ch;
+  }
+  return os.str();
+}
+
+static std::vector<ZoomAnchorSlot> default_zoom_anchors(const ZoomAprilTagCalibParams& p) {
+  return {
+    {"near", true, p.anchor_tag_id, 1000.0, p.tag_size_mm},
+    {"mid", true, -1, 5000.0, p.tag_size_mm},
+    {"far", true, -1, 10000.0, p.tag_size_mm},
+  };
+}
+
+static void ensure_zoom_anchors(ZoomAprilTagCalibParams& p) {
+  if (p.anchors.empty()) p.anchors = default_zoom_anchors(p);
+  const char* labels[] = {"near", "mid", "far"};
+  const double distances[] = {1000.0, 5000.0, 10000.0};
+  for (int i = 0; i < 3; ++i) {
+    auto it = std::find_if(p.anchors.begin(), p.anchors.end(), [&](const ZoomAnchorSlot& a){ return a.label == labels[i]; });
+    if (it == p.anchors.end()) p.anchors.push_back({labels[i], true, -1, distances[i], p.tag_size_mm});
+  }
+  if (p.active_anchor_label.empty()) p.active_anchor_label = "near";
+}
+
+static ZoomAnchorSlot get_active_zoom_anchor(const ZoomAprilTagCalibParams& p) {
+  for (const auto& a : p.anchors) if (a.enabled && a.label == p.active_anchor_label) return a;
+  for (const auto& a : p.anchors) if (a.enabled) return a;
+  return {p.active_anchor_label.empty() ? "legacy" : p.active_anchor_label, true, p.anchor_tag_id, p.anchor_distance_mm, p.tag_size_mm};
+}
+
+static void apply_active_zoom_anchor_to_legacy(ZoomAprilTagCalibParams& p) {
+  ensure_zoom_anchors(p);
+  const auto a = get_active_zoom_anchor(p);
+  p.anchor_tag_id = a.tag_id;
+  p.anchor_distance_mm = a.distance_mm;
+  p.tag_size_mm = a.tag_size_mm;
+}
+
 static void clamp_zoom_calib_params(ZoomAprilTagCalibParams& p, int cmdMaxZoom) {
-  p.tag_size_mm = std::max(20.0, std::min(1000.0, p.tag_size_mm));
+  p.tag_size_mm = std::max(10.0, std::min(1000.0, p.tag_size_mm));
   p.anchor_tag_id = std::max(-1, std::min(100000, p.anchor_tag_id));
   p.anchor_distance_mm = std::max(100.0, std::min(100000.0, p.anchor_distance_mm));
   p.samples = std::max(1, std::min(100, p.samples));
@@ -412,6 +465,14 @@ static void clamp_zoom_calib_params(ZoomAprilTagCalibParams& p, int cmdMaxZoom) 
   p.wide_cmd_sign = (p.wide_cmd_sign < 0) ? -1 : 1;
   p.wide_hold_ms = std::max(300, std::min(10000, p.wide_hold_ms));
   if (p.calibration_direction != "tele_to_wide") p.calibration_direction = "wide_to_tele";
+  ensure_zoom_anchors(p);
+  for (auto& a : p.anchors) {
+    if (a.label.empty()) a.label = "anchor";
+    a.tag_id = std::max(-1, std::min(100000, a.tag_id));
+    a.distance_mm = std::max(100.0, std::min(100000.0, a.distance_mm));
+    a.tag_size_mm = std::max(10.0, std::min(1000.0, a.tag_size_mm));
+  }
+  apply_active_zoom_anchor_to_legacy(p);
 }
 
 static const std::chrono::steady_clock::time_point g_processStartedAt = std::chrono::steady_clock::now();
@@ -824,7 +885,9 @@ static std::string zoom_calibration_json() {
 
 static bool extract_json_double_field(const std::string& json, const std::string& key, double* out);
 
-static std::string zoom_calib_settings_json(const ZoomAprilTagCalibParams& p) {
+static std::string zoom_calib_settings_json(const ZoomAprilTagCalibParams& pIn) {
+  ZoomAprilTagCalibParams p = pIn;
+  ensure_zoom_anchors(p);
   std::ostringstream os;
   os << "{"
      << "\"ok\":true"
@@ -837,12 +900,23 @@ static std::string zoom_calib_settings_json(const ZoomAprilTagCalibParams& p) {
      << ",\"cmd_abs\":" << p.cmd_abs
      << ",\"wide_cmd_sign\":" << p.wide_cmd_sign
      << ",\"wide_hold_ms\":" << p.wide_hold_ms
-     << ",\"calibration_direction\":\"" << p.calibration_direction << "\""
-     << "}";
+     << ",\"calibration_direction\":\"" << json_escape(p.calibration_direction) << "\""
+     << ",\"active_anchor_label\":\"" << json_escape(p.active_anchor_label) << "\""
+     << ",\"anchors\":[";
+  for (size_t i = 0; i < p.anchors.size(); ++i) {
+    const auto& a = p.anchors[i];
+    if (i) os << ",";
+    os << "{\"label\":\"" << json_escape(a.label) << "\",\"enabled\":" << (a.enabled ? "true" : "false")
+       << ",\"tag_id\":" << a.tag_id << ",\"distance_mm\":" << a.distance_mm
+       << ",\"tag_size_mm\":" << a.tag_size_mm << "}";
+  }
+  os << "]}";
   return os.str();
 }
 
-static bool save_zoom_calib_settings(const ZoomAprilTagCalibParams& p) {
+static bool save_zoom_calib_settings(const ZoomAprilTagCalibParams& pIn) {
+  ZoomAprilTagCalibParams p = pIn;
+  ensure_zoom_anchors(p);
   std::ofstream f(g_zoomCalibSettingsFile);
   if (!f) return false;
   f << "{\n"
@@ -855,9 +929,44 @@ static bool save_zoom_calib_settings(const ZoomAprilTagCalibParams& p) {
     << "  \"cmd_abs\": " << p.cmd_abs << ",\n"
     << "  \"wide_cmd_sign\": " << p.wide_cmd_sign << ",\n"
     << "  \"wide_hold_ms\": " << p.wide_hold_ms << ",\n"
-    << "  \"calibration_direction\": \"" << p.calibration_direction << "\"\n"
-    << "}\n";
+    << "  \"calibration_direction\": \"" << json_escape(p.calibration_direction) << "\",\n"
+    << "  \"active_anchor_label\": \"" << json_escape(p.active_anchor_label) << "\",\n"
+    << "  \"anchors\": [\n";
+  for (size_t i = 0; i < p.anchors.size(); ++i) {
+    const auto& a = p.anchors[i];
+    f << "    { \"label\": \"" << json_escape(a.label) << "\", \"enabled\": " << (a.enabled ? "true" : "false")
+      << ", \"tag_id\": " << a.tag_id << ", \"distance_mm\": " << a.distance_mm
+      << ", \"tag_size_mm\": " << a.tag_size_mm << " }" << (i + 1 < p.anchors.size() ? "," : "") << "\n";
+  }
+  f << "  ]\n}\n";
   return true;
+}
+
+
+static void parse_zoom_anchors_json(const std::string& body, ZoomAprilTagCalibParams& p) {
+  const auto anchorsPos = body.find("\"anchors\"");
+  if (anchorsPos == std::string::npos) return;
+  const auto arrStart = body.find('[', anchorsPos);
+  if (arrStart == std::string::npos) return;
+  const auto arrEnd = body.find(']', arrStart);
+  if (arrEnd == std::string::npos) return;
+  const std::string arr = body.substr(arrStart + 1, arrEnd - arrStart - 1);
+  std::vector<ZoomAnchorSlot> parsed;
+  std::regex objRe(R"(\{[^\}]*\})");
+  for (auto it = std::sregex_iterator(arr.begin(), arr.end(), objRe); it != std::sregex_iterator(); ++it) {
+    const std::string obj = it->str();
+    ZoomAnchorSlot a;
+    a.label = extract_json_string_field(obj, "label");
+    bool b = true;
+    int i = -1;
+    double d = 0.0;
+    if (extract_json_bool_field(obj, "enabled", &b)) a.enabled = b;
+    if (extract_json_int_field(obj, "tag_id", &i)) a.tag_id = i;
+    if (extract_json_double_field(obj, "distance_mm", &d)) a.distance_mm = d;
+    if (extract_json_double_field(obj, "tag_size_mm", &d)) a.tag_size_mm = d;
+    if (!a.label.empty()) parsed.push_back(a);
+  }
+  if (!parsed.empty()) p.anchors = parsed;
 }
 
 static bool load_zoom_calib_settings(ZoomAprilTagCalibParams& p, int cmdMaxZoom) {
@@ -878,6 +987,8 @@ static bool load_zoom_calib_settings(ZoomAprilTagCalibParams& p, int cmdMaxZoom)
   if (extract_json_int_field(body, "wide_cmd_sign", &i)) p.wide_cmd_sign = i;
   if (extract_json_int_field(body, "wide_hold_ms", &i)) p.wide_hold_ms = i;
   p.calibration_direction = extract_json_string_field(body, "calibration_direction");
+  p.active_anchor_label = extract_json_string_field(body, "active_anchor_label");
+  parse_zoom_anchors_json(body, p);
   clamp_zoom_calib_params(p, cmdMaxZoom);
   return true;
 }
@@ -1176,6 +1287,7 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
   std::ostringstream os;
   os << "{\"method\":\"apriltag_zoom_table\",\"calibration_direction\":\"" << params.calibration_direction
      << "\",\"marker_mode\":\"single_anchor\""
+     << ",\"active_anchor_label\":\"" << json_escape(params.active_anchor_label) << "\""
      << ",\"tag_size_mm\":" << params.tag_size_mm
      << ",\"anchor_tag_id\":" << params.anchor_tag_id << ",\"anchor_distance_mm\":" << params.anchor_distance_mm
      << ",\"cmd_abs\":" << cmd << ",\"home_cmd\":" << homeCmd << ",\"step_cmd\":" << stepCmd
@@ -3548,6 +3660,9 @@ static void handle_client(int cfd, const Opts& o) {
         extract_json_int_field(bodyReq, "wide_cmd_sign", &p.wide_cmd_sign);
         extract_json_int_field(bodyReq, "wide_hold_ms", &p.wide_hold_ms);
         p.calibration_direction = extract_json_string_field(bodyReq, "calibration_direction");
+        p.active_anchor_label = extract_json_string_field(bodyReq, "active_anchor_label");
+        parse_zoom_anchors_json(bodyReq, p);
+        if (bodyReq.find("\"anchors\"") == std::string::npos) p.anchors = {{"near", true, p.anchor_tag_id, p.anchor_distance_mm, p.tag_size_mm}, {"mid", true, -1, 5000.0, p.tag_size_mm}, {"far", true, -1, 10000.0, p.tag_size_mm}};
         clamp_zoom_calib_params(p, o.cmd_max_zoom);
         g_zoomCalibSettings = p;
         save_zoom_calib_settings(g_zoomCalibSettings);
@@ -3611,6 +3726,9 @@ static void handle_client(int cfd, const Opts& o) {
       extract_json_int_field(bodyReq, "wide_cmd_sign", &p.wide_cmd_sign);
       extract_json_int_field(bodyReq, "wide_hold_ms", &p.wide_hold_ms);
       p.calibration_direction = extract_json_string_field(bodyReq, "calibration_direction");
+      p.active_anchor_label = extract_json_string_field(bodyReq, "active_anchor_label");
+      parse_zoom_anchors_json(bodyReq, p);
+      if (bodyReq.find("\"anchors\"") == std::string::npos) p.anchors = {{"near", true, p.anchor_tag_id, p.anchor_distance_mm, p.tag_size_mm}, {"mid", true, -1, 5000.0, p.tag_size_mm}, {"far", true, -1, 10000.0, p.tag_size_mm}};
       clamp_zoom_calib_params(p, o.cmd_max_zoom);
       g_zoomCalibSettings = p;
       save_zoom_calib_settings(g_zoomCalibSettings);
