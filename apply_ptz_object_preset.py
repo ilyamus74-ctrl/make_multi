@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import os
 import sys
 import time
 import urllib.request
@@ -12,12 +13,48 @@ SETTINGS_FILE = ROOT / "ui_settings.json"
 EVENT_LOG_FILE = ROOT / "object_tracking_events.jsonl"
 STATE_FILE = ROOT / "object_tracking_state.json"
 
+MAX_EVENT_LOG_BYTES = int(os.environ.get("OBJECT_TRACKING_EVENT_LOG_MAX_BYTES", str(2 * 1024 * 1024)))
+EVENT_LOG_KEEP_FILES = int(os.environ.get("OBJECT_TRACKING_EVENT_LOG_KEEP_FILES", "5"))
+
 MJPEG_BASE = "http://127.0.0.1:8080"
 AUTOPILOT_BASE = "http://127.0.0.1:8090"
 
 
 def now_ts():
     return time.time()
+
+
+
+def rotate_file_by_size(path, max_bytes, keep_files):
+    try:
+        path = Path(path)
+
+        if max_bytes <= 0:
+            return
+
+        if not path.exists():
+            return
+
+        if path.stat().st_size < max_bytes:
+            return
+
+        keep_files = max(1, int(keep_files))
+
+        oldest = path.with_name(path.name + f".{keep_files}")
+        if oldest.exists():
+            oldest.unlink()
+
+        for idx in range(keep_files - 1, 0, -1):
+            src = path.with_name(path.name + f".{idx}")
+            dst = path.with_name(path.name + f".{idx + 1}")
+            if src.exists():
+                src.replace(dst)
+
+        path.replace(path.with_name(path.name + ".1"))
+
+    except Exception:
+        pass
+
 
 
 def event_log(event, **payload):
@@ -28,6 +65,7 @@ def event_log(event, **payload):
     }
 
     try:
+        rotate_file_by_size(EVENT_LOG_FILE, MAX_EVENT_LOG_BYTES, EVENT_LOG_KEEP_FILES)
         with EVENT_LOG_FILE.open("a", encoding="utf-8") as f:
             f.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     except Exception:
@@ -961,6 +999,38 @@ def merge_settings(settings, preset_name, preset, ptz_armed=None):
     return out
 
 
+
+def filter_ptz_framing_config(ptz):
+    """
+    Object presets are NOT speed profiles.
+
+    Keep only framing and auto-zoom fields here.
+    PTZ speed/dynamics must come from PTZ SPEED TUNE zoom samples:
+    kp/kd/deadzone/max_pan/max_tilt/max_accel/min_pan/min_tilt/etc.
+    """
+    allowed = {
+        "target_x",
+        "target_y",
+        "auto_zoom_enable",
+        "auto_zoom_target_h",
+        "auto_zoom_deadzone",
+        "auto_zoom_cmd",
+        "auto_zoom_sign",
+        "auto_zoom_period_ms",
+        "zoom_scale_enable",
+        "zoom_scale_min",
+        "zoom_scale_max",
+        "zoom_scale_smoothing"
+    }
+
+    return {
+        k: v
+        for k, v in dict(ptz or {}).items()
+        if k in allowed
+    }
+
+
+
 def apply_preset_config(preset_name, preset, set_active=True, ptz_armed=None):
     classes = [int(x) for x in (preset.get("classes") or [])]
     mode = str(preset.get("detection_mode") or "full_frame")
@@ -989,8 +1059,17 @@ def apply_preset_config(preset_name, preset, set_active=True, ptz_armed=None):
     roi_res = post_json(f"{MJPEG_BASE}/api/detection/roi_config", roi_payload(mode))
 
     ptz_res = {}
-    if ptz:
-        ptz_res = post_json(f"{AUTOPILOT_BASE}/api/autopilot/config", ptz)
+    ptz_framing = filter_ptz_framing_config(ptz)
+
+    if ptz_framing:
+        ptz_res = post_json(f"{AUTOPILOT_BASE}/api/autopilot/config", ptz_framing)
+
+    # Re-apply speed profile nearest/current after framing update.
+    # This keeps object preset from overriding PTZ SPEED TUNE zoom-sample dynamics.
+    try:
+        post_json(f"{AUTOPILOT_BASE}/api/autopilot/speed_profile/apply_nearest", {}, timeout=2)
+    except Exception as e:
+        event_log("speed_profile_apply_nearest_failed", error=str(e))
 
     base, settings, presets, active = load_all_presets()
 
@@ -1017,6 +1096,7 @@ def apply_preset_config(preset_name, preset, set_active=True, ptz_armed=None):
         "max_raw_candidates": max_raw,
         "detect_every_n_frames": every,
         "ptz": ptz,
+        "ptz_framing_sent": ptz_framing,
         "detector": det_res,
         "limits": lim_res,
         "throttle": thr_res,
