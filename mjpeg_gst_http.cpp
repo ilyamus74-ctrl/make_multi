@@ -2090,6 +2090,8 @@ static std::vector<std::string> discover_models(const Opts& o) {
   dirs.push_back("new_yolo8/model_rknn");
   dirs.push_back("models");
   dirs.push_back("model_rknn");
+  dirs.push_back("/root/new_yolo8/models");
+  dirs.push_back("/root/new_yolo8/model_rknn");
 
 
   for (const auto& d : dirs) {

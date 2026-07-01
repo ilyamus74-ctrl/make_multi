@@ -46,7 +46,16 @@ DETECT_EVERY_N_FRAMES="${DETECT_EVERY_N_FRAMES:-1}"
 MJPEG_RESTART="${MJPEG_RESTART:-1}"        # 1 => auto-restart MJPEG on exit
 MJPEG_RESTART_DELAY="${MJPEG_RESTART_DELAY:-2}"
 MJPEG_MAX_RESTARTS="${MJPEG_MAX_RESTARTS:-0}"  # 0 => unlimited
-MODEL_DIR="${MODEL_DIR:-$ROOT_DIR/models}"
+if [[ -z "${MODEL_DIR:-}" ]]; then
+  MODEL_DIR=""
+  for d in "$ROOT_DIR/models" "$ROOT_DIR/model_rknn" "$ROOT_DIR/new_yolo8/models" "$ROOT_DIR/new_yolo8/model_rknn"; do
+    if [[ -d "$d" ]] && find "$d" -maxdepth 1 -type f -iname '*.rknn' | grep -q .; then
+      MODEL_DIR="$d"
+      break
+    fi
+  done
+  MODEL_DIR="${MODEL_DIR:-$ROOT_DIR/models}"
+fi
 
 # WS bridge defaults
 UART_DEV="${UART_DEV:-/dev/ttyUSB0}"
@@ -60,7 +69,8 @@ ZOOM_CALIB_UART_BAUD="${ZOOM_CALIB_UART_BAUD:-$UART_BAUD}"
 MJPEG_LOG="${MJPEG_LOG:-$LOG_DIR/mjpeg.log}"
 BRIDGE_LOG="${BRIDGE_LOG:-$LOG_DIR/bridge.log}"
 
-AUTOPILOT_ENABLE="${AUTOPILOT_ENABLE:-0}"
+AUTOPILOT_ENABLE="${AUTOPILOT_ENABLE:-1}"
+AUTOPILOT_START_ENABLED="${AUTOPILOT_START_ENABLED:-0}"
 AUTOPILOT_REQUIRED="${AUTOPILOT_REQUIRED:-0}"
 AUTOPILOT_BIN="${AUTOPILOT_BIN:-$ROOT_DIR/.build/ptz_autopilot}"
 KILL_STALE_AUTOPILOT="${KILL_STALE_AUTOPILOT:-1}"
@@ -242,7 +252,7 @@ start_autopilot() {
   --zoom-scale-min "${AUTOPILOT_ZOOM_SCALE_MIN:-0.12}" \
   --zoom-scale-max "${AUTOPILOT_ZOOM_SCALE_MAX:-1.0}" \
   --zoom-scale-smoothing "${AUTOPILOT_ZOOM_SCALE_SMOOTHING:-0.25}" \
-    --enable 0 \
+    --enable "$AUTOPILOT_START_ENABLED" \
     >>"$AUTOPILOT_LOG" 2>&1 &
   AUTOPILOT_PID=$!
   log "Autopilot pid=$AUTOPILOT_PID (log: $AUTOPILOT_LOG)"

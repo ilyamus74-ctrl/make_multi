@@ -824,6 +824,36 @@ Stream:
     return await r.json();
   }
 
+  let settingsSaveTimer = null;
+  function scheduleSettingsSave(reason = 'ui') {
+    if (settingsSaveTimer) clearTimeout(settingsSaveTimer);
+    settingsSaveTimer = setTimeout(() => {
+      settingsSaveTimer = null;
+      try {
+        saveSettings();
+      } catch (e) {
+        try { ptzLog('SETTINGS SAVE error', { reason, error: String(e.message || e) }); } catch (_) {}
+      }
+    }, 250);
+  }
+
+  async function enterManualMode() {
+    if ($('controlMode')) $('controlMode').value = 'manual';
+    try {
+      if (typeof setControlMode === 'function') setControlMode('manual');
+      else safeSyncControlModeUi();
+    } catch (_) {
+      safeSyncControlModeUi();
+    }
+
+    try { await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/stop`, {}); } catch (_) {}
+    try { await manualInputStop('manual_mode'); } catch (_) {}
+
+    await saveSettings();
+    await ptzPrecheck().catch(() => {});
+  }
+
+
   function ptzLog(msg, obj = null) {
     const el = $('ptzDebugLog');
     if (!el) return;
@@ -1543,7 +1573,7 @@ async function ptzStart() {
   if (toggleFullscreenBtn) toggleFullscreenBtn.onclick = () => toggleFullscreen();
   $('toggleLandscapeLock').onclick = () => toggleLandscapeLock();
   $('emergencyStop').onclick = () => panicStop('ui');
-  $('modeManualBtn').onclick = () => setControlMode('manual');
+  $('modeManualBtn').onclick = () => enterManualMode().catch(e => ptzLog('MANUAL MODE error', { error: String(e.message || e) }));
   $('modeAssistBtn').onclick = () => setControlMode('assist');
   $('modeAutoBtn').onclick = () => setControlMode('auto');
 
@@ -1556,7 +1586,7 @@ async function ptzStart() {
     await ptzPrecheck();
   };
 
-  if ($('ptzModeManualBtn')) $('ptzModeManualBtn').onclick = () => setControlMode('manual');
+  if ($('ptzModeManualBtn')) $('ptzModeManualBtn').onclick = () => enterManualMode().catch(e => ptzLog('MANUAL MODE error', { error: String(e.message || e) }));
   if ($('ptzModeAssistBtn')) $('ptzModeAssistBtn').onclick = () => setControlMode('assist');
   if ($('ptzModeAutoBtn')) $('ptzModeAutoBtn').onclick = () => setControlMode('auto');
   if ($('ptzModePtzBtn')) $('ptzModePtzBtn').onclick = enterPtzMode;
@@ -2079,6 +2109,15 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       step: sampleIdx, // legacy compatibility
       zoom_ratio: zoomRatio,
       focal_px: focalPx,
+      kp: Number($('ptzTuneKp')?.value || 0),
+      ki: 0,
+      kd: Number($('ptzTuneKd')?.value || 0),
+      deadzone: Number($('ptzTuneDeadzone')?.value || 0),
+      max_pan: Number($('ptzTuneMaxPan')?.value || 0),
+      max_tilt: Number($('ptzTuneMaxTilt')?.value || 0),
+      max_accel: Number($('ptzTuneMaxAccel')?.value || 0),
+      min_pan: Number($('ptzTuneMinPan')?.value || 0),
+      min_tilt: Number($('ptzTuneMinTilt')?.value || 0),
       j_pulse_ms: getJPulseMs(),
       ptz_curve: Number($('ptzTuneCurve')?.value || 1.0),
       ptz_lead_ms: Number($('ptzTuneLeadMs')?.value || 0),
@@ -2564,7 +2603,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   function safeSyncControlModeUi() {
     try {
       if (typeof syncControlModeUi === 'function') {
-        safeSyncControlModeUi();
+        syncControlModeUi();
         return;
       }
     } catch (_) {}
@@ -2677,7 +2716,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   // Do not redefine it here; the old /api/zoom_test path does not control zoom reliably.
   async function restoreSettings() {
     const raw = localStorage.getItem('pantilt_ui_settings_v2');
-    const defaults = { config_version: 16, mjpegUrl: defaultMjpegUrl(), streamMode: 'iframe', fitMode: 'contain' , controlMode: 'assist', landscapeLock: false, controlProfile: 'indoor', safeLostSec: 2.0, safeRestoreSec: 3.0, invertTiltAxis: INV_TILT_DEFAULT, swapMicroButtons: false, detectorEnabled: false, detectorClassSource: 'coco.names', detectorSelectedClasses: [], pidKp: 32, pidKi: 0, pidKd: 18, pidDeadzone: 4, pidMaxSpeed: 40, pidMaxAccel: 8, pidPanHold: 2, pidPanRelease: 5, reacquirePanStep: 18, reacquireTiltStep: 8, reacquirePanCadence: 8, reacquireTiltCadence: 16, reacquireHoldMs: 700, reacquireMaxLostSec: 8, selectedTargetId: null, showDetOverlay: true, selectTargetByTap: true, zoomTravelSec: DEFAULT_ZOOM_TRAVEL_SEC, zoomState: 0, l0_enabled: true, l1_enabled: true, l2_enabled: true, l3_enabled: true, w0: 0.40, w1: 0.25, w2: 0.20, w3: 0.15 };
+    const defaults = { config_version: 16, mjpegUrl: defaultMjpegUrl(), streamMode: 'iframe', fitMode: 'contain' , controlMode: 'manual', landscapeLock: false, controlProfile: 'indoor', safeLostSec: 2.0, safeRestoreSec: 3.0, invertTiltAxis: INV_TILT_DEFAULT, swapMicroButtons: false, detectorEnabled: false, detectorClassSource: 'coco.names', detectorSelectedClasses: [], pidKp: 32, pidKi: 0, pidKd: 18, pidDeadzone: 4, pidMaxSpeed: 40, pidMaxAccel: 8, pidPanHold: 2, pidPanRelease: 5, reacquirePanStep: 18, reacquireTiltStep: 8, reacquirePanCadence: 8, reacquireTiltCadence: 16, reacquireHoldMs: 700, reacquireMaxLostSec: 8, selectedTargetId: null, showDetOverlay: true, selectTargetByTap: true, zoomTravelSec: DEFAULT_ZOOM_TRAVEL_SEC, zoomState: 0, l0_enabled: true, l1_enabled: true, l2_enabled: true, l3_enabled: true, w0: 0.40, w1: 0.25, w2: 0.20, w3: 0.15 };
     let saved = defaults;
     if (raw) {
       try {
@@ -2702,7 +2741,10 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     $('mjpegUrl').value = normalizeStreamUrl(saved.mjpegUrl);
     $('streamMode').value = saved.streamMode;
     $('fitMode').value = saved.fitMode;
-    $('controlMode').value = saved.controlMode;
+    const restoredMode = ['manual','ptz','assist','auto'].includes(String(saved.controlMode || ''))
+      ? String(saved.controlMode)
+      : 'manual';
+    $('controlMode').value = restoredMode;
     applyProfile(saved.controlProfile || 'indoor');
     $('safeLostSec').value = Number(saved.safeLostSec || safeLostSec).toFixed(1);
     $('safeRestoreSec').value = Number(saved.safeRestoreSec || safeRestoreSec).toFixed(1);
@@ -2731,6 +2773,41 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     applyConfidenceLayerConfig(saved);
     $('zoomTravelSec').value = Number(saved.zoomTravelSec ?? defaults.zoomTravelSec).toFixed(1);
     zoomState = clamp01(Number(saved.zoomState ?? defaults.zoomState));
+
+    if ($('operatorDetectionLimit') && saved.operatorDetectionLimit != null) {
+      $('operatorDetectionLimit').value = String(saved.operatorDetectionLimit);
+    }
+    if ($('operatorDetectEvery') && saved.operatorDetectEvery != null) {
+      $('operatorDetectEvery').value = String(saved.operatorDetectEvery);
+    }
+    if ($('operatorDetectionAreaMode') && saved.operatorDetectionAreaMode) {
+      $('operatorDetectionAreaMode').value = String(saved.operatorDetectionAreaMode);
+    }
+
+    const pc = saved.ptzConfig || {};
+    if ($('ptzInvertTilt') && pc.invert_tilt != null) $('ptzInvertTilt').checked = Boolean(pc.invert_tilt);
+    if ($('ptzInvertPan') && pc.invert_pan != null) $('ptzInvertPan').checked = Boolean(pc.invert_pan);
+    if ($('ptzTargetX') && pc.target_x != null) $('ptzTargetX').value = Number(pc.target_x).toFixed(2);
+    if ($('ptzTargetY') && pc.target_y != null) $('ptzTargetY').value = Number(pc.target_y).toFixed(2);
+    if ($('ptzMinPan') && pc.min_pan != null) $('ptzMinPan').value = String(pc.min_pan);
+    if ($('ptzMinTilt') && pc.min_tilt != null) $('ptzMinTilt').value = String(pc.min_tilt);
+
+    const ts = saved.ptzTune || {};
+    if ($('ptzTuneKp') && ts.kp != null) $('ptzTuneKp').value = ts.kp;
+    if ($('ptzTuneKd') && ts.kd != null) $('ptzTuneKd').value = ts.kd;
+    if ($('ptzTuneMaxPan') && ts.max_pan != null) $('ptzTuneMaxPan').value = ts.max_pan;
+    if ($('ptzTuneMaxTilt') && ts.max_tilt != null) $('ptzTuneMaxTilt').value = ts.max_tilt;
+    if ($('ptzTuneMaxAccel') && ts.max_accel != null) $('ptzTuneMaxAccel').value = ts.max_accel;
+    if ($('ptzTuneMinPan') && ts.min_pan != null) $('ptzTuneMinPan').value = ts.min_pan;
+    if ($('ptzTuneMinTilt') && ts.min_tilt != null) $('ptzTuneMinTilt').value = ts.min_tilt;
+    if ($('ptzTuneDeadzone') && ts.deadzone != null) $('ptzTuneDeadzone').value = ts.deadzone;
+    if ($('ptzTuneCurve') && ts.ptz_curve != null) $('ptzTuneCurve').value = ts.ptz_curve;
+    if ($('ptzTuneLeadMs') && ts.ptz_lead_ms != null) $('ptzTuneLeadMs').value = ts.ptz_lead_ms;
+    if ($('ptzTuneNudgePan') && ts.nudge_pan != null) $('ptzTuneNudgePan').value = ts.nudge_pan;
+    if ($('ptzTuneNudgeTilt') && ts.nudge_tilt != null) $('ptzTuneNudgeTilt').value = ts.nudge_tilt;
+    if ($('ptzTuneKeyboardMode') && ts.manual_mode) $('ptzTuneKeyboardMode').value = ts.manual_mode;
+    if (ts.j_pulse_ms != null && typeof syncJPulseInputs === 'function') syncJPulseInputs(ts.j_pulse_ms);
+
     zoomStateLastTs = Date.now();
     renderZoomState();
     updateMicrostepLegend();
@@ -2747,6 +2824,27 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       streamMode: $('streamMode').value,
       fitMode: $('fitMode').value,
       controlMode: $('controlMode').value,
+      operatorModel: $('operatorModelSelect')?.value || '',
+      operatorDetectionLimit: Number($('operatorDetectionLimit')?.value || 10),
+      operatorDetectEvery: Number($('operatorDetectEvery')?.value || 1),
+      operatorDetectionAreaMode: $('operatorDetectionAreaMode')?.value || 'full_frame',
+      ptzConfig: (typeof readPtzConfigFromUi === 'function') ? readPtzConfigFromUi() : {},
+      ptzTune: {
+        kp: Number($('ptzTuneKp')?.value || 0),
+        kd: Number($('ptzTuneKd')?.value || 0),
+        max_pan: Number($('ptzTuneMaxPan')?.value || 0),
+        max_tilt: Number($('ptzTuneMaxTilt')?.value || 0),
+        max_accel: Number($('ptzTuneMaxAccel')?.value || 0),
+        min_pan: Number($('ptzTuneMinPan')?.value || 0),
+        min_tilt: Number($('ptzTuneMinTilt')?.value || 0),
+        deadzone: Number($('ptzTuneDeadzone')?.value || 0),
+        ptz_curve: Number($('ptzTuneCurve')?.value || 1.0),
+        ptz_lead_ms: Number($('ptzTuneLeadMs')?.value || 0),
+        nudge_pan: Number($('ptzTuneNudgePan')?.value || 0),
+        nudge_tilt: Number($('ptzTuneNudgeTilt')?.value || 0),
+        j_pulse_ms: (typeof getJPulseMs === 'function') ? getJPulseMs() : Number($('ptzTuneJPulseMsNum')?.value || 70),
+        manual_mode: $('ptzTuneKeyboardMode')?.value || 'tap_hold'
+      },
       landscapeLock: $('toggleLandscapeLock').dataset.locked === '1',
       controlProfile: activeProfile,
       safeLostSec,
@@ -3827,6 +3925,42 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
 
   bindTouchControls();
+
+  document.addEventListener('change', (e) => {
+    const id = String(e.target?.id || '');
+    const persistIds = new Set([
+      'operatorModelSelect',
+      'operatorDetectionLimit',
+      'operatorDetectEvery',
+      'operatorDetectionAreaMode',
+      'detectionToggleBtn',
+      'ptzInvertTilt',
+      'ptzInvertPan',
+      'ptzTargetX',
+      'ptzTargetY',
+      'ptzMinPan',
+      'ptzMinTilt',
+      'ptzTuneKp',
+      'ptzTuneKd',
+      'ptzTuneMaxPan',
+      'ptzTuneMaxTilt',
+      'ptzTuneMaxAccel',
+      'ptzTuneMinPan',
+      'ptzTuneMinTilt',
+      'ptzTuneDeadzone',
+      'ptzTuneCurve',
+      'ptzTuneLeadMs',
+      'ptzTuneNudgePan',
+      'ptzTuneNudgeTilt',
+      'ptzTuneJPulseMs',
+      'ptzTuneJPulseMsNum',
+      'ptzTuneKeyboardMode'
+    ]);
+    if (persistIds.has(id) || id.startsWith('ptzTune') || id.startsWith('operator')) {
+      scheduleSettingsSave('operator_field_change');
+    }
+  }, true);
+
   window.addEventListener('pointerup', () => {
     touchState = { pan: 0, tilt: 0, zoom: 0 };
     stopManualHold('pointerup').catch(() => {});
@@ -3842,7 +3976,17 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     if (document.hidden) panicStop('hidden-tab');
     if (!document.hidden) applyLandscapeLock();
   });
-  window.addEventListener('beforeunload', () => panicStop('unload'));
+  window.addEventListener('beforeunload', () => {
+    try { saveSettings(); } catch (_) {}
+    // Do not stop autonomous PTZ on page reload/close.
+    // Only manual browser-driven movement is stopped.
+    if (($('controlMode')?.value || 'manual') === 'manual') {
+      try {
+        const blob = new Blob(['{}'], { type: 'application/json' });
+        navigator.sendBeacon(`${autopilotBaseUrl()}/api/control/stop`, blob);
+      } catch (_) {}
+    }
+  });
 
   function shouldIgnoreKeyboardEvent(e) {
     const key = String(e.key || '').toLowerCase();
