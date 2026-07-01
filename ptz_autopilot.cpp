@@ -20,10 +20,10 @@
 #include <vector>
 #include <arpa/inet.h>
 
-struct Config {std::string mjpeg_url="http://127.0.0.1:8080"; std::string tracker_host="127.0.0.1"; int tracker_port=8080; std::string bridge_host="127.0.0.1"; int bridge_port=8765; int control_port=8090; int width=1920; int height=1080; double hz=20, kp=20, ki=0, kd=3, deadzone=0.05; int max_pan=20,max_tilt=20,max_accel=4; bool invert_pan=false; bool invert_tilt=true; double target_x=0.5,target_y=0.5; int min_pan=0,min_tilt=0; bool enabled=false; bool zoom_scale_enable=true; double zoom_scale_min=0.12,zoom_scale_max=1.0,zoom_scale_smoothing=0.25;};
+struct Config {std::string mjpeg_url="http://127.0.0.1:8080"; std::string tracker_host="127.0.0.1"; int tracker_port=8080; std::string bridge_host="127.0.0.1"; int bridge_port=8765; int control_port=8090; int width=1920; int height=1080; double hz=20, kp=20, ki=0, kd=3, deadzone=0.05; int max_pan=20,max_tilt=20,max_accel=4; bool invert_pan=false; bool invert_tilt=true; double target_x=0.5,target_y=0.5; int min_pan=0,min_tilt=0; bool enabled=false; bool zoom_scale_enable=true; double zoom_scale_min=0.12,zoom_scale_max=1.0,zoom_scale_smoothing=0.25; bool auto_zoom_enable=false; double auto_zoom_target_h=0.68,auto_zoom_deadzone=0.08; int auto_zoom_cmd=10,auto_zoom_sign=1,auto_zoom_period_ms=350;};
 struct TrackerState {std::string mode="IDLE"; int track_id=0; bool valid=false; int l=0,t=0,r=0,b=0;};
 struct ZoomState { bool ok=false; bool profile_loaded=false; int zoom_sample_idx=-1; double zoom_ratio=0.0,focal_px=0.0,focal_min_px=0.0,focal_max_px=0.0,speed_scale=1.0; std::string source; std::string error; };
-struct Runtime {std::atomic<bool> run{true}; std::atomic<bool> enabled{false}; std::atomic<int> seq{1}; std::mutex m; std::string last_tracker_mode="IDLE"; int last_track_id=0; double errx=0,erry=0,pred_errx=0,pred_erry=0; int cmdp=0,cmdt=0; std::string last_error; std::string mode="IDLE"; double zoom_ratio=0,zoom_focal_px=0,zoom_focal_min_px=0,zoom_focal_max_px=0,zoom_speed_scale=1; int base_cmd_pan=0,base_cmd_tilt=0,scaled_cmd_pan=0,scaled_cmd_tilt=0,effective_max_pan=0,effective_max_tilt=0,effective_max_accel=0; std::string zoom_source,zoom_error; bool manual_active=false; std::string manual_last_source; int manual_cmd_pan=0,manual_cmd_tilt=0,manual_profile_idx=-1,manual_zoom_sample_idx=-1; double manual_zoom_ratio=0.0; long long manual_expires_ms=0; int manual_hold_ms=250; int active_profile_idx=-1,active_zoom_sample_idx=-1,profile_max_pan=0,profile_max_tilt=0,profile_max_accel=0,ptz_lead_ms=0; double ptz_curve=1.0; std::string speed_profile_source="fallback"; int speed_profile_left_idx=-1,speed_profile_right_idx=-1; double speed_profile_t=0.0;
+struct Runtime {std::atomic<bool> run{true}; std::atomic<bool> enabled{false}; std::atomic<int> seq{1}; std::mutex m; std::string last_tracker_mode="IDLE"; int last_track_id=0; double errx=0,erry=0,pred_errx=0,pred_erry=0; int cmdp=0,cmdt=0; std::string last_error; std::string mode="IDLE"; double zoom_ratio=0,zoom_focal_px=0,zoom_focal_min_px=0,zoom_focal_max_px=0,zoom_speed_scale=1; int base_cmd_pan=0,base_cmd_tilt=0,scaled_cmd_pan=0,scaled_cmd_tilt=0,effective_max_pan=0,effective_max_tilt=0,effective_max_accel=0; std::string zoom_source,zoom_error; bool manual_active=false; std::string manual_last_source; int manual_cmd_pan=0,manual_cmd_tilt=0,manual_profile_idx=-1,manual_zoom_sample_idx=-1; double manual_zoom_ratio=0.0; long long manual_expires_ms=0; int manual_hold_ms=250; int active_profile_idx=-1,active_zoom_sample_idx=-1,profile_max_pan=0,profile_max_tilt=0,profile_max_accel=0,ptz_lead_ms=0; double ptz_curve=1.0; std::string speed_profile_source="fallback"; int speed_profile_left_idx=-1,speed_profile_right_idx=-1; double speed_profile_t=0.0; bool auto_zoom_enable=false; int auto_zoom_cmd=0,auto_zoom_sign=1; double auto_zoom_box_h=0.0,auto_zoom_target_h=0.68,auto_zoom_deadzone=0.08;
 
 };
 static Runtime g; static Config cfg;
@@ -81,6 +81,11 @@ static void clamp_config() {
   cfg.zoom_scale_min = std::max(0.03, std::min(1.0, cfg.zoom_scale_min));
   cfg.zoom_scale_max = std::max(cfg.zoom_scale_min, std::min(1.0, cfg.zoom_scale_max));
   cfg.zoom_scale_smoothing = std::max(0.0, std::min(1.0, cfg.zoom_scale_smoothing));
+  cfg.auto_zoom_target_h = std::max(0.15, std::min(0.95, cfg.auto_zoom_target_h));
+  cfg.auto_zoom_deadzone = std::max(0.02, std::min(0.30, cfg.auto_zoom_deadzone));
+  cfg.auto_zoom_cmd = std::max(1, std::min(60, cfg.auto_zoom_cmd));
+  cfg.auto_zoom_sign = cfg.auto_zoom_sign < 0 ? -1 : 1;
+  cfg.auto_zoom_period_ms = std::max(150, std::min(1500, cfg.auto_zoom_period_ms));
 }
 static void save_ptz_config() {
   std::ofstream f(g_ptzConfigFile);
@@ -104,7 +109,13 @@ static void save_ptz_config() {
     << "  \"zoom_scale_enable\": " << (cfg.zoom_scale_enable?"true":"false") << ",\n"
     << "  \"zoom_scale_min\": " << cfg.zoom_scale_min << ",\n"
     << "  \"zoom_scale_max\": " << cfg.zoom_scale_max << ",\n"
-    << "  \"zoom_scale_smoothing\": " << cfg.zoom_scale_smoothing << "\n"
+    << "  \"zoom_scale_smoothing\": " << cfg.zoom_scale_smoothing << ",\n"
+    << "  \"auto_zoom_enable\": " << (cfg.auto_zoom_enable ? "true" : "false") << ",\n"
+    << "  \"auto_zoom_target_h\": " << cfg.auto_zoom_target_h << ",\n"
+    << "  \"auto_zoom_deadzone\": " << cfg.auto_zoom_deadzone << ",\n"
+    << "  \"auto_zoom_cmd\": " << cfg.auto_zoom_cmd << ",\n"
+    << "  \"auto_zoom_sign\": " << cfg.auto_zoom_sign << ",\n"
+    << "  \"auto_zoom_period_ms\": " << cfg.auto_zoom_period_ms << "\n"
     << "}\n";
 }
 static void load_ptz_config() {
@@ -134,7 +145,7 @@ static void load_ptz_config() {
   json_int(body, "min_pan", cfg.min_pan);
   json_int(body, "min_tilt", cfg.min_tilt);
   bool zse=false; if(json_bool(body,"zoom_scale_enable",zse)) cfg.zoom_scale_enable=zse;
-  json_num(body,"zoom_scale_min",cfg.zoom_scale_min); json_num(body,"zoom_scale_max",cfg.zoom_scale_max); json_num(body,"zoom_scale_smoothing",cfg.zoom_scale_smoothing);
+  json_num(body,"zoom_scale_min",cfg.zoom_scale_min); json_num(body,"zoom_scale_max",cfg.zoom_scale_max); json_num(body,"zoom_scale_smoothing",cfg.zoom_scale_smoothing); bool aze=false; if(json_bool(body,"auto_zoom_enable",aze)) cfg.auto_zoom_enable=aze; json_num(body,"auto_zoom_target_h",cfg.auto_zoom_target_h); json_num(body,"auto_zoom_deadzone",cfg.auto_zoom_deadzone); json_int(body,"auto_zoom_cmd",cfg.auto_zoom_cmd); json_int(body,"auto_zoom_sign",cfg.auto_zoom_sign); json_int(body,"auto_zoom_period_ms",cfg.auto_zoom_period_ms);
 
   clamp_config();
 }
@@ -214,6 +225,12 @@ static bool send_bridge_j(int pan,int tilt){
   int seq=g.seq.fetch_add(1);
   std::ostringstream cmd;
   cmd<<"J "<<seq<<" "<<pan<<" "<<tilt;
+  return send_bridge_line(cmd.str());
+}
+
+static bool send_bridge_z(int zoom){
+  std::ostringstream cmd;
+  cmd<<"Z "<<zoom;
   return send_bridge_line(cmd.str());
 }
 
@@ -315,14 +332,69 @@ static void autopilot_loop(){WsClient ws; auto last=std::chrono::steady_clock::n
     auto elapsed=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count(); double sleep_s=std::max(0.001,(1.0/cfg.hz)-elapsed); std::this_thread::sleep_for(std::chrono::duration<double>(sleep_s)); }
 }
 
-static std::string state_json(){std::lock_guard<std::mutex>lk(g.m); std::ostringstream os; os<<"{\"ok\":true,\"enabled\":"<<(g.enabled?"true":"false")<<",\"mode\":\""<<g.mode<<"\",\"last_tracker_mode\":\""<<g.last_tracker_mode<<"\",\"last_track_id\":"<<g.last_track_id<<",\"err_x\":"<<g.errx<<",\"err_y\":"<<g.erry<<",\"pred_err_x\":"<<g.pred_errx<<",\"pred_err_y\":"<<g.pred_erry<<",\"cmd_pan\":"<<g.cmdp<<",\"cmd_tilt\":"<<g.cmdt<<",\"invert_pan\":"<<(cfg.invert_pan?"true":"false")<<",\"invert_tilt\":"<<(cfg.invert_tilt?"true":"false")<<",\"kp\":"<<cfg.kp<<",\"ki\":"<<cfg.ki<<",\"kd\":"<<cfg.kd<<",\"deadzone\":"<<cfg.deadzone<<",\"max_pan\":"<<cfg.max_pan<<",\"max_tilt\":"<<cfg.max_tilt<<",\"max_accel\":"<<cfg.max_accel<<",\"target_x\":"<<cfg.target_x<<",\"target_y\":"<<cfg.target_y<<",\"min_pan\":"<<cfg.min_pan<<",\"min_tilt\":"<<cfg.min_tilt<<",\"seq\":"<<g.seq.load()<<",\"last_error\":\""<<g.last_error<<"\",\"zoom_ratio\":"<<g.zoom_ratio<<",\"zoom_focal_px\":"<<g.zoom_focal_px<<",\"zoom_focal_min_px\":"<<g.zoom_focal_min_px<<",\"zoom_focal_max_px\":"<<g.zoom_focal_max_px<<",\"zoom_speed_scale\":"<<g.zoom_speed_scale<<",\"zoom_source\":\""<<g.zoom_source<<"\",\"zoom_error\":\""<<g.zoom_error<<"\",\"base_cmd_pan\":"<<g.base_cmd_pan<<",\"base_cmd_tilt\":"<<g.base_cmd_tilt<<",\"scaled_cmd_pan\":"<<g.scaled_cmd_pan<<",\"scaled_cmd_tilt\":"<<g.scaled_cmd_tilt<<",\"effective_max_pan\":"<<g.effective_max_pan<<",\"effective_max_tilt\":"<<g.effective_max_tilt<<",\"effective_max_accel\":"<<g.effective_max_accel<<",\"manual_active\":"<<(g.manual_active?"true":"false")<<",\"manual_last_source\":\""<<g.manual_last_source<<"\",\"manual_cmd_pan\":"<<g.manual_cmd_pan<<",\"manual_cmd_tilt\":"<<g.manual_cmd_tilt<<",\"manual_profile_idx\":"<<g.manual_profile_idx<<",\"manual_zoom_ratio\":"<<g.manual_zoom_ratio<<",\"manual_expires_ms\":"<<g.manual_expires_ms<<",\"active_profile_idx\":"<<g.active_profile_idx<<",\"active_zoom_sample_idx\":"<<g.active_zoom_sample_idx<<",\"profile_max_pan\":"<<g.profile_max_pan<<",\"profile_max_tilt\":"<<g.profile_max_tilt<<",\"profile_max_accel\":"<<g.profile_max_accel<<",\"ptz_curve\":"<<g.ptz_curve<<",\"ptz_lead_ms\":"<<g.ptz_lead_ms<<",\"speed_profile_source\":\""<<g.speed_profile_source<<"\",\"speed_profile_left_idx\":"<<g.speed_profile_left_idx<<",\"speed_profile_right_idx\":"<<g.speed_profile_right_idx<<",\"speed_profile_t\":"<<g.speed_profile_t<<"}"; return os.str();}
+
+static void auto_zoom_loop(){
+  int last_cmd = 0;
+  bool was_zooming = false;
+  long long last_send_ms = 0;
+
+  while(g.run){
+    int cmd = 0;
+    double box_h = 0.0;
+
+    const bool active = g.enabled.load() && cfg.auto_zoom_enable;
+
+    TrackerState ts;
+    std::string body;
+    bool ok = http_get(cfg.tracker_host,cfg.tracker_port,"/api/tracker/state",body) && parse_tracker(body,ts);
+
+    if(active && ok && ts.mode=="TRACKING" && ts.valid){
+      box_h = double(ts.b - ts.t) / double(std::max(1,cfg.height));
+
+      const double low = cfg.auto_zoom_target_h - cfg.auto_zoom_deadzone;
+      const double high = cfg.auto_zoom_target_h + cfg.auto_zoom_deadzone;
+
+      if(box_h < low) cmd = cfg.auto_zoom_sign * cfg.auto_zoom_cmd;
+      else if(box_h > high) cmd = -cfg.auto_zoom_sign * cfg.auto_zoom_cmd;
+      else cmd = 0;
+    }
+
+    const long long now = now_ms();
+    const bool periodic = cmd != 0 && (now - last_send_ms) >= cfg.auto_zoom_period_ms;
+    const bool changed_cmd = cmd != last_cmd;
+
+    if(changed_cmd || periodic || (!active && was_zooming)){
+      if(send_bridge_z(cmd)){
+        last_cmd = cmd;
+        last_send_ms = now;
+        was_zooming = (cmd != 0);
+      }
+    }
+
+    {
+      std::lock_guard<std::mutex> lk(g.m);
+      g.auto_zoom_enable = cfg.auto_zoom_enable;
+      g.auto_zoom_cmd = cmd;
+      g.auto_zoom_box_h = box_h;
+      g.auto_zoom_target_h = cfg.auto_zoom_target_h;
+      g.auto_zoom_deadzone = cfg.auto_zoom_deadzone;
+      g.auto_zoom_sign = cfg.auto_zoom_sign;
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
+  send_bridge_z(0);
+}
+
+static std::string state_json(){std::lock_guard<std::mutex>lk(g.m); std::ostringstream os; os<<"{\"ok\":true,\"enabled\":"<<(g.enabled?"true":"false")<<",\"mode\":\""<<g.mode<<"\",\"last_tracker_mode\":\""<<g.last_tracker_mode<<"\",\"last_track_id\":"<<g.last_track_id<<",\"err_x\":"<<g.errx<<",\"err_y\":"<<g.erry<<",\"pred_err_x\":"<<g.pred_errx<<",\"pred_err_y\":"<<g.pred_erry<<",\"cmd_pan\":"<<g.cmdp<<",\"cmd_tilt\":"<<g.cmdt<<",\"invert_pan\":"<<(cfg.invert_pan?"true":"false")<<",\"invert_tilt\":"<<(cfg.invert_tilt?"true":"false")<<",\"kp\":"<<cfg.kp<<",\"ki\":"<<cfg.ki<<",\"kd\":"<<cfg.kd<<",\"deadzone\":"<<cfg.deadzone<<",\"max_pan\":"<<cfg.max_pan<<",\"max_tilt\":"<<cfg.max_tilt<<",\"max_accel\":"<<cfg.max_accel<<",\"target_x\":"<<cfg.target_x<<",\"target_y\":"<<cfg.target_y<<",\"min_pan\":"<<cfg.min_pan<<",\"min_tilt\":"<<cfg.min_tilt<<",\"seq\":"<<g.seq.load()<<",\"last_error\":\""<<g.last_error<<"\",\"zoom_ratio\":"<<g.zoom_ratio<<",\"zoom_focal_px\":"<<g.zoom_focal_px<<",\"zoom_focal_min_px\":"<<g.zoom_focal_min_px<<",\"zoom_focal_max_px\":"<<g.zoom_focal_max_px<<",\"zoom_speed_scale\":"<<g.zoom_speed_scale<<",\"zoom_source\":\""<<g.zoom_source<<"\",\"zoom_error\":\""<<g.zoom_error<<"\",\"base_cmd_pan\":"<<g.base_cmd_pan<<",\"base_cmd_tilt\":"<<g.base_cmd_tilt<<",\"scaled_cmd_pan\":"<<g.scaled_cmd_pan<<",\"scaled_cmd_tilt\":"<<g.scaled_cmd_tilt<<",\"effective_max_pan\":"<<g.effective_max_pan<<",\"effective_max_tilt\":"<<g.effective_max_tilt<<",\"effective_max_accel\":"<<g.effective_max_accel<<",\"manual_active\":"<<(g.manual_active?"true":"false")<<",\"manual_last_source\":\""<<g.manual_last_source<<"\",\"manual_cmd_pan\":"<<g.manual_cmd_pan<<",\"manual_cmd_tilt\":"<<g.manual_cmd_tilt<<",\"manual_profile_idx\":"<<g.manual_profile_idx<<",\"manual_zoom_ratio\":"<<g.manual_zoom_ratio<<",\"manual_expires_ms\":"<<g.manual_expires_ms<<",\"active_profile_idx\":"<<g.active_profile_idx<<",\"active_zoom_sample_idx\":"<<g.active_zoom_sample_idx<<",\"profile_max_pan\":"<<g.profile_max_pan<<",\"profile_max_tilt\":"<<g.profile_max_tilt<<",\"profile_max_accel\":"<<g.profile_max_accel<<",\"ptz_curve\":"<<g.ptz_curve<<",\"ptz_lead_ms\":"<<g.ptz_lead_ms<<",\"speed_profile_source\":\""<<g.speed_profile_source<<"\",\"speed_profile_left_idx\":"<<g.speed_profile_left_idx<<",\"speed_profile_right_idx\":"<<g.speed_profile_right_idx<<",\"speed_profile_t\":"<<g.speed_profile_t<<",\"auto_zoom_enable\":"<<(g.auto_zoom_enable?"true":"false")<<",\"auto_zoom_cmd\":"<<g.auto_zoom_cmd<<",\"auto_zoom_box_h\":"<<g.auto_zoom_box_h<<",\"auto_zoom_target_h\":"<<g.auto_zoom_target_h<<",\"auto_zoom_deadzone\":"<<g.auto_zoom_deadzone<<",\"auto_zoom_sign\":"<<g.auto_zoom_sign<<"}"; return os.str();}
 
 static void control_server(){int s=socket(AF_INET,SOCK_STREAM,0); int on=1; setsockopt(s,SOL_SOCKET,SO_REUSEADDR,&on,sizeof(on)); sockaddr_in a{}; a.sin_family=AF_INET;a.sin_port=htons(cfg.control_port); a.sin_addr.s_addr=htonl(INADDR_ANY); bind(s,(sockaddr*)&a,sizeof(a)); listen(s,16); while(g.run){int c=accept(s,nullptr,nullptr); if(c<0) continue; std::string req; char b[4096]; int n=recv(c,b,sizeof(b),0); if(n>0) req.assign(b,n); std::string method=req.substr(0,req.find(' ')); auto p2=req.find(' ',req.find(' ')+1); std::string path=req.substr(req.find(' ')+1,p2-req.find(' ')-1); auto bp=req.find("\r\n\r\n"); std::string body=(bp==std::string::npos)?"":req.substr(bp+4); std::string out="{\"ok\":false}"; int status=200; std::string status_text="OK";
  if(method=="OPTIONS"){status=204; status_text="No Content"; out.clear();}
  else if(method=="GET" && path=="/api/autopilot/state") out=state_json();
  else if(method=="POST" && path=="/api/autopilot/start"){g.enabled=true; out=state_json();}
  else if(method=="POST" && path=="/api/autopilot/stop"){g.enabled=false; out=state_json();}
- else if(method=="POST" && path=="/api/autopilot/config"){json_num(body,"kp",cfg.kp);json_num(body,"ki",cfg.ki);json_num(body,"kd",cfg.kd);json_num(body,"deadzone",cfg.deadzone);json_int(body,"max_pan",cfg.max_pan);json_int(body,"max_tilt",cfg.max_tilt);json_int(body,"max_accel",cfg.max_accel);json_num(body,"hz",cfg.hz); bool invp=false; if(json_bool(body,"invert_pan",invp)) cfg.invert_pan=invp; bool invt=false; if(json_bool(body,"invert_tilt",invt)) cfg.invert_tilt=invt; json_num(body,"target_x",cfg.target_x); json_num(body,"target_y",cfg.target_y); json_int(body,"min_pan",cfg.min_pan); json_int(body,"min_tilt",cfg.min_tilt); bool zse=false; if(json_bool(body,"zoom_scale_enable",zse)) cfg.zoom_scale_enable=zse; json_num(body,"zoom_scale_min",cfg.zoom_scale_min); json_num(body,"zoom_scale_max",cfg.zoom_scale_max); json_num(body,"zoom_scale_smoothing",cfg.zoom_scale_smoothing); clamp_config(); save_ptz_config(); set_runtime_speed_override_for_current_sample(); out=state_json();}
+ else if(method=="POST" && path=="/api/autopilot/config"){json_num(body,"kp",cfg.kp);json_num(body,"ki",cfg.ki);json_num(body,"kd",cfg.kd);json_num(body,"deadzone",cfg.deadzone);json_int(body,"max_pan",cfg.max_pan);json_int(body,"max_tilt",cfg.max_tilt);json_int(body,"max_accel",cfg.max_accel);json_num(body,"hz",cfg.hz); bool invp=false; if(json_bool(body,"invert_pan",invp)) cfg.invert_pan=invp; bool invt=false; if(json_bool(body,"invert_tilt",invt)) cfg.invert_tilt=invt; json_num(body,"target_x",cfg.target_x); json_num(body,"target_y",cfg.target_y); json_int(body,"min_pan",cfg.min_pan); json_int(body,"min_tilt",cfg.min_tilt); bool zse=false; if(json_bool(body,"zoom_scale_enable",zse)) cfg.zoom_scale_enable=zse; json_num(body,"zoom_scale_min",cfg.zoom_scale_min); json_num(body,"zoom_scale_max",cfg.zoom_scale_max); json_num(body,"zoom_scale_smoothing",cfg.zoom_scale_smoothing); bool aze=false; if(json_bool(body,"auto_zoom_enable",aze)) cfg.auto_zoom_enable=aze; json_num(body,"auto_zoom_target_h",cfg.auto_zoom_target_h); json_num(body,"auto_zoom_deadzone",cfg.auto_zoom_deadzone); json_int(body,"auto_zoom_cmd",cfg.auto_zoom_cmd); json_int(body,"auto_zoom_sign",cfg.auto_zoom_sign); json_int(body,"auto_zoom_period_ms",cfg.auto_zoom_period_ms); clamp_config(); save_ptz_config(); set_runtime_speed_override_for_current_sample(); out=state_json();}
  else if(method=="GET" && path=="/api/autopilot/speed_profile"){ auto pts=load_speed_profile_points(); out=speed_profile_json(pts); int maxIdx=-1; for(const auto& p:pts) maxIdx=std::max(maxIdx,p.profile_idx); if(maxIdx>=0){ std::ostringstream ep; ep<<"{\"ok\":true,\"points\":["; for(size_t i=0;i<pts.size();++i){ if(i) ep<<","; ep<<speed_point_to_json(pts[i]); } ep<<"],\"effective_points\":["; for(int i=0;i<=maxIdx;++i){ auto rr=resolve_speed_point_for_sample(i,0.0,0.0); if(i) ep<<","; ep<<"{\"profile_idx\":"<<i<<",\"source\":\""<<rr.source<<"\""; if(rr.left_profile_idx>=0) ep<<",\"left_profile_idx\":"<<rr.left_profile_idx; if(rr.right_profile_idx>=0) ep<<",\"right_profile_idx\":"<<rr.right_profile_idx; ep<<"}"; } ep<<"]}"; out=ep.str(); } }
  else if(method=="POST" && path=="/api/autopilot/speed_profile/save_point"){ int step=-1, profile_idx=-1; double zoom_ratio=0.0,focal_px=0.0; json_int(body,"step",step); json_int(body,"profile_idx",profile_idx); json_num(body,"zoom_ratio",zoom_ratio); json_num(body,"focal_px",focal_px); if(profile_idx<0) profile_idx=step; if(step<0) step=profile_idx; auto pts=load_speed_profile_points(); SpeedPoint np; np.profile_idx=profile_idx; np.step=step; np.zoom_ratio=zoom_ratio; np.focal_px=focal_px; np.kp=cfg.kp; np.ki=cfg.ki; np.kd=cfg.kd; np.deadzone=cfg.deadzone; np.max_pan=cfg.max_pan; np.max_tilt=cfg.max_tilt; np.max_accel=cfg.max_accel; np.min_pan=cfg.min_pan; np.min_tilt=cfg.min_tilt; json_num(body,"kp",np.kp); json_num(body,"ki",np.ki); json_num(body,"kd",np.kd); json_num(body,"deadzone",np.deadzone); json_int(body,"max_pan",np.max_pan); json_int(body,"max_tilt",np.max_tilt); json_int(body,"max_accel",np.max_accel); json_int(body,"min_pan",np.min_pan); json_int(body,"min_tilt",np.min_tilt); json_num(body,"ptz_curve",np.ptz_curve); json_int(body,"ptz_lead_ms",np.ptz_lead_ms); json_int(body,"j_pulse_ms",np.j_pulse_ms); json_int(body,"nudge_pan",np.nudge_pan); json_int(body,"nudge_tilt",np.nudge_tilt); np.manual_mode=json_str(body,"manual_mode"); if(np.manual_mode!="pulse"&&np.manual_mode!="hold"&&np.manual_mode!="tap_hold") np.manual_mode="tap_hold"; if(np.nudge_pan<=0) np.nudge_pan=cfg.max_pan; if(np.nudge_tilt<=0) np.nudge_tilt=cfg.max_tilt; clamp_speed_point(np); bool replaced=false; for(auto &p:pts){ if((profile_idx>=0 && p.profile_idx==profile_idx) || (profile_idx<0 && p.step==step)){ p=np; replaced=true; break; } } if(!replaced) pts.push_back(np); save_speed_profile_points(pts); clear_runtime_speed_override(); std::ostringstream os; os<<"{\"ok\":true,\"saved\":true,\"points\":"<<pts.size()<<"}"; out=os.str(); }
  else if(method=="POST" && path=="/api/autopilot/speed_profile/apply_nearest"){ double zr=0.0,zf=0.0; int profile_idx=-1; json_num(body,"zoom_ratio",zr); json_num(body,"focal_px",zf); json_int(body,"profile_idx",profile_idx); auto rr=resolve_speed_point_for_sample(profile_idx,zr,zf); auto &p=rr.point; cfg.kp=p.kp; cfg.ki=p.ki; cfg.kd=p.kd; cfg.deadzone=p.deadzone; cfg.max_pan=p.max_pan; cfg.max_tilt=p.max_tilt; cfg.max_accel=p.max_accel; cfg.min_pan=p.min_pan; cfg.min_tilt=p.min_tilt; clamp_config(); save_ptz_config(); clear_runtime_speed_override(); out=std::string("{\"ok\":true,\"applied\":true,\"source\":\"")+rr.source+"\",\"point\":"+speed_point_to_json(p)+"}"; }
@@ -437,4 +509,4 @@ int main(int argc,char**argv){for(int i=1;i<argc;i++){std::string a=argv[i]; aut
  clamp_config();
  load_ptz_config();
  clamp_config();
- g.enabled=cfg.enabled; std::signal(SIGINT,on_sig); std::signal(SIGTERM,on_sig); std::thread t1(autopilot_loop), t2(control_server); t1.join(); t2.join(); return 0;}
+ g.enabled=cfg.enabled; std::signal(SIGINT,on_sig); std::signal(SIGTERM,on_sig); std::thread t1(autopilot_loop), t2(control_server), t3(auto_zoom_loop); t1.join(); t2.join(); t3.join(); return 0;}
