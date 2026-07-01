@@ -1303,16 +1303,6 @@ static bool run_zoom_apriltag_table_calibration(const Opts& o, const ZoomAprilTa
   int currentIdx = 0;
   const bool sweepMode = (params.zoom_move_mode == "sweep_time_steps");
   const int sampleCount = std::max(1, params.samples);
-  const double stepMs = static_cast<double>(params.full_sweep_ms) / static_cast<double>(std::max(1, params.samples - 1));
-  std::cout << "zoom-apriltag: START mode=" << params.zoom_move_mode
-            << " sweepMode=" << (sweepMode ? 1 : 0)
-            << " samples=" << sampleCount
-            << " full_sweep_ms=" << params.full_sweep_ms
-            << " step_ms=" << std::fixed << std::setprecision(1) << stepMs
-            << " impulse_ms=" << params.impulse_ms
-            << " settle_ms=" << params.settle_ms
-            << " direction=" << params.calibration_direction
-            << "\n";
   if (sweepMode) {
     for (int i = 0; i < sampleCount; ++i) {
       bool moveOk = true;
@@ -4024,9 +4014,6 @@ static void handle_client(int cfd, const Opts& o) {
       if (!g_zoomCalibInProgress.load()) {
         const std::string mode = extract_json_string_field(bodyReq, "mode");
         ZoomAprilTagCalibParams p = g_zoomCalibSettings;
-        // Always start from persisted ZOOM CALIB settings, so UI selector survives reloads
-        // and RUN FULL CALIB cannot accidentally fall back to legacy_impulse.
-        load_zoom_calib_settings(p, o.cmd_max_zoom);
         extract_json_double_field(bodyReq, "tag_size_mm", &p.tag_size_mm);
         if (!extract_json_int_field(bodyReq, "anchor_tag_id", &p.anchor_tag_id)) extract_json_int_field(bodyReq, "near_tag_id", &p.anchor_tag_id);
         if (!extract_json_double_field(bodyReq, "anchor_distance_mm", &p.anchor_distance_mm)) extract_json_double_field(bodyReq, "near_distance_mm", &p.anchor_distance_mm);
@@ -4038,8 +4025,8 @@ static void handle_client(int cfd, const Opts& o) {
         extract_json_int_field(bodyReq, "wide_hold_ms", &p.wide_hold_ms);
         extract_json_int_field(bodyReq, "full_sweep_ms", &p.full_sweep_ms);
         { const std::string zmm = extract_json_string_field(bodyReq, "zoom_move_mode"); if (!zmm.empty()) p.zoom_move_mode = zmm; }
-        { const std::string cd = extract_json_string_field(bodyReq, "calibration_direction"); if (!cd.empty()) p.calibration_direction = cd; }
-        { const std::string aal = extract_json_string_field(bodyReq, "active_anchor_label"); if (!aal.empty()) p.active_anchor_label = aal; }
+        p.calibration_direction = extract_json_string_field(bodyReq, "calibration_direction");
+        p.active_anchor_label = extract_json_string_field(bodyReq, "active_anchor_label");
         parse_zoom_anchors_json(bodyReq, p);
         if (bodyReq.find("\"anchors\"") == std::string::npos) p.anchors = {{"near", true, p.anchor_tag_id, p.anchor_distance_mm, p.tag_size_mm}, {"mid", true, -1, 5000.0, p.tag_size_mm}, {"far", true, -1, 10000.0, p.tag_size_mm}};
         clamp_zoom_calib_params(p, o.cmd_max_zoom);
@@ -4106,8 +4093,8 @@ static void handle_client(int cfd, const Opts& o) {
       extract_json_int_field(bodyReq, "wide_hold_ms", &p.wide_hold_ms);
       extract_json_int_field(bodyReq, "full_sweep_ms", &p.full_sweep_ms);
       { const std::string zmm = extract_json_string_field(bodyReq, "zoom_move_mode"); if (!zmm.empty()) p.zoom_move_mode = zmm; }
-      { const std::string cd = extract_json_string_field(bodyReq, "calibration_direction"); if (!cd.empty()) p.calibration_direction = cd; }
-      { const std::string aal = extract_json_string_field(bodyReq, "active_anchor_label"); if (!aal.empty()) p.active_anchor_label = aal; }
+      p.calibration_direction = extract_json_string_field(bodyReq, "calibration_direction");
+      p.active_anchor_label = extract_json_string_field(bodyReq, "active_anchor_label");
       parse_zoom_anchors_json(bodyReq, p);
       if (bodyReq.find("\"anchors\"") == std::string::npos) p.anchors = {{"near", true, p.anchor_tag_id, p.anchor_distance_mm, p.tag_size_mm}, {"mid", true, -1, 5000.0, p.tag_size_mm}, {"far", true, -1, 10000.0, p.tag_size_mm}};
       clamp_zoom_calib_params(p, o.cmd_max_zoom);
