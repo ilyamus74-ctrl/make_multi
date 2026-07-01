@@ -2097,8 +2097,8 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
   window.refreshPtzTuneSpeedProfile = refreshPtzTuneSpeedProfile;
   window.updatePtzTuneSampleButtonUi = updatePtzTuneSampleButtonUi;
-  window.initPtzSpeedTuneSamples = initPtzSpeedTuneSamples;
-  window.refreshPtzTuneZoomSamples = initPtzSpeedTuneSamples;
+  window.initPtzSpeedTuneSamples = async () => initPtzSpeedTuneSamples();
+  window.refreshPtzTuneZoomSamples = async function refreshPtzTuneZoomSamples(){ return initPtzSpeedTuneSamples?.(); };
 
   function defaultSpeedPointForZoomMasterPoint(p) {
     const z = Math.max(0, Math.min(1, Number(p.zoom_ratio || 0)));
