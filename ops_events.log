@@ -3500,3 +3500,4 @@
 2026-07-01T12:34:18Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782909258912,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":18}}
 2026-07-01T12:39:59Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782909599310,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":10}}
 2026-07-01T12:46:21Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782909981663,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":9}}
+2026-07-01T12:47:59Z type=link_mode_changed payload={"type":"link_mode_changed","ts_ms":1782910079813,"details":{"mode":"normal","reason":"rtt-restored","rtt_ms":10}}
