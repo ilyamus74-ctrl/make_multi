@@ -96,6 +96,7 @@ OBJECT_PRESET_APPLIER="${OBJECT_PRESET_APPLIER:-$ROOT_DIR/apply_ptz_object_prese
 OBJECT_TRACKING_DAEMON_ENABLE="${OBJECT_TRACKING_DAEMON_ENABLE:-1}"
 OBJECT_TRACKING_DAEMON="${OBJECT_TRACKING_DAEMON:-$ROOT_DIR/object_tracking_daemon.py}"
 HYDRATE_RUNTIME_SETTINGS="${HYDRATE_RUNTIME_SETTINGS:-$ROOT_DIR/hydrate_runtime_settings.py}"
+SETTINGS_PERSIST_DAEMON="${SETTINGS_PERSIST_DAEMON:-$ROOT_DIR/settings_persist_daemon.py}"
 OBJECT_TRACKING_DAEMON_LOG="${OBJECT_TRACKING_DAEMON_LOG:-/dev/shm/new_yolo8_object_tracking/object_tracking_daemon.log}"
 OBJECT_LOG_SERVER_ENABLE="${OBJECT_LOG_SERVER_ENABLE:-1}"
 OBJECT_LOG_SERVER="${OBJECT_LOG_SERVER:-$ROOT_DIR/object_tracking_log_server.py}"
@@ -302,6 +303,16 @@ hydrate_runtime_settings() {
   fi
 }
 
+
+start_settings_persist_daemon() {
+  if [ -f "$SETTINGS_PERSIST_DAEMON" ]; then
+    echo "[launcher] start settings persist daemon"
+    python3 "$SETTINGS_PERSIST_DAEMON" &
+    SETTINGS_PERSIST_DAEMON_PID=$!
+    echo "[launcher] settings persist daemon pid=$SETTINGS_PERSIST_DAEMON_PID"
+  fi
+}
+
 start_object_tracking_daemon() {
   if [[ "${OBJECT_TRACKING_DAEMON_ENABLE:-1}" != "1" ]]; then
     log "Object tracking daemon disabled"
@@ -373,6 +384,7 @@ fi
 if [[ "$AUTOPILOT_ENABLE" == "1" ]]; then
   start_autopilot
   hydrate_runtime_settings
+start_settings_persist_daemon
 apply_object_preset_on_start
   start_object_log_server
   start_object_tracking_daemon

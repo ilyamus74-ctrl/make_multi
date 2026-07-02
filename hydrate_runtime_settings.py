@@ -26,10 +26,20 @@ def post_json(url, body, timeout=3):
         raw = r.read().decode("utf-8", errors="replace")
     return json.loads(raw) if raw.strip() else {}
 
+def read_file_settings():
+    if not SETTINGS_FILE.exists():
+        return {}
+
+    try:
+        data = json.loads(SETTINGS_FILE.read_text(encoding="utf-8", errors="replace"))
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
 def wait_api():
     last = None
 
-    for _ in range(40):
+    for _ in range(60):
         try:
             return get_json(f"{MJPEG_BASE}/api/settings", timeout=2)
         except Exception as e:
@@ -38,35 +48,33 @@ def wait_api():
 
     raise RuntimeError(f"/api/settings not ready: {last}")
 
-def main():
-    if not SETTINGS_FILE.exists():
-        print("WARN: ui_settings.json not found")
-        return 0
+def non_empty_dict(x):
+    return isinstance(x, dict) and bool(x)
 
-    file_settings = json.loads(SETTINGS_FILE.read_text(encoding="utf-8", errors="replace"))
+def main():
+    file_settings = read_file_settings()
     runtime_settings = wait_api()
 
     merged = dict(runtime_settings or {})
     merged.update(file_settings or {})
 
+    runtime_custom = runtime_settings.get("objectPresetsCustom")
+    file_custom = file_settings.get("objectPresetsCustom")
+
+    if non_empty_dict(file_custom):
+        merged["objectPresetsCustom"] = file_custom
+    elif non_empty_dict(runtime_custom):
+        merged["objectPresetsCustom"] = runtime_custom
+    else:
+        merged.pop("objectPresetsCustom", None)
+
     merged["config_version"] = max(16, int(merged.get("config_version") or 16))
+    merged["activeObjectPreset"] = merged.get("activeObjectPreset") or "person_single"
+    merged["activeSearchPreset"] = merged.get("activeSearchPreset") or "lost_step_wait"
 
-    if not merged.get("activeObjectPreset"):
-        merged["activeObjectPreset"] = "person_single"
-
-    if not merged.get("activeSearchPreset"):
-        merged["activeSearchPreset"] = "lost_step_wait"
-
-    if "ptzArmed" not in merged:
-        merged["ptzArmed"] = False
-
-    if not merged.get("controlMode"):
-        merged["controlMode"] = "manual"
-
-    # Safety: service start must not accidentally arm PTZ.
-    if merged.get("ptzArmed") is not True:
-        merged["ptzArmed"] = False
-        merged["controlMode"] = "manual"
+    # Безопасность: после рестарта не auto-arm.
+    merged["ptzArmed"] = False
+    merged["controlMode"] = "manual"
 
     res = post_json(f"{MJPEG_BASE}/api/settings", merged, timeout=3)
 
