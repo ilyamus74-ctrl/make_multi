@@ -1,7 +1,0 @@
-{
-  "ts": 1782974742.914,
-  "event": "child_stop",
-  "reason": "preset_or_search_preset_changed",
-  "preset": "car_single::lost_step_wait",
-  "pid": 87038
-}
