@@ -4296,3 +4296,12 @@
 2026-07-02T15:35:46Z type=video_retry payload={"type":"video_retry","ts_ms":1783006546947,"details":{"attempt":250,"delay_ms":10000,"mode":"auto"}}
 2026-07-02T15:35:56Z type=video_retry payload={"type":"video_retry","ts_ms":1783006556948,"details":{"attempt":251,"delay_ms":10000,"mode":"auto"}}
 2026-07-02T15:36:06Z type=video_retry payload={"type":"video_retry","ts_ms":1783006566950,"details":{"attempt":252,"delay_ms":10000,"mode":"auto"}}
+2026-07-02T15:36:16Z type=video_retry payload={"type":"video_retry","ts_ms":1783006576952,"details":{"attempt":253,"delay_ms":10000,"mode":"auto"}}
+2026-07-02T15:36:26Z type=video_retry payload={"type":"video_retry","ts_ms":1783006586956,"details":{"attempt":254,"delay_ms":10000,"mode":"auto"}}
+2026-07-02T15:36:36Z type=video_retry payload={"type":"video_retry","ts_ms":1783006596962,"details":{"attempt":255,"delay_ms":10000,"mode":"auto"}}
+2026-07-02T15:36:46Z type=video_retry payload={"type":"video_retry","ts_ms":1783006606964,"details":{"attempt":256,"delay_ms":10000,"mode":"auto"}}
+2026-07-02T15:40:14Z type=detector_model_switch_start payload={"type":"detector_model_switch_start","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
+2026-07-02T15:40:14Z type=detector_model_switch_ok payload={"type":"detector_model_switch_ok","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
+2026-07-02T15:43:19Z type=detector_model_switch_start payload={"type":"detector_model_switch_start","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
+2026-07-02T15:43:19Z type=detector_model_switch_ok payload={"type":"detector_model_switch_ok","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
+2026-07-02T15:43:26Z type=detector_model_switch_fail payload={"type":"detector_model_switch_fail","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn","reason":"cooldown"}
