@@ -1,5 +1,5 @@
 {
-  "ts": 1783007022,
+  "ts": 1783008996,
   "pass": 97,
   "fail": 0,
   "results": [
@@ -16,7 +16,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=6922"
+      "detail": "size=6923"
     },
     {
       "name": "file exists: launcher.sh",
@@ -41,7 +41,7 @@
     {
       "name": "file exists: apply_ptz_object_preset.py",
       "ok": true,
-      "detail": "size=51122"
+      "detail": "size=53749"
     },
     {
       "name": "file exists: mjpeg_gst_http.cpp",

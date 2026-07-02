@@ -404,13 +404,6 @@ def zoom_is_already_wide(skip_ratio=0.06):
 
 
 def zoom_wide_pulse(reason="search", hold_ms=220, cooldown_sec=8.0, skip_ratio=0.06):
-    """
-    PTZ_RUNTIME_ZOOM_SAMPLE_SPEED_SYNC_V1
-    Wide zoom movement must use the sample contract:
-      /api/zoom/go_to_sample {profile_idx}
-      /api/autopilot/speed_profile/apply_nearest {profile_idx}
-    Never raw /api/zoom/jog here; raw jog can desync physical zoom and PTZ SPEED TUNE sample.
-    """
     now = time.time()
     last_ts = getattr(zoom_wide_pulse, "_last_ts", 0.0)
 
@@ -429,6 +422,7 @@ def zoom_wide_pulse(reason="search", hold_ms=220, cooldown_sec=8.0, skip_ratio=0
         }
 
     already_wide, state = zoom_is_already_wide(skip_ratio=skip_ratio)
+
     if already_wide:
         zoom_wide_pulse._last_ts = now
         event_log(
@@ -445,48 +439,42 @@ def zoom_wide_pulse(reason="search", hold_ms=220, cooldown_sec=8.0, skip_ratio=0
         }
 
     try:
-        st = zoom_frame_state()
-        cur = int(st.get("sample") or 0)
-        count = max(1, int(st.get("count") or 10))
-        target = 0
+        settings = {}
+        try:
+            settings = get_json(f"{MJPEG_BASE}/api/zoom_calibration/settings", timeout=2)
+        except Exception:
+            settings = {}
 
-        res = post_json(f"{MJPEG_BASE}/api/zoom/go_to_sample", {
-            "profile_idx": target,
-            "mode": "sample",
+        cmd_abs = int(settings.get("cmd_abs") or 12)
+        wide_sign = int(settings.get("wide_cmd_sign") or -1)
+        cmd = wide_sign * max(1, min(34, cmd_abs))
+        hold_ms = max(80, min(2000, int(hold_ms)))
+
+        post_json(f"{MJPEG_BASE}/api/zoom/jog", {
+            "action": "start",
+            "cmd": cmd,
+            "hold_ms": hold_ms,
             "source": f"auto_arm_{reason}"
-        }, timeout=25)
+        }, timeout=2)
 
-        st2 = zoom_frame_state()
-        sample2 = int(st2.get("sample") or target)
-        ratio2 = float(st2.get("ratio") or 0.0)
-        speed = apply_ptz_speed_profile_for_zoom(sample2, ratio2)
+        time.sleep((hold_ms + 80) / 1000.0)
+
+        try:
+            post_json(f"{MJPEG_BASE}/api/zoom/jog", {
+                "action": "stop",
+                "cmd": 0,
+                "source": f"auto_arm_{reason}_stop"
+            }, timeout=2)
+        except Exception:
+            pass
 
         zoom_wide_pulse._last_ts = now
-        event_log(
-            "zoom_wide_sample_move",
-            reason=reason,
-            ok=True,
-            current_sample=cur,
-            target_sample=target,
-            final_sample=sample2,
-            sample_count=count,
-            zoom_ratio=ratio2,
-            go_to_sample=res,
-            speed_profile=speed
-        )
-        return {
-            "ok": True,
-            "current_sample": cur,
-            "target_sample": target,
-            "final_sample": sample2,
-            "sample_count": count,
-            "zoom_ratio": ratio2,
-            "go_to_sample": res,
-            "speed_profile": speed
-        }
+
+        event_log("zoom_wide_pulse", reason=reason, ok=True, cmd=cmd, hold_ms=hold_ms)
+        return {"ok": True, "cmd": cmd, "hold_ms": hold_ms}
 
     except Exception as e:
-        event_log("zoom_wide_sample_move", reason=reason, ok=False, error=str(e))
+        event_log("zoom_wide_pulse", reason=reason, ok=False, error=str(e))
         return {"ok": False, "error": str(e)}
 
 
@@ -717,54 +705,6 @@ def zoom_frame_state():
         }
 
 
-# PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_START
-def detector_runtime_enabled_state():
-    """
-    Runtime guard source: detector config.
-    Returns (enabled, raw). API errors are treated as enabled to avoid false emergency pauses.
-    """
-    try:
-        raw = get_json(f"{MJPEG_BASE}/api/detector/config", timeout=2)
-        if isinstance(raw, dict) and raw.get("detect_enabled") is False:
-            return False, raw
-        return True, raw
-    except Exception as e:
-        return True, {"ok": False, "error": str(e)}
-
-
-def runtime_pause_if_detection_disabled(context="runtime", preset_name=None):
-    """
-    If operator disables Detection while PTZ ACTIVE, runtime must not search/reacquire.
-    It stops PTZ and pauses until detection is enabled again.
-    """
-    enabled, raw = detector_runtime_enabled_state()
-    if enabled is not False:
-        return False
-
-    try:
-        stop_ptz()
-    except Exception as e:
-        event_log("runtime_detection_disabled_stop_ptz_failed", context=context, preset=preset_name, error=str(e))
-
-    event_log(
-        "runtime_detection_disabled_pause",
-        context=context,
-        preset=preset_name,
-        detector=raw
-    )
-    try:
-        write_state(
-            mode="paused_detection_off",
-            preset=preset_name,
-            context=context,
-            detector=raw
-        )
-    except Exception:
-        pass
-    return True
-# PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_END
-
-
 def apply_ptz_speed_profile_for_zoom(sample_idx, zoom_ratio):
     try:
         return post_json(f"{AUTOPILOT_BASE}/api/autopilot/speed_profile/apply_nearest", {
@@ -961,12 +901,7 @@ def run_named_search_preset_once(name, classes, object_preset_name, last_target=
     cycle = 0
 
     while True:
-        if runtime_pause_if_detection_disabled("search_preset", object_preset_name):
-            return {"ok": False, "preset": name, "reason": "detection_disabled", "search_preset": name}
-
         for idx, step in enumerate(steps):
-            if runtime_pause_if_detection_disabled("search_preset_step", object_preset_name):
-                return {"ok": False, "preset": name, "reason": "detection_disabled", "search_preset": name}
             typ = str(step.get("type") or "").strip()
             step_name = step.get("name") or f"step_{idx}"
 
@@ -1114,12 +1049,6 @@ def run_continuous_wide_scan_x(classes, preset_name, plan, max_seconds=0):
     event_log("continuous_frame_search_start", preset=preset_name, classes=classes)
 
     while True:
-        if runtime_pause_if_detection_disabled("continuous_wide_scan_x", preset_name):
-            lost_seen_since = None
-            last_status = None
-            time.sleep(0.5)
-            continue
-
         if deadline and time.time() >= deadline:
             stop_ptz()
             out = {
@@ -1276,10 +1205,6 @@ def run_custom_search_plan(classes, preset_name, plan, max_seconds=0):
     step_index = 0
 
     while True:
-        if runtime_pause_if_detection_disabled("custom_plan", preset_name):
-            time.sleep(0.5)
-            continue
-
         if deadline and time.time() >= deadline:
             stop_ptz()
             out = {

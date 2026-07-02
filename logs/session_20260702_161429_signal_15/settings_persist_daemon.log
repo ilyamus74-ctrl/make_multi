@@ -1176,30 +1176,3 @@
 2026-07-02 16:14:24 skip persist: runtime armed ptzArmed=True controlMode=ptz
 2026-07-02 16:14:26 skip persist: runtime armed ptzArmed=True controlMode=ptz
 2026-07-02 16:14:28 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:14:30 settings persist daemon stop
-2026-07-02 16:14:51 settings persist daemon start
-2026-07-02 16:14:58 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:00 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:02 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:04 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:06 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:08 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:10 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:12 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:14 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:16 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:18 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:20 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:22 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:24 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:26 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:28 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:30 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:32 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:15:34 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:16:20 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:16:22 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:16:24 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:16:26 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:16:28 skip persist: runtime armed ptzArmed=True controlMode=ptz
-2026-07-02 16:16:30 skip persist: runtime armed ptzArmed=True controlMode=ptz
