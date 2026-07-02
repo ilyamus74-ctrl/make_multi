@@ -150,6 +150,12 @@ def preset_by_name(name, settings, presets_root):
     return presets.get(name)
 
 
+
+def active_search_preset_name(settings):
+    return str(settings.get("activeSearchPreset") or "lost_step_wait")
+
+
+
 def is_single_auto(preset):
     if not isinstance(preset, dict):
         return False
@@ -190,7 +196,7 @@ def stop_child(reason):
         log("logs_archive_failed", reason=reason, error=str(e))
 
 
-def start_child(preset_name):
+def start_child(preset_name, search_preset='lost_step_wait'):
     global child, child_preset
 
     cmd = [
@@ -215,9 +221,9 @@ def start_child(preset_name):
         start_new_session=True
     )
 
-    child_preset = preset_name
+    child_preset = preset_name + '::' + str(search_preset)
 
-    log("child_start", preset=preset_name, pid=child.pid, cmd=cmd)
+    log("child_start", preset=preset_name, search_preset=search_preset, pid=child.pid, cmd=cmd)
 
 
 def handle_signal(signum, frame):
@@ -248,6 +254,7 @@ def main():
 
         armed = bool(settings.get("ptzArmed"))
         preset_name = active_preset_name(settings, presets_root)
+        search_preset = active_search_preset_name(settings)
         preset = preset_by_name(preset_name, settings, presets_root)
         single = is_single_auto(preset)
 
@@ -268,11 +275,12 @@ def main():
             continue
 
         if child_alive():
-            if child_preset != preset_name:
-                stop_child("preset_changed")
+            expected_child_key = preset_name + '::' + str(search_preset)
+            if child_preset != expected_child_key:
+                stop_child("preset_or_search_preset_changed")
                 time.sleep(0.5)
             else:
-                log("armed_running", preset=preset_name, pid=child.pid)
+                log("armed_running", preset=preset_name, search_preset=search_preset, pid=child.pid)
                 time.sleep(POLL_SEC)
                 continue
 
@@ -283,7 +291,7 @@ def main():
             continue
 
         last_restart = now
-        start_child(preset_name)
+        start_child(preset_name, search_preset)
 
         time.sleep(POLL_SEC)
 

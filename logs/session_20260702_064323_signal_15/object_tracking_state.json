@@ -1,0 +1,11 @@
+{
+  "ts": 1782974603.04,
+  "mode": "tracking",
+  "preset": "car_single",
+  "track_id": 25,
+  "ptz": "ACTIVE",
+  "cmd_pan": 0,
+  "cmd_tilt": -13,
+  "zoom_sample": 0,
+  "zoom_ratio": 0
+}

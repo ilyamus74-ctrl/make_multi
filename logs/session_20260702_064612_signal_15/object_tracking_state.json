@@ -1,0 +1,11 @@
+{
+  "ts": 1782974770.085,
+  "mode": "searching",
+  "preset": "car_single",
+  "active_search_preset": "lost_step_wait",
+  "result": {
+    "ok": false,
+    "preset": "lost_step_wait",
+    "reason": "target_not_acquired"
+  }
+}

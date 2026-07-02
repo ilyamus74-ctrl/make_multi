@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "active": "lost_step_wait",
+  "presets": {
+    "lost_step_wait": {
+      "label": "Lost: step wide, sweep, wait",
+      "description": "При потере цели: WIDE -1 frame, поворот в сторону ухода, возврат, TELE +1 frame, ждём другую цель.",
+      "loop": false,
+      "try_acquire_after_each_step": true,
+      "steps": [
+        {
+          "type": "zoom",
+          "delta_frames": -1,
+          "name": "wide_back_1"
+        },
+        {
+          "type": "ptz",
+          "direction": "last",
+          "pan_norm": 0.55,
+          "tilt_norm": 0.0,
+          "mode": "hold",
+          "hold_ms": 500,
+          "pulse_ms": 100,
+          "name": "pan_last_short"
+        },
+        {
+          "type": "pause",
+          "sec": 0.35,
+          "name": "pause"
+        },
+        {
+          "type": "ptz",
+          "direction": "opposite",
+          "pan_norm": 0.55,
+          "tilt_norm": 0.0,
+          "mode": "hold",
+          "hold_ms": 500,
+          "pulse_ms": 100,
+          "name": "pan_back_short"
+        },
+        {
+          "type": "zoom",
+          "delta_frames": 1,
+          "name": "tele_forward_1"
+        },
+        {
+          "type": "acquire",
+          "attempts": 12,
+          "delay_sec": 0.25,
+          "name": "wait_target"
+        }
+      ]
+    },
+    "lost_wide_cycle": {
+      "label": "Lost: wide 3 frames cycle",
+      "description": "При потере цели: WIDE -3 frames, длинный sweep в сторону ухода, возврат, TELE +2 frames, цикл поиска.",
+      "loop": true,
+      "try_acquire_after_each_step": true,
+      "steps": [
+        {
+          "type": "zoom",
+          "delta_frames": -3,
+          "name": "wide_back_3"
+        },
+        {
+          "type": "ptz",
+          "direction": "last",
+          "pan_norm": 0.65,
+          "tilt_norm": 0.0,
+          "mode": "hold",
+          "hold_ms": 2000,
+          "pulse_ms": 100,
+          "name": "pan_last_long"
+        },
+        {
+          "type": "pause",
+          "sec": 1.0,
+          "name": "pause_1s"
+        },
+        {
+          "type": "ptz",
+          "direction": "opposite",
+          "pan_norm": 0.65,
+          "tilt_norm": 0.0,
+          "mode": "hold",
+          "hold_ms": 2000,
+          "pulse_ms": 100,
+          "name": "pan_back_long"
+        },
+        {
+          "type": "zoom",
+          "delta_frames": 2,
+          "name": "tele_forward_2"
+        },
+        {
+          "type": "acquire",
+          "attempts": 12,
+          "delay_sec": 0.25,
+          "name": "wait_target"
+        }
+      ]
+    },
+    "lost_nested_loop": {
+      "label": "Lost: short + preset1 + pause",
+      "description": "При потере цели: короткий шаг, затем выполняет preset1, пауза 5 сек и повтор.",
+      "loop": true,
+      "try_acquire_after_each_step": true,
+      "steps": [
+        {
+          "type": "zoom",
+          "delta_frames": -1,
+          "name": "wide_back_1"
+        },
+        {
+          "type": "ptz",
+          "direction": "last",
+          "pan_norm": 0.55,
+          "tilt_norm": 0.0,
+          "mode": "hold",
+          "hold_ms": 500,
+          "pulse_ms": 100,
+          "name": "pan_last_short"
+        },
+        {
+          "type": "pause",
+          "sec": 0.35,
+          "name": "pause"
+        },
+        {
+          "type": "ptz",
+          "direction": "opposite",
+          "pan_norm": 0.55,
+          "tilt_norm": 0.0,
+          "mode": "hold",
+          "hold_ms": 500,
+          "pulse_ms": 100,
+          "name": "pan_back_short"
+        },
+        {
+          "type": "zoom",
+          "delta_frames": 1,
+          "name": "tele_forward_1"
+        },
+        {
+          "type": "run_preset",
+          "preset": "lost_step_wait",
+          "name": "run_preset_1"
+        },
+        {
+          "type": "pause",
+          "sec": 5.0,
+          "name": "pause_5s"
+        }
+      ]
+    }
+  }
+}
