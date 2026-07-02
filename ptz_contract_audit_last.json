@@ -1,7 +1,7 @@
 {
-  "ts": 1782988982,
-  "pass": 47,
-  "fail": 5,
+  "ts": 1782991140,
+  "pass": 48,
+  "fail": 4,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
@@ -16,7 +16,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=1412"
+      "detail": "size=2666"
     },
     {
       "name": "file exists: launcher.sh",
@@ -136,17 +136,17 @@
     {
       "name": "Settings activeObjectPreset API/FILE match",
       "ok": true,
-      "detail": "api=None file=None"
+      "detail": "api=contract_default_object file=contract_default_object"
     },
     {
       "name": "Settings activeSearchPreset API/FILE match",
       "ok": true,
-      "detail": "api=None file=None"
+      "detail": "api=contract_default_object file=contract_default_object"
     },
     {
       "name": "Settings FILE ptzArmed false",
-      "ok": false,
-      "detail": "file=None"
+      "ok": true,
+      "detail": "file=False"
     },
     {
       "name": "Settings FILE controlMode manual",
@@ -156,7 +156,7 @@
     {
       "name": "Settings active custom preset exists",
       "ok": false,
-      "detail": "active=None"
+      "detail": "active=contract_default_object"
     },
     {
       "name": "Detector limits reachable",

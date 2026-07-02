@@ -75,37 +75,5 @@
   "w2": 0.2,
   "w3": 0.25,
   "zoomTravelSec": 12,
-  "zoomState": 0,
-  "ptzArmed": false,
-  "customPresets": {
-    "contract_default_object": {
-      "name": "Contract Default Object",
-      "description": "Durable seed preset required by PTZ_MASTER_CONTRACT.md",
-      "version": 1,
-      "max_detections": 5,
-      "max_raw_candidates": 10,
-      "detect_every_n_frames": 5,
-      "detection_mode": "full_frame",
-      "rois": [],
-      "ptzArmed": false,
-      "controlMode": "manual",
-      "autopilot_enabled": false,
-      "kp": 18,
-      "ki": 0,
-      "kd": 1.5,
-      "deadzone": 0.05,
-      "max_pan": 20,
-      "max_tilt": 20,
-      "max_accel": 4,
-      "target_x": 0.5,
-      "target_y": 0.5,
-      "min_pan": 4,
-      "min_tilt": 3,
-      "auto_zoom_enable": true,
-      "auto_zoom_target_h": 0.68,
-      "auto_zoom_deadzone": 0.08
-    }
-  },
-  "activeObjectPreset": "contract_default_object",
-  "activeSearchPreset": "contract_default_object"
+  "zoomState": 0
 }
