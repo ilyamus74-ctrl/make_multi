@@ -1,17 +1,17 @@
 {
-  "ts": 1783005332,
-  "pass": 80,
-  "fail": 1,
+  "ts": 1783006537,
+  "pass": 97,
+  "fail": 0,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
       "ok": true,
-      "detail": "size=28554"
+      "detail": "size=29486"
     },
     {
       "name": "file exists: web/index.html",
       "ok": true,
-      "detail": "size=318958"
+      "detail": "size=319206"
     },
     {
       "name": "file exists: ui_settings.json",
@@ -166,7 +166,7 @@
     {
       "name": "Keyboard Q/A sweep marker ptzQaSweepProfileIdxStep",
       "ok": true,
-      "detail": "count=4"
+      "detail": "count=5"
     },
     {
       "name": "Keyboard Q/A sweep marker keyboard_Q_profile_idx_sweep",
@@ -200,8 +200,88 @@
     },
     {
       "name": "Keyboard Q/A sample step respects ZOOM CALIB Movement",
-      "ok": false,
-      "detail": "movement_marker=False owns_both_modes=False"
+      "ok": true,
+      "detail": "movement_marker=True owns_both_modes=True"
+    },
+    {
+      "name": "Keyboard arrow marker ptzKeyboardCaptureDirection",
+      "ok": true,
+      "detail": "count=3"
+    },
+    {
+      "name": "Keyboard arrow marker ptzKeyboardCaptureEnabled",
+      "ok": true,
+      "detail": "count=3"
+    },
+    {
+      "name": "Keyboard arrow marker window.__ptzKeyCaptureInstalled",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Keyboard arrow marker ArrowLeft",
+      "ok": true,
+      "detail": "count=4"
+    },
+    {
+      "name": "Keyboard arrow marker ArrowRight",
+      "ok": true,
+      "detail": "count=4"
+    },
+    {
+      "name": "Keyboard arrow marker ArrowUp",
+      "ok": true,
+      "detail": "count=4"
+    },
+    {
+      "name": "Keyboard arrow marker ArrowDown",
+      "ok": true,
+      "detail": "count=4"
+    },
+    {
+      "name": "Keyboard arrow marker keyboard_left",
+      "ok": true,
+      "detail": "count=5"
+    },
+    {
+      "name": "Keyboard arrow marker keyboard_right",
+      "ok": true,
+      "detail": "count=5"
+    },
+    {
+      "name": "Keyboard arrow marker keyboard_up",
+      "ok": true,
+      "detail": "count=3"
+    },
+    {
+      "name": "Keyboard arrow marker keyboard_down",
+      "ok": true,
+      "detail": "count=3"
+    },
+    {
+      "name": "Keyboard arrows own PTZ pan/tilt directions",
+      "ok": true,
+      "detail": "block=True all_directions=True"
+    },
+    {
+      "name": "Keyboard arrows are gated to PTZ mode",
+      "ok": true,
+      "detail": "ptz_mode_guard=True"
+    },
+    {
+      "name": "Keyboard arrows capture keydown before browser/page handlers",
+      "ok": true,
+      "detail": "capture_keydown=True"
+    },
+    {
+      "name": "Keyboard arrows capture keyup and release movement",
+      "ok": true,
+      "detail": "capture_keyup=True release_stop=True"
+    },
+    {
+      "name": "Keyboard arrows have backend/manual motion path",
+      "ok": true,
+      "detail": "motion_path=True"
     },
     {
       "name": "Settings API reachable",
