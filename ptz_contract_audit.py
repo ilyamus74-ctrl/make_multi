@@ -370,6 +370,17 @@ def audit_daemon_lifecycle():
 
     original = dict(settings)
 
+    # Lifecycle contract is tested on single_auto preset.
+    # Multi/operator presets may be armed without starting auto-watch.
+    test_settings = dict(settings)
+    test_settings["activeObjectPreset"] = "car_single"
+    test_settings["objectPresetTrackingMode"] = "single_auto"
+    test_settings["objectPresetLossBehavior"] = "continuous_wide_scan_x"
+    test_settings["activeSearchPreset"] = test_settings.get("activeSearchPreset") or "lost_step_wait"
+    test_settings["ptzArmed"] = False
+    test_settings["controlMode"] = "manual"
+    post_json(f"{MJPEG_BASE}/api/settings", test_settings)
+
     def watch_count():
         return len([
             x

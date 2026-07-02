@@ -445,3 +445,41 @@ Settings:
   settings_persist_daemon.py running
   object_tracking_daemon.py running
 
+
+
+##########################
+Да. ptz_contract_audit.py теперь нельзя удалять. Это часть проекта, как тесты.
+
+Роль файлов:
+
+PTZ_MASTER_CONTRACT.md      — архитектурный закон проекта
+ptz_contract_audit.py       — проверка, что код не нарушил закон
+ptz_contract_audit_last.json — временный отчёт последнего аудита, можно удалять
+старые patch_*.py           — можно удалять после успешного внедрения
+
+После каждого вмешательства в слои:
+
+1. обновили код
+2. запустили ptz_contract_audit.py
+3. увидели PASS/FAIL
+4. если контракт поменялся — обновили PTZ_MASTER_CONTRACT.md
+5. только потом считаем изменение закрытым
+
+# Mandatory Project Files
+
+These files are part of the project contract and must not be deleted:
+
+
+Generated audit output can be deleted:
+
+ptz_contract_audit_last.json
+
+Old one-time patch files can be deleted after the target code is patched and audit passes.
+
+Rule:
+
+Any layer change must be followed by:
+  1. ptz_contract_audit.py run
+  2. review of FAIL items
+  3. fix or explicit contract update
+##########################

@@ -1,12 +1,12 @@
 {
-  "ts": 1782983130,
-  "pass": 49,
-  "fail": 5,
+  "ts": 1782983615,
+  "pass": 60,
+  "fail": 2,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
       "ok": true,
-      "detail": "size=15013"
+      "detail": "size=16371"
     },
     {
       "name": "file exists: web/index.html",
@@ -16,7 +16,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=1734"
+      "detail": "size=6783"
     },
     {
       "name": "file exists: launcher.sh",
@@ -125,13 +125,13 @@
     },
     {
       "name": "Settings API custom presets non-empty",
-      "ok": false,
-      "detail": "keys=[]"
+      "ok": true,
+      "detail": "keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
     },
     {
       "name": "Settings FILE custom presets non-empty",
-      "ok": false,
-      "detail": "keys=[]"
+      "ok": true,
+      "detail": "keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
     },
     {
       "name": "Settings activeObjectPreset API/FILE match",
@@ -155,8 +155,28 @@
     },
     {
       "name": "Settings active custom preset exists",
-      "ok": false,
+      "ok": true,
       "detail": "active=cars"
+    },
+    {
+      "name": "Settings top-level limit matches active preset",
+      "ok": true,
+      "detail": "settings=15 preset=15"
+    },
+    {
+      "name": "Settings top-level detect_every matches active preset",
+      "ok": true,
+      "detail": "settings=1 preset=1"
+    },
+    {
+      "name": "Settings top-level area matches active preset",
+      "ok": true,
+      "detail": "settings=tiled preset=tiled"
+    },
+    {
+      "name": "Settings active object preset has no PTZ speed keys",
+      "ok": true,
+      "detail": "bad=[]"
     },
     {
       "name": "Detector limits reachable",
@@ -177,6 +197,26 @@
       "name": "Detector config reachable",
       "ok": true,
       "detail": "ok"
+    },
+    {
+      "name": "Detector max_detections matches active preset",
+      "ok": true,
+      "detail": "backend=15 preset=15"
+    },
+    {
+      "name": "Detector detect_every matches active preset",
+      "ok": true,
+      "detail": "backend=1 preset=1"
+    },
+    {
+      "name": "Detector area matches active preset",
+      "ok": true,
+      "detail": "backend=tiled preset=tiled"
+    },
+    {
+      "name": "Detector classes match active preset",
+      "ok": true,
+      "detail": "backend=[2, 3, 5, 7] preset=[2, 3, 5, 7]"
     },
     {
       "name": "PTZ autopilot reachable",
