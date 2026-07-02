@@ -1,7 +1,7 @@
 {
-  "ts": 1783002071,
-  "pass": 70,
-  "fail": 1,
+  "ts": 1783002450,
+  "pass": 71,
+  "fail": 0,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
@@ -31,7 +31,7 @@
     {
       "name": "file exists: settings_persist_daemon.py",
       "ok": true,
-      "detail": "size=5489"
+      "detail": "size=6353"
     },
     {
       "name": "file exists: object_tracking_daemon.py",
@@ -350,8 +350,8 @@
     },
     {
       "name": "Daemon lifecycle arm runtime start observed",
-      "ok": false,
-      "detail": "runtime_events=0 max_watch_count=0 final_watch_count=0 samples=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]"
+      "ok": true,
+      "detail": "runtime_events=4 max_watch_count=1 final_watch_count=1 samples=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]"
     },
     {
       "name": "Daemon lifecycle final disarm watch_count=0",
