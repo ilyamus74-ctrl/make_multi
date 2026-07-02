@@ -7377,12 +7377,57 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 </script>
 
 
+
+<!-- removed conflicting ptz ui controller block -->
+
+
+
+
+<!-- removed conflicting ptz ui controller block -->
+
+
+
+
+<!-- removed conflicting ptz ui controller block -->
+
+
+
+
+<!-- removed conflicting ptz ui controller block -->
+
+
+
+
+<!-- removed conflicting ptz ui controller block -->
+
+
+
+
+<!-- removed conflicting ptz ui controller block -->
+
+
+
+
+<!-- removed conflicting ptz ui controller block -->
+
+
+
+
+<!-- removed conflicting ptz ui controller block -->
+
+
+
+
+<!-- removed conflicting ptz ui controller block -->
+
+
+
 <script>
-// OBJECT_PRESET_MANAGER_START
+// PTZ_CLEAN_LAYER_CONTROLLER_START
 (function () {
   const $ = (id) => document.getElementById(id);
 
-  const BUILTIN_PRESETS = {
+  const OBJECT_PRESETS = {
     person_single: {
       label: 'ЧЕЛОВЕК',
       classes: [0],
@@ -7390,11 +7435,11 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       max_detections: 5,
       max_raw_candidates: 25,
       detect_every_n_frames: 1,
+      tracking_mode: 'single_auto',
+      loss_behavior: 'continuous_wide_scan_x',
       ptz: {
         target_x: 0.50,
         target_y: 0.46,
-        min_pan: 3,
-        min_tilt: 3,
         auto_zoom_enable: true,
         auto_zoom_target_h: 0.68,
         auto_zoom_deadzone: 0.08,
@@ -7410,11 +7455,11 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       max_detections: 10,
       max_raw_candidates: 50,
       detect_every_n_frames: 1,
+      tracking_mode: 'multi_operator',
+      loss_behavior: 'operator_select',
       ptz: {
         target_x: 0.50,
         target_y: 0.47,
-        min_pan: 3,
-        min_tilt: 3,
         auto_zoom_enable: true,
         auto_zoom_target_h: 0.58,
         auto_zoom_deadzone: 0.10,
@@ -7430,11 +7475,11 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       max_detections: 8,
       max_raw_candidates: 40,
       detect_every_n_frames: 1,
+      tracking_mode: 'single_auto',
+      loss_behavior: 'continuous_wide_scan_x',
       ptz: {
         target_x: 0.50,
         target_y: 0.50,
-        min_pan: 3,
-        min_tilt: 2,
         auto_zoom_enable: true,
         auto_zoom_target_h: 0.48,
         auto_zoom_deadzone: 0.10,
@@ -7450,11 +7495,11 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       max_detections: 15,
       max_raw_candidates: 80,
       detect_every_n_frames: 1,
+      tracking_mode: 'multi_operator',
+      loss_behavior: 'operator_select',
       ptz: {
         target_x: 0.50,
         target_y: 0.50,
-        min_pan: 3,
-        min_tilt: 2,
         auto_zoom_enable: true,
         auto_zoom_target_h: 0.42,
         auto_zoom_deadzone: 0.12,
@@ -7470,11 +7515,11 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       max_detections: 8,
       max_raw_candidates: 60,
       detect_every_n_frames: 1,
+      tracking_mode: 'single_auto',
+      loss_behavior: 'continuous_wide_scan_x',
       ptz: {
         target_x: 0.50,
         target_y: 0.45,
-        min_pan: 4,
-        min_tilt: 3,
         auto_zoom_enable: true,
         auto_zoom_target_h: 0.30,
         auto_zoom_deadzone: 0.08,
@@ -7490,11 +7535,11 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       max_detections: 15,
       max_raw_candidates: 100,
       detect_every_n_frames: 1,
+      tracking_mode: 'multi_operator',
+      loss_behavior: 'operator_select',
       ptz: {
         target_x: 0.50,
         target_y: 0.45,
-        min_pan: 4,
-        min_tilt: 3,
         auto_zoom_enable: true,
         auto_zoom_target_h: 0.25,
         auto_zoom_deadzone: 0.10,
@@ -7510,11 +7555,11 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       max_detections: 10,
       max_raw_candidates: 80,
       detect_every_n_frames: 1,
+      tracking_mode: 'single_auto',
+      loss_behavior: 'continuous_wide_scan_x',
       ptz: {
         target_x: 0.50,
         target_y: 0.45,
-        min_pan: 4,
-        min_tilt: 4,
         auto_zoom_enable: true,
         auto_zoom_target_h: 0.24,
         auto_zoom_deadzone: 0.07,
@@ -7530,11 +7575,11 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       max_detections: 20,
       max_raw_candidates: 120,
       detect_every_n_frames: 1,
+      tracking_mode: 'multi_operator',
+      loss_behavior: 'operator_select',
       ptz: {
         target_x: 0.50,
         target_y: 0.45,
-        min_pan: 4,
-        min_tilt: 4,
         auto_zoom_enable: true,
         auto_zoom_target_h: 0.20,
         auto_zoom_deadzone: 0.08,
@@ -7545,1385 +7590,30 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     }
   };
 
-  async function getJson(url) {
-    const r = await fetch(url, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`${r.status} ${url}`);
-    return await r.json();
-  }
-
-  async function postJson(url, body) {
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body || {})
-    });
-    if (!r.ok) throw new Error(`${r.status} ${url}`);
-    return await r.json().catch(() => ({ ok: true }));
-  }
-
-  function autopilotBaseUrl() {
-    return `${location.protocol}//${location.hostname}:8090`;
-  }
-
-  async function readSettings() {
-    try {
-      return await getJson('/api/settings');
-    } catch (_) {
-      return {};
-    }
-  }
-
-  async function saveSettingsMerge(patch) {
-    const cfg = await readSettings();
-    const next = Object.assign({}, cfg || {}, patch || {});
-    next.config_version = Math.max(16, Number(next.config_version || 16));
-
-    try {
-      localStorage.setItem('pantilt_ui_settings_v2', JSON.stringify(next));
-    } catch (_) {}
-
-    await postJson('/api/settings', next);
-    return next;
-  }
-
-  async function frameSize() {
-    try {
-      const d = await getJson('/api/detections');
-      return {
-        w: Math.max(1, Number(d.width || 1920)),
-        h: Math.max(1, Number(d.height || 1080))
-      };
-    } catch (_) {
-      return { w: 1920, h: 1080 };
-    }
-  }
-
-  function skyRoi(w, h) {
-    return { id: 'sky_top', enabled: true, x: 0, y: 0, w, h: Math.max(1, Math.round(h * 0.68)), every_n_frames: 1, classes: [] };
-  }
-
-  function centerRoi(w, h) {
-    const rw = Math.round(w * 0.60);
-    const rh = Math.round(h * 0.55);
-    return { id: 'center', enabled: true, x: Math.max(0, Math.round((w - rw) / 2)), y: Math.max(0, Math.round((h - rh) / 2)), w: Math.max(1, rw), h: Math.max(1, rh), every_n_frames: 1, classes: [] };
-  }
-
-  function fullRoi(w, h) {
-    return { id: 'full_frame', enabled: true, x: 0, y: 0, w, h, every_n_frames: 1, classes: [] };
-  }
-
-  async function roiPayload(mode) {
-    const sz = await frameSize();
-    const w = sz.w;
-    const h = sz.h;
-
-    if (mode === 'tiled') return { detection_mode: 'tiled', rois: [] };
-    if (mode === 'roi') return { detection_mode: 'roi', rois: [skyRoi(w, h)] };
-    if (mode === 'multi_roi') return { detection_mode: 'multi_roi', rois: [skyRoi(w, h), centerRoi(w, h)] };
-    if (mode === 'hybrid') return { detection_mode: 'hybrid', rois: [fullRoi(w, h), skyRoi(w, h)] };
-    return { detection_mode: 'full_frame', rois: [] };
-  }
-
-  async function applyPreset(name, preset) {
-    const classes = Array.isArray(preset.classes) ? preset.classes.map(Number).filter(Number.isFinite) : [];
-    const mode = String(preset.detection_mode || 'full_frame');
-    const maxDet = Number(preset.max_detections || 10);
-    const maxRaw = Number(preset.max_raw_candidates || Math.max(20, maxDet * 5));
-    const every = Number(preset.detect_every_n_frames || 1);
-    const ptz = Object.assign({}, preset.ptz || {});
-
-    await postJson('/api/detector/config', {
-      detect_enabled: true,
-      selected_classes: classes
-    });
-
-    await postJson('/api/detection/limits', {
-      max_detections: maxDet,
-      max_raw_candidates: maxRaw
-    });
-
-    await postJson('/api/detection/throttle', {
-      detect_every_n_frames: every
-    });
-
-    await postJson('/api/detection/roi_config', await roiPayload(mode));
-
-    if (Object.keys(ptz).length) {
-      await postJson(`${autopilotBaseUrl()}/api/autopilot/config`, ptz);
-    }
-
-    await saveSettingsMerge({
-      activeObjectPreset: name,
-      detectorEnabled: true,
-      detectorSelectedClasses: classes,
-      operatorDetectionLimit: maxDet,
-      operatorDetectEvery: every,
-      operatorDetectionAreaMode: mode,
-      ptzConfig: {
-        target_x: ptz.target_x,
-        target_y: ptz.target_y,
-        min_pan: ptz.min_pan,
-        min_tilt: ptz.min_tilt
-      },
-      ptzAutoZoom: ptz
-    });
-
-    try {
-      if (typeof window.refreshDetectionUiHard === 'function') await window.refreshDetectionUiHard();
-    } catch (_) {}
-
-    const line = $('ptzStateLine');
-    if (line) line.textContent = `preset=${name} applied`;
-  }
-
-  function allPresetsFromSettings(settings) {
-    return Object.assign({}, BUILTIN_PRESETS, settings.objectPresetsCustom || {});
-  }
-
-  function ensurePresetPanel() {
-    const detMenu = $('detectionMenu');
-    if (!detMenu || $('objectPresetPanel')) return;
-
-    const box = document.createElement('div');
-    box.id = 'objectPresetPanel';
-    box.className = 'menu-body';
-    box.style.marginTop = '6px';
-    box.innerHTML = `
-      <strong>OBJECT PRESETS:</strong>
-      <button class="small-btn" data-object-preset="person_single">ЧЕЛОВЕК</button>
-      <button class="small-btn" data-object-preset="people">ЛЮДИ</button>
-      <button class="small-btn" data-object-preset="car_single">МАШИНА</button>
-      <button class="small-btn" data-object-preset="cars">МАШИНЫ</button>
-      <button class="small-btn" data-object-preset="airplane_single">САМОЛЁТ</button>
-      <button class="small-btn" data-object-preset="airplanes">САМОЛЁТЫ</button>
-      <button class="small-btn" data-object-preset="bird_single">ПТИЦА</button>
-      <button class="small-btn" data-object-preset="birds">ПТИЦЫ</button>
-      <button id="objectPresetCustomBtn" class="small-btn">CUSTOM</button>
-      <code id="objectPresetState">preset: --</code>
-    `;
-
-    detMenu.appendChild(box);
-  }
-
-  function ensureCustomDialog() {
-    if ($('objectPresetDialog')) return;
-
-    const dlg = document.createElement('dialog');
-    dlg.id = 'objectPresetDialog';
-    dlg.style.maxWidth = '760px';
-    dlg.style.background = '#111';
-    dlg.style.color = '#eee';
-    dlg.style.border = '1px solid #444';
-    dlg.style.borderRadius = '8px';
-    dlg.innerHTML = `
-      <form method="dialog" style="display:grid;gap:8px;">
-        <h3>Custom object preset</h3>
-
-        <label>Name/id <input id="customPresetName" value="custom_room" style="width:260px"></label>
-        <label>Label <input id="customPresetLabel" value="Мой пресет" style="width:260px"></label>
-
-        <fieldset>
-          <legend>Objects / COCO classes</legend>
-          <label><input type="checkbox" class="customCls" value="0"> person</label>
-          <label><input type="checkbox" class="customCls" value="2"> car</label>
-          <label><input type="checkbox" class="customCls" value="3"> motorcycle</label>
-          <label><input type="checkbox" class="customCls" value="5"> bus</label>
-          <label><input type="checkbox" class="customCls" value="7"> truck</label>
-          <label><input type="checkbox" class="customCls" value="4"> airplane</label>
-          <label><input type="checkbox" class="customCls" value="14"> bird</label>
-        </fieldset>
-
-        <label>Area
-          <select id="customPresetArea">
-            <option value="full_frame">FULL FRAME</option>
-            <option value="roi">ROI SKY</option>
-            <option value="multi_roi">MULTI ROI</option>
-            <option value="tiled">TILED 2x2</option>
-            <option value="hybrid">HYBRID FULL+ROI</option>
-          </select>
-        </label>
-
-        <label>Limit <input id="customPresetLimit" type="number" min="1" max="50" value="10"></label>
-        <label>Detect every N frames <input id="customPresetEvery" type="number" min="1" max="20" value="1"></label>
-
-        <fieldset>
-          <legend>Framing / PTZ</legend>
-          <label>Center X <input id="customPresetTargetX" type="number" min="0.1" max="0.9" step="0.01" value="0.50"></label>
-          <label>Center Y <input id="customPresetTargetY" type="number" min="0.1" max="0.9" step="0.01" value="0.46"></label>
-          <label>Min Pan <input id="customPresetMinPan" type="number" min="0" max="50" value="3"></label>
-          <label>Min Tilt <input id="customPresetMinTilt" type="number" min="0" max="50" value="3"></label>
-        </fieldset>
-
-        <fieldset>
-          <legend>Auto Zoom</legend>
-          <label><input id="customPresetAutoZoom" type="checkbox" checked> enabled</label>
-          <label>Target object height <input id="customPresetZoomH" type="number" min="0.15" max="0.95" step="0.01" value="0.60"></label>
-          <label>Deadzone <input id="customPresetZoomDz" type="number" min="0.02" max="0.30" step="0.01" value="0.08"></label>
-          <label>Zoom cmd <input id="customPresetZoomCmd" type="number" min="1" max="60" value="10"></label>
-          <label>Zoom sign
-            <select id="customPresetZoomSign">
-              <option value="1">normal</option>
-              <option value="-1">invert</option>
-            </select>
-          </label>
-        </fieldset>
-
-        <p style="opacity:.8;">
-          Подсказка: человек в комнате — person + FULL FRAME + height 0.65–0.72.
-          Птица/самолёт — bird/airplane + HYBRID/ROI + height 0.20–0.35.
-        </p>
-
-        <menu>
-          <button value="cancel">Cancel</button>
-          <button id="customPresetSaveBtn" value="default">Save preset</button>
-          <button id="customPresetSaveApplyBtn" value="default">Save + Apply</button>
-        </menu>
-      </form>
-    `;
-
-    document.body.appendChild(dlg);
-  }
-
-  function readCustomPresetFromDialog() {
-    const name = String($('customPresetName')?.value || 'custom_preset').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-    const label = String($('customPresetLabel')?.value || name).trim();
-    const classes = Array.from(document.querySelectorAll('.customCls:checked')).map(x => Number(x.value)).filter(Number.isFinite);
-    const maxDet = Number($('customPresetLimit')?.value || 10);
-
-    return {
-      name,
-      preset: {
-        label,
-        classes,
-        detection_mode: String($('customPresetArea')?.value || 'full_frame'),
-        max_detections: maxDet,
-        max_raw_candidates: Math.max(20, maxDet * 5),
-        detect_every_n_frames: Number($('customPresetEvery')?.value || 1),
-        ptz: {
-          target_x: Number($('customPresetTargetX')?.value || 0.5),
-          target_y: Number($('customPresetTargetY')?.value || 0.46),
-          min_pan: Number($('customPresetMinPan')?.value || 3),
-          min_tilt: Number($('customPresetMinTilt')?.value || 3),
-          auto_zoom_enable: Boolean($('customPresetAutoZoom')?.checked),
-          auto_zoom_target_h: Number($('customPresetZoomH')?.value || 0.60),
-          auto_zoom_deadzone: Number($('customPresetZoomDz')?.value || 0.08),
-          auto_zoom_cmd: Number($('customPresetZoomCmd')?.value || 10),
-          auto_zoom_sign: Number($('customPresetZoomSign')?.value || 1),
-          auto_zoom_period_ms: 350
-        }
-      }
-    };
-  }
-
-  async function saveCustomPreset(applyNow) {
-    const data = readCustomPresetFromDialog();
-    const settings = await readSettings();
-    const custom = Object.assign({}, settings.objectPresetsCustom || {});
-    custom[data.name] = data.preset;
-
-    await saveSettingsMerge({
-      objectPresetsCustom: custom,
-      activeObjectPreset: data.name
-    });
-
-    if (applyNow) {
-      await applyPreset(data.name, data.preset);
-    }
-
-    renderActivePreset(data.name);
-    return data;
-  }
-
-  function renderActivePreset(name) {
-    const el = $('objectPresetState');
-    if (el) el.textContent = `preset: ${name || '--'}`;
-
-    document.querySelectorAll('[data-object-preset]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.objectPreset === name);
-    });
-  }
-
-  function bindPresetButtons() {
-    document.querySelectorAll('[data-object-preset]').forEach(btn => {
-      if (btn.__presetBound) return;
-      btn.__presetBound = true;
-
-      btn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-
-        const name = btn.dataset.objectPreset;
-        const settings = await readSettings();
-        const presets = allPresetsFromSettings(settings);
-
-        if (!presets[name]) return;
-
-        try {
-          await applyPreset(name, presets[name]);
-          renderActivePreset(name);
-        } catch (err) {
-          console.error('[object-preset]', name, err);
-          const line = $('ptzStateLine');
-          if (line) line.textContent = `preset error ${name}: ${String(err.message || err)}`;
-        }
-      }, true);
-    });
-
-    const customBtn = $('objectPresetCustomBtn');
-    if (customBtn && !customBtn.__presetCustomBound) {
-      customBtn.__presetCustomBound = true;
-      customBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        ensureCustomDialog();
-        $('objectPresetDialog')?.showModal();
-      }, true);
-    }
-
-    const saveBtn = $('customPresetSaveBtn');
-    if (saveBtn && !saveBtn.__presetSaveBound) {
-      saveBtn.__presetSaveBound = true;
-      saveBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await saveCustomPreset(false);
-        $('objectPresetDialog')?.close();
-      }, true);
-    }
-
-    const saveApplyBtn = $('customPresetSaveApplyBtn');
-    if (saveApplyBtn && !saveApplyBtn.__presetSaveApplyBound) {
-      saveApplyBtn.__presetSaveApplyBound = true;
-      saveApplyBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await saveCustomPreset(true);
-        $('objectPresetDialog')?.close();
-      }, true);
-    }
-  }
-
-  async function boot() {
-    ensurePresetPanel();
-    ensureCustomDialog();
-    bindPresetButtons();
-
-    const settings = await readSettings();
-    renderActivePreset(settings.activeObjectPreset || 'person_single');
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
-  } else {
-    boot();
-  }
-
-  setTimeout(boot, 500);
-  setTimeout(boot, 1500);
-  setTimeout(boot, 3000);
-})();
-// OBJECT_PRESET_MANAGER_END
-</script>
-
-
-<script>
-// SINGLE_PRESET_AUTO_ARM_START
-(function () {
-  const $ = (id) => document.getElementById(id);
-
-  const SINGLE_PRESETS = {
-    person_single: [0],
-    car_single: [2, 3, 5, 7],
-    airplane_single: [4],
-    bird_single: [14]
-  };
-
-  const MULTI_PRESETS = new Set([
-    'people',
-    'cars',
-    'airplanes',
-    'birds'
-  ]);
-
-  function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  async function getJson(url) {
-    const r = await fetch(url, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`${r.status} ${url}`);
-    return await r.json();
-  }
-
-  async function postJson(url, body) {
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body || {})
-    });
-    if (!r.ok) throw new Error(`${r.status} ${url}`);
-    return await r.json().catch(() => ({ ok: true }));
-  }
-
-  function autopilotBaseUrl() {
-    return `${location.protocol}//${location.hostname}:8090`;
-  }
-
-  async function readSettings() {
-    try {
-      return await getJson('/api/settings');
-    } catch (_) {
-      return {};
-    }
-  }
-
-  async function saveSettingsPatch(patch) {
-    const old = await readSettings();
-    const next = Object.assign({}, old || {}, patch || {});
-    next.config_version = Math.max(16, Number(next.config_version || 16));
-
-    try {
-      localStorage.setItem('pantilt_ui_settings_v2', JSON.stringify(next));
-    } catch (_) {}
-
-    await postJson('/api/settings', next);
-    return next;
-  }
-
-  function activePresetNameFromSettings(settings) {
-    return String(
-      settings?.lastAppliedObjectPreset?.name ||
-      settings?.activeObjectPreset ||
-      'person_single'
-    );
-  }
-
-  function paintPreset(name) {
-    document.querySelectorAll('[data-object-preset]').forEach(btn => {
-      const on = btn.dataset.objectPreset === name;
-      btn.classList.toggle('object-preset-active', on);
-      btn.classList.toggle('active', on);
-    });
-
-    const state = $('objectPresetState');
-    if (state) {
-      state.textContent = `preset: ${name}`;
-      state.classList.add('object-preset-active-state');
-    }
-  }
-
-  function paintPtzRun(ap) {
-    const running = ap && ap.enabled === true;
-
-    const start = $('ptzStartBtn');
-    const stop = $('ptzStopBtn');
-
-    if (start) start.classList.toggle('ptz-run-active', running);
-    if (stop) stop.classList.toggle('ptz-stop-active', !running);
-
-    if ($('ptzStateLine') && ap) {
-      const prefix = running ? 'PTZ ACTIVE' : 'PTZ STOPPED';
-      const old = $('ptzStateLine').textContent || '';
-      if (!old || old.startsWith('PTZ ACTIVE') || old.startsWith('PTZ STOPPED')) {
-        $('ptzStateLine').textContent = `${prefix} mode=${ap.mode} enabled=${ap.enabled}`;
-      }
-    }
-  }
-
-  function ensureStyle() {
-    if ($('singlePresetAutoArmStyle')) return;
-
-    const st = document.createElement('style');
-    st.id = 'singlePresetAutoArmStyle';
-    st.textContent = `
-      [data-object-preset].object-preset-active {
-        outline: 2px solid #00ff66 !important;
-        background: rgba(0,255,102,.22) !important;
-        color: #fff !important;
-        box-shadow: 0 0 8px rgba(0,255,102,.45) !important;
-      }
-
-      #objectPresetState.object-preset-active-state {
-        color: #00ff66 !important;
-        background: rgba(0,255,102,.14) !important;
-      }
-
-      #ptzStartBtn.ptz-run-active {
-        outline: 2px solid #00ff66 !important;
-        background: rgba(0,255,102,.22) !important;
-        color: #fff !important;
-      }
-
-      #ptzStopBtn.ptz-stop-active {
-        outline: 2px solid #ffcc00 !important;
-        background: rgba(255,204,0,.18) !important;
-        color: #fff !important;
-      }
-    `;
-    document.head.appendChild(st);
-  }
-
-  async function chooseBestDetection(classes, attempts = 35, delayMs = 250) {
-    const wanted = new Set((classes || []).map(Number));
-
-    for (let i = 0; i < attempts; i++) {
-      const det = await getJson('/api/detections');
-      const items = Array.isArray(det.items) ? det.items : [];
-
-      const candidates = items
-        .filter(item => {
-          const cls = Number(item.cls);
-          return !wanted.size || wanted.has(cls);
-        })
-        .map(item => ({
-          item,
-          id: Number(item.id),
-          score: Number(item.prop || item.score || item.conf || 0)
-        }))
-        .filter(x => Number.isFinite(x.id))
-        .sort((a, b) => b.score - a.score);
-
-      if (candidates.length) return candidates[0].item;
-
-      if ($('ptzStateLine')) {
-        $('ptzStateLine').textContent = `AUTO ARM waiting detections ${i + 1}/${attempts}`;
-      }
-
-      await sleep(delayMs);
-    }
-
-    throw new Error(`no matching detections for classes=${Array.from(wanted).join(',')}`);
-  }
-
-  async function autoSelectAndStartPreset(name) {
-    const classes = SINGLE_PRESETS[name];
-
-    if (!classes) {
-      await saveSettingsPatch({
-        activeObjectPreset: name,
-        ptzArmed: false,
-        lastAppliedObjectPreset: {
-          name,
-          tracking_mode: MULTI_PRESETS.has(name) ? 'multi_operator' : 'manual_select',
-          ts: Math.floor(Date.now() / 1000)
-        }
-      });
-
-      if ($('ptzStateLine')) {
-        $('ptzStateLine').textContent = `preset=${name} applied, multi/manual target mode`;
-      }
-
-      return;
-    }
-
-    await saveSettingsPatch({
-      activeObjectPreset: name,
-      controlMode: 'ptz',
-      ptzArmed: true,
-      lastAppliedObjectPreset: {
-        name,
-        tracking_mode: 'single_auto',
-        ts: Math.floor(Date.now() / 1000)
-      }
-    });
-
-    paintPreset(name);
-
-    if ($('controlMode')) $('controlMode').value = 'ptz';
-    if (typeof safeSyncControlModeUi === 'function') safeSyncControlModeUi();
-
-    if ($('ptzStateLine')) $('ptzStateLine').textContent = `AUTO ARM ${name}: waiting target...`;
-
-    const target = await chooseBestDetection(classes, 35, 250);
-
-    await postJson('/api/tracker/clear', {});
-    await postJson('/api/tracker/select', { track_id: Number(target.id) });
-
-    await sleep(450);
-
-    const tr = await getJson('/api/tracker/state');
-
-    if (tr.mode !== 'TRACKING' || tr.selected_box_valid !== true) {
-      throw new Error(`tracker not ready: mode=${tr.mode} valid=${tr.selected_box_valid}`);
-    }
-
-    const apStart = await postJson(`${autopilotBaseUrl()}/api/autopilot/start`, {});
-    await sleep(250);
-
-    const ap = await getJson(`${autopilotBaseUrl()}/api/autopilot/state`);
-    paintPtzRun(ap);
-
-    if ($('ptzStateLine')) {
-      $('ptzStateLine').textContent =
-        `AUTO ARM OK preset=${name} target=${target.id} cls=${target.cls} PTZ=${ap.enabled}/${ap.mode}`;
-    }
-
-    return { target, tracker: tr, autopilot: apStart };
-  }
-
-  async function syncUiState() {
-    ensureStyle();
-
-    const settings = await readSettings();
-    const name = activePresetNameFromSettings(settings);
-    paintPreset(name);
-
-    try {
-      const ap = await getJson(`${autopilotBaseUrl()}/api/autopilot/state`);
-      paintPtzRun(ap);
-    } catch (_) {}
-  }
-
-  function bindPresetAutoArm() {
-    document.addEventListener('click', event => {
-      const btn = event.target && event.target.closest ? event.target.closest('[data-object-preset]') : null;
-      if (!btn) return;
-
-      const name = btn.dataset.objectPreset;
-      paintPreset(name);
-
-      setTimeout(async () => {
-        try {
-          await autoSelectAndStartPreset(name);
-        } catch (err) {
-          console.error('[single-preset-auto-arm]', err);
-          await saveSettingsPatch({
-            activeObjectPreset: name,
-            ptzArmed: false
-          }).catch(() => {});
-
-          if ($('ptzStateLine')) {
-            $('ptzStateLine').textContent = `AUTO ARM failed: ${String(err.message || err)}`;
-          }
-        }
-      }, 1000);
-    }, true);
-  }
-
-  function bindStartStopPersistence() {
-    const start = $('ptzStartBtn');
-    if (start && !start.__ptzArmPersistBound) {
-      start.__ptzArmPersistBound = true;
-      start.addEventListener('click', async () => {
-        const settings = await readSettings();
-        const name = activePresetNameFromSettings(settings);
-
-        await saveSettingsPatch({
-          activeObjectPreset: name,
-          controlMode: 'ptz',
-          ptzArmed: true
-        }).catch(() => {});
-
-        setTimeout(syncUiState, 800);
-      }, true);
-    }
-
-    const stop = $('ptzStopBtn');
-    if (stop && !stop.__ptzArmPersistBound) {
-      stop.__ptzArmPersistBound = true;
-      stop.addEventListener('click', async () => {
-        await saveSettingsPatch({
-          ptzArmed: false
-        }).catch(() => {});
-
-        setTimeout(syncUiState, 800);
-      }, true);
-    }
-  }
-
-  async function boot() {
-    ensureStyle();
-    bindStartStopPersistence();
-    await syncUiState();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
-  } else {
-    boot();
-  }
-
-  bindPresetAutoArm();
-
-  setTimeout(boot, 500);
-  setTimeout(boot, 1500);
-  setTimeout(boot, 3000);
-  setInterval(syncUiState, 5000);
-
-  window.singlePresetAutoArm = autoSelectAndStartPreset;
-})();
-// SINGLE_PRESET_AUTO_ARM_END
-</script>
-
-
-<script>
-// OBJECT_PRESET_BUTTONS_ACTIVE_FIX_START
-(function () {
-  const $ = (id) => document.getElementById(id);
-
-  function ensurePresetActiveStyle() {
-    if ($('objectPresetButtonsActiveStyle')) return;
-
-    const st = document.createElement('style');
-    st.id = 'objectPresetButtonsActiveStyle';
-    st.textContent = `
-      [data-object-preset].object-preset-active,
-      [data-object-preset].active {
-        outline: 2px solid #00ff66 !important;
-        background: rgba(0, 255, 102, 0.24) !important;
-        color: #ffffff !important;
-        box-shadow: 0 0 10px rgba(0, 255, 102, 0.50) !important;
-        border-color: #00ff66 !important;
-      }
-
-      #objectPresetState.object-preset-active-state {
-        color: #00ff66 !important;
-        background: rgba(0, 255, 102, 0.16) !important;
-        border: 1px solid rgba(0, 255, 102, 0.45) !important;
-      }
-    `;
-    document.head.appendChild(st);
-  }
-
-  async function getSettings() {
-    try {
-      const r = await fetch('/api/settings', { cache: 'no-store' });
-      if (!r.ok) throw new Error(String(r.status));
-      return await r.json();
-    } catch (_) {
-      return {};
-    }
-  }
-
-  async function saveSettingsPatch(patch) {
-    let old = {};
-
-    try {
-      old = await getSettings();
-    } catch (_) {
-      old = {};
-    }
-
-    const next = Object.assign({}, old || {}, patch || {});
-    next.config_version = Math.max(16, Number(next.config_version || 16));
-
-    try {
-      localStorage.setItem('pantilt_ui_settings_v2', JSON.stringify(next));
-    } catch (_) {}
-
-    try {
-      await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(next)
-      });
-    } catch (_) {}
-
-    return next;
-  }
-
-  function resolveActivePreset(settings) {
-    const last = settings && settings.lastAppliedObjectPreset && settings.lastAppliedObjectPreset.name;
-    if (last) return String(last);
-
-    const active = settings && settings.activeObjectPreset;
-    if (active) return String(active);
-
-    const chip = $('objectPresetState');
-    const text = chip ? String(chip.textContent || '') : '';
-    const m = text.match(/preset:\s*([a-zA-Z0-9_-]+)/);
-    if (m) return m[1];
-
-    return 'person_single';
-  }
-
-  function paintActivePreset(name) {
-    name = String(name || 'person_single');
-
-    document.querySelectorAll('[data-object-preset]').forEach(btn => {
-      const on = btn.dataset.objectPreset === name;
-
-      btn.classList.toggle('object-preset-active', on);
-      btn.classList.toggle('active', on);
-
-      if (on) {
-        btn.setAttribute('aria-pressed', 'true');
-      } else {
-        btn.setAttribute('aria-pressed', 'false');
-      }
-    });
-
-    const chip = $('objectPresetState');
-    if (chip) {
-      chip.textContent = `preset: ${name}`;
-      chip.classList.add('object-preset-active-state');
-    }
-  }
-
-  async function syncActivePresetButtons() {
-    ensurePresetActiveStyle();
-
-    const settings = await getSettings();
-    const name = resolveActivePreset(settings);
-
-    paintActivePreset(name);
-
-    if (settings.activeObjectPreset !== name) {
-      await saveSettingsPatch({
-        activeObjectPreset: name
-      });
-    }
-
-    return name;
-  }
-
-  function bindPresetClicksForHighlight() {
-    document.querySelectorAll('[data-object-preset]').forEach(btn => {
-      if (btn.__activePresetHighlightBound) return;
-      btn.__activePresetHighlightBound = true;
-
-      btn.addEventListener('click', () => {
-        const name = btn.dataset.objectPreset;
-        paintActivePreset(name);
-
-        saveSettingsPatch({
-          activeObjectPreset: name,
-          lastAppliedObjectPreset: {
-            name,
-            ts: Math.floor(Date.now() / 1000)
-          }
-        }).catch(() => {});
-
-        setTimeout(syncActivePresetButtons, 500);
-        setTimeout(syncActivePresetButtons, 1500);
-        setTimeout(syncActivePresetButtons, 3000);
-      }, true);
-    });
-  }
-
-  async function bootPresetHighlight() {
-    ensurePresetActiveStyle();
-    bindPresetClicksForHighlight();
-    await syncActivePresetButtons();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootPresetHighlight, { once: true });
-  } else {
-    bootPresetHighlight();
-  }
-
-  setTimeout(bootPresetHighlight, 300);
-  setTimeout(bootPresetHighlight, 1000);
-  setTimeout(bootPresetHighlight, 2500);
-  setInterval(syncActivePresetButtons, 5000);
-
-  window.syncActivePresetButtons = syncActivePresetButtons;
-  window.paintActivePreset = paintActivePreset;
-})();
-// OBJECT_PRESET_BUTTONS_ACTIVE_FIX_END
-</script>
-
-
-<script>
-// PTZ_START_STOP_ACTIVE_STATE_FIX_START
-(function () {
-  const $ = (id) => document.getElementById(id);
-
-  function autopilotBaseUrlHard() {
-    return `${location.protocol}//${location.hostname}:8090`;
-  }
-
-  async function getJson(url) {
-    const r = await fetch(url, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`${r.status} ${url}`);
-    return await r.json();
-  }
-
-  async function postJson(url, body) {
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body || {})
-    });
-    if (!r.ok) throw new Error(`${r.status} ${url}`);
-    return await r.json().catch(() => ({ ok: true }));
-  }
-
-  async function readSettingsHard() {
-    try {
-      return await getJson('/api/settings');
-    } catch (_) {
-      return {};
-    }
-  }
-
-  async function saveSettingsPatchHard(patch) {
-    const old = await readSettingsHard();
-    const next = Object.assign({}, old || {}, patch || {});
-    next.config_version = Math.max(16, Number(next.config_version || 16));
-
-    try {
-      localStorage.setItem('pantilt_ui_settings_v2', JSON.stringify(next));
-    } catch (_) {}
-
-    try {
-      await postJson('/api/settings', next);
-    } catch (_) {}
-
-    return next;
-  }
-
-  function ensurePtzRunStyle() {
-    if ($('ptzStartStopActiveStyle')) return;
-
-    const st = document.createElement('style');
-    st.id = 'ptzStartStopActiveStyle';
-    st.textContent = `
-      #ptzStartBtn.ptz-active-running {
-        outline: 2px solid #00ff66 !important;
-        background: rgba(0, 255, 102, 0.25) !important;
-        border-color: #00ff66 !important;
-        color: #ffffff !important;
-        box-shadow: 0 0 10px rgba(0, 255, 102, 0.55) !important;
-      }
-
-      #ptzStartBtn.ptz-active-armed {
-        outline: 2px solid #ffcc00 !important;
-        background: rgba(255, 204, 0, 0.20) !important;
-        border-color: #ffcc00 !important;
-        color: #ffffff !important;
-      }
-
-      #ptzStopBtn.ptz-active-running {
-        outline: 2px solid #ff4444 !important;
-        background: rgba(255, 68, 68, 0.24) !important;
-        border-color: #ff4444 !important;
-        color: #ffffff !important;
-        box-shadow: 0 0 10px rgba(255, 68, 68, 0.45) !important;
-      }
-
-      #ptzStopBtn.ptz-stopped {
-        outline: none !important;
-        box-shadow: none !important;
-        opacity: 0.75;
-      }
-
-      #ptzRunStateChip {
-        margin-left: 6px;
-      }
-
-      #ptzRunStateChip.ptz-running-chip {
-        color: #00ff66 !important;
-        background: rgba(0, 255, 102, 0.14) !important;
-        border: 1px solid rgba(0, 255, 102, 0.45) !important;
-      }
-
-      #ptzRunStateChip.ptz-armed-chip {
-        color: #ffcc00 !important;
-        background: rgba(255, 204, 0, 0.14) !important;
-        border: 1px solid rgba(255, 204, 0, 0.45) !important;
-      }
-
-      #ptzRunStateChip.ptz-stopped-chip {
-        color: #ddd !important;
-        background: rgba(255, 255, 255, 0.08) !important;
-        border: 1px solid rgba(255, 255, 255, 0.18) !important;
-      }
-    `;
-    document.head.appendChild(st);
-  }
-
-  function ensurePtzRunChip() {
-    if ($('ptzRunStateChip')) return;
-
-    const start = $('ptzStartBtn');
-    if (!start || !start.parentNode) return;
-
-    const chip = document.createElement('code');
-    chip.id = 'ptzRunStateChip';
-    chip.textContent = 'ptz: --';
-
-    start.parentNode.insertBefore(chip, start.nextSibling);
-  }
-
-  function setBtnText(el, text) {
-    if (!el) return;
-    if (!el.dataset.originalText) {
-      el.dataset.originalText = el.textContent || '';
-    }
-    el.textContent = text;
-  }
-
-  function clearPtzClasses() {
-    const start = $('ptzStartBtn');
-    const stop = $('ptzStopBtn');
-    const chip = $('ptzRunStateChip');
-
-    for (const el of [start, stop, chip]) {
-      if (!el) continue;
-      el.classList.remove(
-        'ptz-run-active',
-        'ptz-stop-active',
-        'ptz-active-running',
-        'ptz-active-armed',
-        'ptz-stopped',
-        'ptz-running-chip',
-        'ptz-armed-chip',
-        'ptz-stopped-chip'
-      );
-    }
-  }
-
-  function paintPtzRunState(ap, settings) {
-    ensurePtzRunStyle();
-    ensurePtzRunChip();
-
-    const start = $('ptzStartBtn');
-    const stop = $('ptzStopBtn');
-    const chip = $('ptzRunStateChip');
-
-    const running = Boolean(ap && ap.enabled === true);
-    const armed = Boolean(settings && settings.ptzArmed === true);
-
-    clearPtzClasses();
-
-    if (running) {
-      if (start) {
-        start.classList.add('ptz-active-running');
-        setBtnText(start, 'PTZ ACTIVE');
-      }
-
-      if (stop) {
-        stop.classList.add('ptz-active-running');
-        setBtnText(stop, 'STOP PTZ');
-      }
-
-      if (chip) {
-        chip.classList.add('ptz-running-chip');
-        chip.textContent = `ptz: ACTIVE ${ap.mode || ''}`;
-      }
-
-      if ($('controlMode')) $('controlMode').value = 'ptz';
-      if (typeof safeSyncControlModeUi === 'function') safeSyncControlModeUi();
-
-      return;
-    }
-
-    if (armed) {
-      if (start) {
-        start.classList.add('ptz-active-armed');
-        setBtnText(start, 'PTZ ARMED');
-      }
-
-      if (stop) {
-        stop.classList.add('ptz-stopped');
-        setBtnText(stop, 'STOP PTZ');
-      }
-
-      if (chip) {
-        chip.classList.add('ptz-armed-chip');
-        chip.textContent = 'ptz: ARMED / SEARCH';
-      }
-
-      return;
-    }
-
-    if (start) {
-      setBtnText(start, 'START PTZ');
-    }
-
-    if (stop) {
-      stop.classList.add('ptz-stopped');
-      setBtnText(stop, 'STOP PTZ');
-    }
-
-    if (chip) {
-      chip.classList.add('ptz-stopped-chip');
-      chip.textContent = 'ptz: STOPPED';
-    }
-  }
-
-  async function syncPtzRunStateHard() {
-    ensurePtzRunStyle();
-    ensurePtzRunChip();
-
-    let ap = {};
-    let settings = {};
-
-    try {
-      ap = await getJson(`${autopilotBaseUrlHard()}/api/autopilot/state`);
-    } catch (_) {
-      ap = {};
-    }
-
-    settings = await readSettingsHard();
-
-    paintPtzRunState(ap, settings);
-
-    // Backend is authoritative: if autopilot is actually running, persist ptzArmed=true.
-    if (ap && ap.enabled === true && settings.ptzArmed !== true) {
-      await saveSettingsPatchHard({
-        ptzArmed: true,
-        controlMode: 'ptz'
-      });
-    }
-
-    return { ap, settings };
-  }
-
-  function bindStartStopPersistHard() {
-    const start = $('ptzStartBtn');
-    const stop = $('ptzStopBtn');
-
-    if (start && !start.__ptzRunStateHardBound) {
-      start.__ptzRunStateHardBound = true;
-
-      start.addEventListener('click', () => {
-        saveSettingsPatchHard({
-          ptzArmed: true,
-          controlMode: 'ptz'
-        }).catch(() => {});
-
-        setTimeout(syncPtzRunStateHard, 400);
-        setTimeout(syncPtzRunStateHard, 1200);
-        setTimeout(syncPtzRunStateHard, 2500);
-      }, true);
-    }
-
-    if (stop && !stop.__ptzRunStateHardBound) {
-      stop.__ptzRunStateHardBound = true;
-
-      stop.addEventListener('click', () => {
-        saveSettingsPatchHard({
-          ptzArmed: false
-        }).catch(() => {});
-
-        setTimeout(syncPtzRunStateHard, 400);
-        setTimeout(syncPtzRunStateHard, 1200);
-        setTimeout(syncPtzRunStateHard, 2500);
-      }, true);
-    }
-  }
-
-  async function bootPtzRunStateHard() {
-    ensurePtzRunStyle();
-    ensurePtzRunChip();
-    bindStartStopPersistHard();
-    await syncPtzRunStateHard();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootPtzRunStateHard, { once: true });
-  } else {
-    bootPtzRunStateHard();
-  }
-
-  setTimeout(bootPtzRunStateHard, 300);
-  setTimeout(bootPtzRunStateHard, 1000);
-  setTimeout(bootPtzRunStateHard, 2500);
-  setInterval(syncPtzRunStateHard, 1000);
-
-  window.syncPtzRunStateHard = syncPtzRunStateHard;
-})();
-// PTZ_START_STOP_ACTIVE_STATE_FIX_END
-</script>
-
-
-<script>
-// OBJECT_TRACKING_LOGS_BUTTON_START
-(function () {
-  const $ = (id) => document.getElementById(id);
-
-  function ensureLogsButton() {
-    if ($('objectTrackingLogsBtn')) return;
-
-    const panel = $('objectPresetPanel') || $('ptzPanel') || document.querySelector('.controls-panel');
-    if (!panel) return;
-
-    const btn = document.createElement('button');
-    btn.id = 'objectTrackingLogsBtn';
-    btn.className = 'small-btn';
-    btn.textContent = 'LOGS';
-    btn.title = 'Open object tracking logs in a new window';
-
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      const url = `${location.protocol}//${location.hostname}:8091/`;
-      window.open(url, '_blank', 'noopener,noreferrer');
-    });
-
-    panel.appendChild(btn);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', ensureLogsButton, { once: true });
-  } else {
-    ensureLogsButton();
-  }
-
-  setTimeout(ensureLogsButton, 500);
-  setTimeout(ensureLogsButton, 1500);
-  setTimeout(ensureLogsButton, 3000);
-})();
-// OBJECT_TRACKING_LOGS_BUTTON_END
-</script>
-
-
-<script>
-// SEARCH_PRESET_SELECTOR_START
-(function () {
-  const $ = (id) => document.getElementById(id);
-
   const SEARCH_PRESETS = {
     lost_step_wait: 'Lost: step wide, sweep, wait',
     lost_wide_cycle: 'Lost: wide 3 frames cycle',
     lost_nested_loop: 'Lost: short + preset1 + pause'
   };
 
-  async function getSettings() {
-    try {
-      const r = await fetch('/api/settings', { cache: 'no-store' });
-      if (!r.ok) throw new Error(String(r.status));
-      return await r.json();
-    } catch (_) {
-      return {};
-    }
+  const PTZ_FRAMING_KEYS = new Set([
+    'target_x',
+    'target_y',
+    'auto_zoom_enable',
+    'auto_zoom_target_h',
+    'auto_zoom_deadzone',
+    'auto_zoom_cmd',
+    'auto_zoom_sign',
+    'auto_zoom_period_ms',
+    'zoom_scale_enable',
+    'zoom_scale_min',
+    'zoom_scale_max',
+    'zoom_scale_smoothing'
+  ]);
+
+  function autopilotBaseUrl() {
+    return `${location.protocol}//${location.hostname}:8090`;
   }
-
-  async function postSettingsPatch(patch) {
-    const old = await getSettings();
-    const next = Object.assign({}, old || {}, patch || {});
-    next.config_version = Math.max(16, Number(next.config_version || 16));
-
-    try {
-      localStorage.setItem('pantilt_ui_settings_v2', JSON.stringify(next));
-    } catch (_) {}
-
-    const r = await fetch('/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(next)
-    });
-
-    if (!r.ok) throw new Error(String(r.status));
-
-    return next;
-  }
-
-  function ensureSearchPresetUi() {
-    if ($('searchPresetPanel')) return;
-
-    const objectPanel = $('objectPresetPanel');
-    if (!objectPanel || !objectPanel.parentNode) return;
-
-    const div = document.createElement('div');
-    div.id = 'searchPresetPanel';
-    div.style.marginTop = '6px';
-    div.style.display = 'flex';
-    div.style.gap = '6px';
-    div.style.alignItems = 'center';
-    div.style.flexWrap = 'wrap';
-
-    const label = document.createElement('span');
-    label.textContent = 'SEARCH PRESET';
-    label.style.opacity = '0.8';
-
-    const sel = document.createElement('select');
-    sel.id = 'searchPresetSelect';
-
-    for (const [id, name] of Object.entries(SEARCH_PRESETS)) {
-      const opt = document.createElement('option');
-      opt.value = id;
-      opt.textContent = name;
-      sel.appendChild(opt);
-    }
-
-    const status = document.createElement('code');
-    status.id = 'searchPresetStatus';
-    status.textContent = 'search: --';
-
-    sel.addEventListener('change', async () => {
-      const id = sel.value;
-
-      await postSettingsPatch({
-        activeSearchPreset: id,
-        lastAppliedSearchPreset: {
-          name: id,
-          label: SEARCH_PRESETS[id] || id,
-          ts: Math.floor(Date.now() / 1000)
-        }
-      });
-
-      status.textContent = 'search: ' + id;
-
-      if ($('ptzStateLine')) {
-        $('ptzStateLine').textContent = 'search preset saved: ' + id;
-      }
-    });
-
-    div.appendChild(label);
-    div.appendChild(sel);
-    div.appendChild(status);
-
-    objectPanel.parentNode.insertBefore(div, objectPanel.nextSibling);
-  }
-
-  async function syncSearchPresetUi() {
-    ensureSearchPresetUi();
-
-    const sel = $('searchPresetSelect');
-    const status = $('searchPresetStatus');
-
-    if (!sel) return;
-
-    const settings = await getSettings();
-    const active = settings.activeSearchPreset || 'lost_step_wait';
-
-    if (SEARCH_PRESETS[active]) {
-      sel.value = active;
-    }
-
-    if (status) {
-      status.textContent = 'search: ' + active;
-    }
-  }
-
-  function boot() {
-    ensureSearchPresetUi();
-    syncSearchPresetUi().catch(() => {});
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
-  } else {
-    boot();
-  }
-
-  setTimeout(boot, 500);
-  setTimeout(boot, 1500);
-  setTimeout(boot, 3000);
-
-  window.syncSearchPresetUi = syncSearchPresetUi;
-})();
-// SEARCH_PRESET_SELECTOR_END
-</script>
-
-
-<script>
-// OBJECT_PRESET_AUTO_LEARN_OPERATOR_CONTROLS_START
-(function () {
-  const $ = (id) => document.getElementById(id);
-
-  const BUILTIN_LABELS = {
-    person_single: 'ЧЕЛОВЕК',
-    people: 'ЛЮДИ',
-    car_single: 'МАШИНА',
-    cars: 'МАШИНЫ',
-    airplane_single: 'САМОЛЁТ',
-    airplanes: 'САМОЛЁТЫ',
-    bird_single: 'ПТИЦА',
-    birds: 'ПТИЦЫ'
-  };
 
   async function getJson(url) {
     const r = await fetch(url, { cache: 'no-store' });
@@ -8937,19 +7627,21 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body || {})
     });
+
     if (!r.ok) throw new Error(`${r.status} ${url}`);
     return await r.json().catch(() => ({ ok: true }));
   }
 
   async function readSettings() {
     try {
-      return await getJson('/api/settings');
+      const data = await getJson('/api/settings');
+      return data && typeof data === 'object' ? data : {};
     } catch (_) {
       return {};
     }
   }
 
-  async function saveSettings(settings) {
+  async function writeSettings(settings) {
     const next = Object.assign({}, settings || {});
     next.config_version = Math.max(16, Number(next.config_version || 16));
 
@@ -8965,477 +7657,32 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     return String(v || '').split('/').filter(Boolean).pop() || String(v || '');
   }
 
-  function activePresetName(settings) {
-    return String(
-      settings?.lastAppliedObjectPreset?.name ||
-      settings?.activeObjectPreset ||
-      'person_single'
-    );
-  }
+  function sanitizePtz(ptz) {
+    const out = {};
 
-  function currentClassesFromSettings(settings) {
-    const arr = settings.detectorSelectedClasses;
-    if (Array.isArray(arr)) {
-      return arr.map(Number).filter(Number.isFinite);
-    }
-
-    const active = activePresetName(settings);
-
-    if (active === 'person_single' || active === 'people') return [0];
-    if (active === 'car_single' || active === 'cars') return [2, 3, 5, 7];
-    if (active === 'airplane_single' || active === 'airplanes') return [4];
-    if (active === 'bird_single' || active === 'birds') return [14];
-
-    return [];
-  }
-
-  function currentPtzFromSettings(settings) {
-    return Object.assign(
-      {},
-      settings.ptzAutoZoom || {},
-      settings.ptzConfig || {}
-    );
-  }
-
-  function currentOperatorPreset(settings) {
-    const active = activePresetName(settings);
-    const custom = Object.assign({}, settings.objectPresetsCustom || {});
-    const old = Object.assign({}, custom[active] || {});
-
-    const limitEl = $('operatorDetectionLimit');
-    const everyEl = $('operatorDetectEvery');
-    const areaEl = $('operatorDetectionAreaMode');
-    const modelEl = $('operatorModelSelect');
-
-    const maxDet = Number(
-      limitEl?.value ||
-      settings.operatorDetectionLimit ||
-      old.max_detections ||
-      10
-    );
-
-    const every = Number(
-      everyEl?.value ||
-      settings.operatorDetectEvery ||
-      old.detect_every_n_frames ||
-      1
-    );
-
-    const area = String(
-      areaEl?.value ||
-      settings.operatorDetectionAreaMode ||
-      old.detection_mode ||
-      'full_frame'
-    );
-
-    const model = String(
-      modelEl?.value ||
-      settings.operatorModel ||
-      old.model ||
-      ''
-    ).trim();
-
-    const preset = Object.assign({}, old, {
-      label: old.label || settings?.lastAppliedObjectPreset?.label || BUILTIN_LABELS[active] || active,
-      model: model,
-      operatorModel: model,
-      classes: currentClassesFromSettings(settings),
-      detection_mode: area,
-      max_detections: maxDet,
-      max_raw_candidates: Math.max(20, Number(old.max_raw_candidates || maxDet * 5)),
-      detect_every_n_frames: every,
-      tracking_mode: old.tracking_mode || settings.objectPresetTrackingMode || settings?.lastAppliedObjectPreset?.tracking_mode || 'single_auto',
-      loss_behavior: old.loss_behavior || settings.objectPresetLossBehavior || settings?.lastAppliedObjectPreset?.loss_behavior || 'continuous_wide_scan_x',
-      ptz: Object.assign({}, old.ptz || {}, currentPtzFromSettings(settings))
-    });
-
-    return { active, custom, preset };
-  }
-
-  async function saveActiveObjectPresetFromCurrentUi(reason) {
-    const settings = await readSettings();
-    const { active, custom, preset } = currentOperatorPreset(settings);
-
-    custom[active] = preset;
-
-    settings.objectPresetsCustom = custom;
-    settings.activeObjectPreset = active;
-
-    settings.operatorModel = preset.model || '';
-    settings.operatorDetectionLimit = preset.max_detections;
-    settings.operatorDetectEvery = preset.detect_every_n_frames;
-    settings.operatorDetectionAreaMode = preset.detection_mode;
-    settings.detectorSelectedClasses = preset.classes;
-
-    settings.lastEditedObjectPreset = {
-      name: active,
-      label: preset.label || active,
-      reason: reason || 'ui',
-      ts: Math.floor(Date.now() / 1000)
-    };
-
-    await saveSettings(settings);
-
-    const state = $('objectPresetState');
-    if (state) {
-      state.textContent = `preset: ${active} saved ${reason || ''}`;
-    }
-
-    const line = $('ptzStateLine');
-    if (line) {
-      line.textContent = `object preset saved: ${active} model=${shortModelName(preset.model)} every=${preset.detect_every_n_frames} area=${preset.detection_mode}`;
-    }
-
-    return preset;
-  }
-
-  async function applyPresetModelIfNeeded() {
-    const settings = await readSettings();
-    const active = activePresetName(settings);
-    const preset = settings?.objectPresetsCustom?.[active];
-
-    if (!preset) return;
-
-    const model = String(preset.model || preset.operatorModel || '').trim();
-    if (!model) return;
-
-    const select = $('operatorModelSelect');
-
-    if (select) {
-      for (const opt of Array.from(select.options || [])) {
-        if (opt.value === model || shortModelName(opt.value) === shortModelName(model)) {
-          select.value = opt.value;
-          break;
-        }
+    for (const [k, v] of Object.entries(ptz || {})) {
+      if (PTZ_FRAMING_KEYS.has(k)) {
+        out[k] = v;
       }
     }
 
-    await postJson('/api/detector/config', {
-      current_model: model
-    }).catch(() => {});
+    return out;
   }
 
-  let saveTimer = null;
-
-  function schedulePresetSave(reason) {
-    if (saveTimer) clearTimeout(saveTimer);
-
-    saveTimer = setTimeout(() => {
-      saveTimer = null;
-      saveActiveObjectPresetFromCurrentUi(reason).catch((e) => {
-        console.error('[object-preset-auto-learn]', e);
-      });
-    }, 350);
+  function activeObjectName(settings) {
+    return String(settings.activeObjectPreset || settings?.lastAppliedObjectPreset?.name || 'person_single');
   }
 
-  function ensureSaveButton() {
-    if ($('objectPresetSaveCurrentBtn')) return;
-
-    const panel = $('objectPresetPanel');
-    if (!panel) return;
-
-    const btn = document.createElement('button');
-    btn.id = 'objectPresetSaveCurrentBtn';
-    btn.className = 'small-btn';
-    btn.textContent = 'SAVE CURRENT TO PRESET';
-    btn.title = 'Save current Model / Limit / Detect FPS / Area into active object preset';
-
-    btn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      await saveActiveObjectPresetFromCurrentUi('manual_button');
-    }, true);
-
-    panel.appendChild(btn);
+  function mergedPresets(settings) {
+    return Object.assign({}, OBJECT_PRESETS, settings.objectPresetsCustom || {});
   }
 
-  function bindAutoLearn() {
-    if (document.__objectPresetAutoLearnBound) return;
-    document.__objectPresetAutoLearnBound = true;
-
-    document.addEventListener('change', (e) => {
-      const id = String(e.target?.id || '');
-
-      if ([
-        'operatorModelSelect',
-        'operatorDetectionLimit',
-        'operatorDetectEvery',
-        'operatorDetectionAreaMode'
-      ].includes(id)) {
-        schedulePresetSave(id);
-      }
-    }, true);
-
-    document.addEventListener('click', (e) => {
-      const id = String(e.target?.id || '');
-
-      if (id === 'operatorModelApplyBtn') {
-        setTimeout(() => schedulePresetSave('operatorModelApplyBtn'), 700);
-      }
-
-      if (e.target && e.target.matches && e.target.matches('[data-object-preset]')) {
-        setTimeout(() => applyPresetModelIfNeeded().catch(() => {}), 700);
-      }
-    }, true);
-  }
-
-  function boot() {
-    ensureSaveButton();
-    bindAutoLearn();
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
-  } else {
-    boot();
-  }
-
-  setTimeout(boot, 500);
-  setTimeout(boot, 1500);
-  setTimeout(boot, 3000);
-
-  window.saveActiveObjectPresetFromCurrentUi = saveActiveObjectPresetFromCurrentUi;
-})();
-// OBJECT_PRESET_AUTO_LEARN_OPERATOR_CONTROLS_END
-</script>
-
-
-<script>
-// OPERATOR_CONTROLS_HARD_PERSIST_APPLY_START
-(function () {
-  const $ = (id) => document.getElementById(id);
-
-  const BUILTIN_OBJECT_PRESETS_MIN = {
-    person_single: {
-      label: 'ЧЕЛОВЕК',
-      classes: [0],
-      detection_mode: 'full_frame',
-      max_detections: 5,
-      max_raw_candidates: 25,
-      detect_every_n_frames: 1,
-      tracking_mode: 'single_auto',
-      loss_behavior: 'continuous_wide_scan_x',
-      ptz: {
-        target_x: 0.50,
-        target_y: 0.46,
-        auto_zoom_enable: true,
-        auto_zoom_target_h: 0.68,
-        auto_zoom_deadzone: 0.08,
-        auto_zoom_cmd: 10,
-        auto_zoom_sign: 1,
-        auto_zoom_period_ms: 350
-      }
-    },
-    people: {
-      label: 'ЛЮДИ',
-      classes: [0],
-      detection_mode: 'full_frame',
-      max_detections: 10,
-      max_raw_candidates: 50,
-      detect_every_n_frames: 1,
-      tracking_mode: 'multi_operator',
-      loss_behavior: 'operator_select'
-    },
-    car_single: {
-      label: 'МАШИНА',
-      classes: [2, 3, 5, 7],
-      detection_mode: 'full_frame',
-      max_detections: 8,
-      max_raw_candidates: 40,
-      detect_every_n_frames: 1,
-      tracking_mode: 'single_auto',
-      loss_behavior: 'continuous_wide_scan_x',
-      ptz: {
-        target_x: 0.50,
-        target_y: 0.50,
-        auto_zoom_enable: true,
-        auto_zoom_target_h: 0.48,
-        auto_zoom_deadzone: 0.10,
-        auto_zoom_cmd: 8,
-        auto_zoom_sign: 1,
-        auto_zoom_period_ms: 450
-      }
-    },
-    cars: {
-      label: 'МАШИНЫ',
-      classes: [2, 3, 5, 7],
-      detection_mode: 'tiled',
-      max_detections: 15,
-      max_raw_candidates: 80,
-      detect_every_n_frames: 1,
-      tracking_mode: 'multi_operator',
-      loss_behavior: 'operator_select'
-    },
-    airplane_single: {
-      label: 'САМОЛЁТ',
-      classes: [4],
-      detection_mode: 'hybrid',
-      max_detections: 8,
-      max_raw_candidates: 60,
-      detect_every_n_frames: 1,
-      tracking_mode: 'single_auto',
-      loss_behavior: 'continuous_wide_scan_x'
-    },
-    airplanes: {
-      label: 'САМОЛЁТЫ',
-      classes: [4],
-      detection_mode: 'hybrid',
-      max_detections: 15,
-      max_raw_candidates: 100,
-      detect_every_n_frames: 1,
-      tracking_mode: 'multi_operator',
-      loss_behavior: 'operator_select'
-    },
-    bird_single: {
-      label: 'ПТИЦА',
-      classes: [14],
-      detection_mode: 'hybrid',
-      max_detections: 10,
-      max_raw_candidates: 80,
-      detect_every_n_frames: 1,
-      tracking_mode: 'single_auto',
-      loss_behavior: 'continuous_wide_scan_x'
-    },
-    birds: {
-      label: 'ПТИЦЫ',
-      classes: [14],
-      detection_mode: 'hybrid',
-      max_detections: 20,
-      max_raw_candidates: 120,
-      detect_every_n_frames: 1,
-      tracking_mode: 'multi_operator',
-      loss_behavior: 'operator_select'
-    }
-  };
-
-  const PRESERVE_SETTINGS_KEYS = [
-    'objectPresetsCustom',
-    'activeObjectPreset',
-    'lastAppliedObjectPreset',
-    'lastEditedObjectPreset',
-    'searchPresetsCustom',
-    'activeSearchPreset',
-    'lastAppliedSearchPreset',
-    'lastEditedSearchPreset',
-    'ptzArmed',
-    'objectPresetTrackingMode',
-    'objectPresetLossBehavior'
-  ];
-
-  async function getJson(url) {
-    const r = await fetch(url, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`${r.status} ${url}`);
-    return await r.json();
-  }
-
-  async function postJson(url, body) {
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body || {})
-    });
-
-    if (!r.ok) throw new Error(`${r.status} ${url}`);
-    return await r.json().catch(() => ({ ok: true }));
-  }
-
-  async function readSettingsHard() {
-    try {
-      const cfg = await getJson('/api/settings');
-      return cfg && typeof cfg === 'object' ? cfg : {};
-    } catch (_) {
-      return {};
-    }
-  }
-
-  async function writeSettingsHard(next) {
-    next = Object.assign({}, next || {});
-    next.config_version = Math.max(16, Number(next.config_version || 16));
-
-    try {
-      localStorage.setItem('pantilt_ui_settings_v2', JSON.stringify(next));
-    } catch (_) {}
-
-    await postJson('/api/settings', next);
-    return next;
-  }
-
-  function activeObjectPresetName(settings) {
-    return String(
-      settings?.lastAppliedObjectPreset?.name ||
-      settings?.activeObjectPreset ||
-      'person_single'
-    );
-  }
-
-  function shortModelName(v) {
-    return String(v || '').split('/').filter(Boolean).pop() || String(v || '');
-  }
-
-  function selectedModelValue(settings, preset) {
-    const el = $('operatorModelSelect');
-
-    return String(
-      el?.value ||
-      settings.operatorModel ||
-      preset.model ||
-      preset.operatorModel ||
-      preset.current_model ||
-      ''
-    ).trim();
-  }
-
-  function selectedLimitValue(settings, preset) {
-    return Number(
-      $('operatorDetectionLimit')?.value ||
-      settings.operatorDetectionLimit ||
-      preset.max_detections ||
-      10
-    );
-  }
-
-  function selectedEveryValue(settings, preset) {
-    return Number(
-      $('operatorDetectEvery')?.value ||
-      settings.operatorDetectEvery ||
-      preset.detect_every_n_frames ||
-      1
-    );
-  }
-
-  function selectedAreaValue(settings, preset) {
-    return String(
-      $('operatorDetectionAreaMode')?.value ||
-      settings.operatorDetectionAreaMode ||
-      preset.detection_mode ||
-      'full_frame'
-    );
-  }
-
-  function classesForActivePreset(settings, preset, active) {
-    if (Array.isArray(preset.classes) && preset.classes.length) {
-      return preset.classes.map(Number).filter(Number.isFinite);
-    }
-
-    if (Array.isArray(settings.detectorSelectedClasses) && settings.detectorSelectedClasses.length) {
-      return settings.detectorSelectedClasses.map(Number).filter(Number.isFinite);
-    }
-
-    if (active === 'person_single' || active === 'people') return [0];
-    if (active === 'car_single' || active === 'cars') return [2, 3, 5, 7];
-    if (active === 'airplane_single' || active === 'airplanes') return [4];
-    if (active === 'bird_single' || active === 'birds') return [14];
-
-    return [];
-  }
-
-  function currentPtzForPreset(settings, preset) {
-    return Object.assign(
-      {},
-      preset.ptz || {},
-      settings.ptzAutoZoom || {},
-      settings.ptzConfig || {}
-    );
+  function getActivePreset(settings) {
+    const name = activeObjectName(settings);
+    const presets = mergedPresets(settings);
+    const preset = Object.assign({}, OBJECT_PRESETS[name] || {}, presets[name] || {});
+    preset.ptz = sanitizePtz(preset.ptz || {});
+    return { name, preset };
   }
 
   async function frameSize() {
@@ -9450,17 +7697,12 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     }
   }
 
+  function fullRoi(w, h) {
+    return { id: 'full_frame', enabled: true, x: 0, y: 0, w, h, every_n_frames: 1, classes: [] };
+  }
+
   function skyRoi(w, h) {
-    return {
-      id: 'sky_top',
-      enabled: true,
-      x: 0,
-      y: 0,
-      w: w,
-      h: Math.max(1, Math.round(h * 0.68)),
-      every_n_frames: 1,
-      classes: []
-    };
+    return { id: 'sky_top', enabled: true, x: 0, y: 0, w, h: Math.max(1, Math.round(h * 0.68)), every_n_frames: 1, classes: [] };
   }
 
   function centerRoi(w, h) {
@@ -9479,915 +7721,32 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     };
   }
 
-  function fullRoi(w, h) {
-    return {
-      id: 'full_frame',
-      enabled: true,
-      x: 0,
-      y: 0,
-      w: w,
-      h: h,
-      every_n_frames: 1,
-      classes: []
-    };
-  }
-
   async function roiPayload(mode) {
     const sz = await frameSize();
     const w = sz.w;
     const h = sz.h;
 
-    if (mode === 'tiled') {
-      return { detection_mode: 'tiled', rois: [] };
-    }
-
-    if (mode === 'roi') {
-      return { detection_mode: 'roi', rois: [skyRoi(w, h)] };
-    }
-
-    if (mode === 'multi_roi') {
-      return { detection_mode: 'multi_roi', rois: [skyRoi(w, h), centerRoi(w, h)] };
-    }
-
-    if (mode === 'hybrid') {
-      return { detection_mode: 'hybrid', rois: [fullRoi(w, h), skyRoi(w, h)] };
-    }
+    if (mode === 'tiled') return { detection_mode: 'tiled', rois: [] };
+    if (mode === 'roi') return { detection_mode: 'roi', rois: [skyRoi(w, h)] };
+    if (mode === 'multi_roi') return { detection_mode: 'multi_roi', rois: [skyRoi(w, h), centerRoi(w, h)] };
+    if (mode === 'hybrid') return { detection_mode: 'hybrid', rois: [fullRoi(w, h), skyRoi(w, h)] };
 
     return { detection_mode: 'full_frame', rois: [] };
   }
 
-  function buildActivePresetFromUi(settings) {
-    const active = activeObjectPresetName(settings);
-    const custom = Object.assign({}, settings.objectPresetsCustom || {});
-    const base = Object.assign({}, BUILTIN_OBJECT_PRESETS_MIN[active] || {});
-    const old = Object.assign({}, base, custom[active] || {});
-
-    const model = selectedModelValue(settings, old);
-    const maxDet = selectedLimitValue(settings, old);
-    const every = selectedEveryValue(settings, old);
-    const area = selectedAreaValue(settings, old);
-    const classes = classesForActivePreset(settings, old, active);
-    const ptz = currentPtzForPreset(settings, old);
-
-    const preset = Object.assign({}, old, {
-      label: old.label || active,
-      model: model,
-      operatorModel: model,
-      classes: classes,
-      detection_mode: area,
-      max_detections: maxDet,
-      max_raw_candidates: Math.max(20, Number(old.max_raw_candidates || maxDet * 5)),
-      detect_every_n_frames: every,
-      tracking_mode: old.tracking_mode || settings.objectPresetTrackingMode || settings?.lastAppliedObjectPreset?.tracking_mode || 'single_auto',
-      loss_behavior: old.loss_behavior || settings.objectPresetLossBehavior || settings?.lastAppliedObjectPreset?.loss_behavior || 'continuous_wide_scan_x',
-      ptz: ptz
-    });
-
-    return { active, custom, preset };
+  function nval(id, fallback) {
+    const el = $(id);
+    const x = Number(el?.value);
+    return Number.isFinite(x) ? x : fallback;
   }
 
-  async function applyBackendOperatorConfig(preset) {
-    const model = String(preset.model || preset.operatorModel || '').trim();
-    const classes = Array.isArray(preset.classes) ? preset.classes.map(Number).filter(Number.isFinite) : [];
-    const maxDet = Number(preset.max_detections || 10);
-    const maxRaw = Number(preset.max_raw_candidates || Math.max(20, maxDet * 5));
-    const every = Number(preset.detect_every_n_frames || 1);
-    const area = String(preset.detection_mode || 'full_frame');
-
-    const detPayload = {
-      detect_enabled: true,
-      selected_classes: classes
-    };
-
-    if (model) {
-      detPayload.current_model = model;
-    }
-
-    const det = await postJson('/api/detector/config', detPayload);
-    const lim = await postJson('/api/detection/limits', {
-      max_detections: maxDet,
-      max_raw_candidates: maxRaw
-    });
-    const thr = await postJson('/api/detection/throttle', {
-      detect_every_n_frames: every
-    });
-    const roi = await postJson('/api/detection/roi_config', await roiPayload(area));
-
-    return { detector: det, limits: lim, throttle: thr, roi: roi };
+  function sval(id, fallback) {
+    const el = $(id);
+    const v = String(el?.value || '').trim();
+    return v || fallback;
   }
 
-  async function saveActiveObjectPresetHard(reason) {
-    const oldSettings = await readSettingsHard();
-    const { active, custom, preset } = buildActivePresetFromUi(oldSettings);
-
-    const backend = await applyBackendOperatorConfig(preset);
-
-    custom[active] = preset;
-
-    const next = Object.assign({}, oldSettings, {
-      objectPresetsCustom: custom,
-      activeObjectPreset: active,
-      detectorEnabled: true,
-      detectorSelectedClasses: preset.classes,
-      operatorModel: preset.model || '',
-      operatorDetectionLimit: preset.max_detections,
-      operatorDetectEvery: preset.detect_every_n_frames,
-      operatorDetectionAreaMode: preset.detection_mode,
-      objectPresetTrackingMode: preset.tracking_mode,
-      objectPresetLossBehavior: preset.loss_behavior,
-      lastEditedObjectPreset: {
-        name: active,
-        label: preset.label || active,
-        reason: reason || 'ui',
-        ts: Math.floor(Date.now() / 1000)
-      },
-      lastAppliedObjectPreset: Object.assign({}, oldSettings.lastAppliedObjectPreset || {}, {
-        name: active,
-        label: preset.label || active,
-        tracking_mode: preset.tracking_mode,
-        loss_behavior: preset.loss_behavior,
-        ts: Math.floor(Date.now() / 1000)
-      })
-    });
-
-    await writeSettingsHard(next);
-
-    const state = $('objectPresetState');
-    if (state) {
-      state.textContent = `preset: ${active} saved`;
-    }
-
-    const line = $('ptzStateLine');
-    if (line) {
-      line.textContent =
-        `saved ${active}: model=${shortModelName(preset.model)} limit=${preset.max_detections} every=${preset.detect_every_n_frames} area=${preset.detection_mode}`;
-    }
-
-    console.log('[object-preset-hard-save]', { active, preset, backend });
-
-    return { active, preset, backend };
-  }
-
-  function protectSaveSettingsFromWipingPresets() {
-    if (window.__objectPresetProtectSaveSettingsInstalled) return;
-    window.__objectPresetProtectSaveSettingsInstalled = true;
-
-    const original = window.saveSettings;
-
-    if (typeof original !== 'function') return;
-
-    window.saveSettings = async function (...args) {
-      const before = await readSettingsHard();
-
-      let result;
-      try {
-        result = await original.apply(this, args);
-      } catch (e) {
-        throw e;
-      }
-
-      try {
-        const after = await readSettingsHard();
-        let changed = false;
-
-        for (const key of PRESERVE_SETTINGS_KEYS) {
-          if (before[key] !== undefined && after[key] === undefined) {
-            after[key] = before[key];
-            changed = true;
-          }
-        }
-
-        if (changed) {
-          await writeSettingsHard(after);
-          console.warn('[object-preset-hard-save] restored preserved keys after saveSettings');
-        }
-      } catch (e) {
-        console.warn('[object-preset-hard-save] preserve failed', e);
-      }
-
-      return result;
-    };
-  }
-
-  let saveTimer = null;
-
-  function scheduleHardSave(reason) {
-    if (saveTimer) clearTimeout(saveTimer);
-
-    saveTimer = setTimeout(() => {
-      saveTimer = null;
-
-      saveActiveObjectPresetHard(reason).catch((e) => {
-        console.error('[object-preset-hard-save]', e);
-
-        const line = $('ptzStateLine');
-        if (line) {
-          line.textContent = `preset save error: ${String(e.message || e)}`;
-        }
-      });
-    }, 700);
-  }
-
-  function ensureSaveButton() {
-    if ($('objectPresetHardSaveBtn')) return;
-
-    const panel = $('objectPresetPanel');
-    if (!panel) return;
-
-    const btn = document.createElement('button');
-    btn.id = 'objectPresetHardSaveBtn';
-    btn.className = 'small-btn';
-    btn.textContent = 'SAVE DETECTION TO PRESET';
-    btn.title = 'Save Model / Limit / Detect FPS / Area to active object preset and apply backend';
-
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      saveActiveObjectPresetHard('manual_button').catch(console.error);
-    }, true);
-
-    panel.appendChild(btn);
-  }
-
-  function bindOperatorControlsHard() {
-    if (document.__operatorControlsHardPersistBound) return;
-    document.__operatorControlsHardPersistBound = true;
-
-    document.addEventListener('change', (e) => {
-      const id = String(e.target?.id || '');
-
-      if ([
-        'operatorModelSelect',
-        'operatorDetectionLimit',
-        'operatorDetectEvery',
-        'operatorDetectionAreaMode'
-      ].includes(id)) {
-        scheduleHardSave(id);
-      }
-    }, true);
-
-    document.addEventListener('click', (e) => {
-      const id = String(e.target?.id || '');
-
-      if (id === 'operatorModelApplyBtn') {
-        setTimeout(() => scheduleHardSave('operatorModelApplyBtn'), 1000);
-      }
-
-      if (id === 'operatorLimitApplyBtn') {
-        setTimeout(() => scheduleHardSave('operatorLimitApplyBtn'), 1000);
-      }
-
-      if (id === 'operatorAreaApplyBtn') {
-        setTimeout(() => scheduleHardSave('operatorAreaApplyBtn'), 1000);
-      }
-
-      if (e.target && e.target.matches && e.target.matches('[data-object-preset]')) {
-        setTimeout(() => scheduleHardSave('object_preset_click'), 1200);
-      }
-    }, true);
-  }
-
-  async function syncUiFromSavedActivePreset() {
-    const settings = await readSettingsHard();
-    const active = activeObjectPresetName(settings);
-    const preset = settings?.objectPresetsCustom?.[active];
-
-    if (!preset) return;
-
-    if ($('operatorDetectionLimit') && preset.max_detections != null) {
-      $('operatorDetectionLimit').value = String(preset.max_detections);
-    }
-
-    if ($('operatorDetectEvery') && preset.detect_every_n_frames != null) {
-      $('operatorDetectEvery').value = String(preset.detect_every_n_frames);
-    }
-
-    if ($('operatorDetectionAreaMode') && preset.detection_mode) {
-      $('operatorDetectionAreaMode').value = String(preset.detection_mode);
-    }
-
-    if ($('operatorModelSelect') && preset.model) {
-      for (const opt of Array.from($('operatorModelSelect').options || [])) {
-        if (opt.value === preset.model || shortModelName(opt.value) === shortModelName(preset.model)) {
-          $('operatorModelSelect').value = opt.value;
-          break;
-        }
-      }
-    }
-  }
-
-  function boot() {
-    protectSaveSettingsFromWipingPresets();
-    ensureSaveButton();
-    bindOperatorControlsHard();
-
-    syncUiFromSavedActivePreset().catch(() => {});
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot, { once: true });
-  } else {
-    boot();
-  }
-
-  setTimeout(boot, 500);
-  setTimeout(boot, 1500);
-  setTimeout(boot, 3000);
-
-  window.saveActiveObjectPresetHard = saveActiveObjectPresetHard;
-  window.syncUiFromSavedActivePreset = syncUiFromSavedActivePreset;
-})();
-// OPERATOR_CONTROLS_HARD_PERSIST_APPLY_END
-</script>
-
-
-<script>
-// OBJECT_PRESET_NO_AUTO_ARM_DURABLE_SAVE_START
-(function () {
-  const $ = (id) => document.getElementById(id);
-
-  const LOCAL_BACKUP_KEY = 'ptz_object_presets_custom_v2';
-
-  const BUILTIN = {
-    person_single: {
-      label: 'ЧЕЛОВЕК',
-      classes: [0],
-      detection_mode: 'full_frame',
-      max_detections: 5,
-      max_raw_candidates: 25,
-      detect_every_n_frames: 1,
-      tracking_mode: 'single_auto',
-      loss_behavior: 'continuous_wide_scan_x',
-      ptz: {
-        target_x: 0.50,
-        target_y: 0.46,
-        auto_zoom_enable: true,
-        auto_zoom_target_h: 0.68,
-        auto_zoom_deadzone: 0.08,
-        auto_zoom_cmd: 10,
-        auto_zoom_sign: 1,
-        auto_zoom_period_ms: 350
-      }
-    },
-    people: {
-      label: 'ЛЮДИ',
-      classes: [0],
-      detection_mode: 'full_frame',
-      max_detections: 10,
-      max_raw_candidates: 50,
-      detect_every_n_frames: 1,
-      tracking_mode: 'multi_operator',
-      loss_behavior: 'operator_select'
-    },
-    car_single: {
-      label: 'МАШИНА',
-      classes: [2, 3, 5, 7],
-      detection_mode: 'full_frame',
-      max_detections: 8,
-      max_raw_candidates: 40,
-      detect_every_n_frames: 1,
-      tracking_mode: 'single_auto',
-      loss_behavior: 'continuous_wide_scan_x',
-      ptz: {
-        target_x: 0.50,
-        target_y: 0.50,
-        auto_zoom_enable: true,
-        auto_zoom_target_h: 0.48,
-        auto_zoom_deadzone: 0.10,
-        auto_zoom_cmd: 8,
-        auto_zoom_sign: 1,
-        auto_zoom_period_ms: 450
-      }
-    },
-    cars: {
-      label: 'МАШИНЫ',
-      classes: [2, 3, 5, 7],
-      detection_mode: 'tiled',
-      max_detections: 15,
-      max_raw_candidates: 80,
-      detect_every_n_frames: 1,
-      tracking_mode: 'multi_operator',
-      loss_behavior: 'operator_select'
-    },
-    airplane_single: {
-      label: 'САМОЛЁТ',
-      classes: [4],
-      detection_mode: 'hybrid',
-      max_detections: 8,
-      max_raw_candidates: 60,
-      detect_every_n_frames: 1,
-      tracking_mode: 'single_auto',
-      loss_behavior: 'continuous_wide_scan_x'
-    },
-    airplanes: {
-      label: 'САМОЛЁТЫ',
-      classes: [4],
-      detection_mode: 'hybrid',
-      max_detections: 15,
-      max_raw_candidates: 100,
-      detect_every_n_frames: 1,
-      tracking_mode: 'multi_operator',
-      loss_behavior: 'operator_select'
-    },
-    bird_single: {
-      label: 'ПТИЦА',
-      classes: [14],
-      detection_mode: 'hybrid',
-      max_detections: 10,
-      max_raw_candidates: 80,
-      detect_every_n_frames: 1,
-      tracking_mode: 'single_auto',
-      loss_behavior: 'continuous_wide_scan_x'
-    },
-    birds: {
-      label: 'ПТИЦЫ',
-      classes: [14],
-      detection_mode: 'hybrid',
-      max_detections: 20,
-      max_raw_candidates: 120,
-      detect_every_n_frames: 1,
-      tracking_mode: 'multi_operator',
-      loss_behavior: 'operator_select'
-    }
-  };
-
-  async function getJson(url) {
-    const r = await fetch(url, { cache: 'no-store' });
-    if (!r.ok) throw new Error(`${r.status} ${url}`);
-    return await r.json();
-  }
-
-  async function postJson(url, body) {
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body || {})
-    });
-
-    if (!r.ok) throw new Error(`${r.status} ${url}`);
-    return await r.json().catch(() => ({ ok: true }));
-  }
-
-  function autopilotBaseUrl() {
-    return `${location.protocol}//${location.hostname}:8090`;
-  }
-
-  async function readSettings() {
-    try {
-      const x = await getJson('/api/settings');
-      return x && typeof x === 'object' ? x : {};
-    } catch (_) {
-      return {};
-    }
-  }
-
-  async function writeSettings(x) {
-    const next = Object.assign({}, x || {});
-    next.config_version = Math.max(16, Number(next.config_version || 16));
-
-    try {
-      localStorage.setItem('pantilt_ui_settings_v2', JSON.stringify(next));
-    } catch (_) {}
-
-    await postJson('/api/settings', next);
-    return next;
-  }
-
-  function shortModelName(v) {
-    return String(v || '').split('/').filter(Boolean).pop() || String(v || '');
-  }
-
-  function activePresetName(settings) {
-    return String(
-      settings?.lastAppliedObjectPreset?.name ||
-      settings?.activeObjectPreset ||
-      'person_single'
-    );
-  }
-
-  function loadLocalCustomBackup() {
-    try {
-      const raw = localStorage.getItem(LOCAL_BACKUP_KEY);
-      if (!raw) return {};
-      const obj = JSON.parse(raw);
-      return obj && typeof obj === 'object' ? obj : {};
-    } catch (_) {
-      return {};
-    }
-  }
-
-  function saveLocalCustomBackup(custom) {
-    try {
-      localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(custom || {}));
-    } catch (_) {}
-  }
-
-  async function restoreCustomFromLocalIfMissing() {
-    const settings = await readSettings();
-
-    if (settings.objectPresetsCustom && Object.keys(settings.objectPresetsCustom).length) {
-      saveLocalCustomBackup(settings.objectPresetsCustom);
-      return settings;
-    }
-
-    const backup = loadLocalCustomBackup();
-
-    if (!backup || !Object.keys(backup).length) {
-      return settings;
-    }
-
-    settings.objectPresetsCustom = backup;
-    await writeSettings(settings);
-
-    return settings;
-  }
-
-  function allPresets(settings) {
-    const custom = settings.objectPresetsCustom || {};
-    return Object.assign({}, BUILTIN, custom);
-  }
-
-  async function frameSize() {
-    try {
-      const d = await getJson('/api/detections');
-      return {
-        w: Math.max(1, Number(d.width || 1920)),
-        h: Math.max(1, Number(d.height || 1080))
-      };
-    } catch (_) {
-      return { w: 1920, h: 1080 };
-    }
-  }
-
-  function skyRoi(w, h) {
-    return {
-      id: 'sky_top',
-      enabled: true,
-      x: 0,
-      y: 0,
-      w: w,
-      h: Math.max(1, Math.round(h * 0.68)),
-      every_n_frames: 1,
-      classes: []
-    };
-  }
-
-  function centerRoi(w, h) {
-    const rw = Math.round(w * 0.60);
-    const rh = Math.round(h * 0.55);
-
-    return {
-      id: 'center',
-      enabled: true,
-      x: Math.max(0, Math.round((w - rw) / 2)),
-      y: Math.max(0, Math.round((h - rh) / 2)),
-      w: Math.max(1, rw),
-      h: Math.max(1, rh),
-      every_n_frames: 1,
-      classes: []
-    };
-  }
-
-  function fullRoi(w, h) {
-    return {
-      id: 'full_frame',
-      enabled: true,
-      x: 0,
-      y: 0,
-      w: w,
-      h: h,
-      every_n_frames: 1,
-      classes: []
-    };
-  }
-
-  async function roiPayload(mode) {
-    const sz = await frameSize();
-    const w = sz.w;
-    const h = sz.h;
-
-    if (mode === 'tiled') {
-      return { detection_mode: 'tiled', rois: [] };
-    }
-
-    if (mode === 'roi') {
-      return { detection_mode: 'roi', rois: [skyRoi(w, h)] };
-    }
-
-    if (mode === 'multi_roi') {
-      return { detection_mode: 'multi_roi', rois: [skyRoi(w, h), centerRoi(w, h)] };
-    }
-
-    if (mode === 'hybrid') {
-      return { detection_mode: 'hybrid', rois: [fullRoi(w, h), skyRoi(w, h)] };
-    }
-
-    return { detection_mode: 'full_frame', rois: [] };
-  }
-
-  function uiLimit(settings, preset) {
-    return Number(
-      $('operatorDetectionLimit')?.value ||
-      settings.operatorDetectionLimit ||
-      preset.max_detections ||
-      10
-    );
-  }
-
-  function uiEvery(settings, preset) {
-    return Number(
-      $('operatorDetectEvery')?.value ||
-      settings.operatorDetectEvery ||
-      preset.detect_every_n_frames ||
-      1
-    );
-  }
-
-  function uiArea(settings, preset) {
-    return String(
-      $('operatorDetectionAreaMode')?.value ||
-      settings.operatorDetectionAreaMode ||
-      preset.detection_mode ||
-      'full_frame'
-    );
-  }
-
-  function uiModel(settings, preset) {
-    return String(
-      $('operatorModelSelect')?.value ||
-      settings.operatorModel ||
-      preset.model ||
-      preset.operatorModel ||
-      ''
-    ).trim();
-  }
-
-  function currentPresetFromUi(settings, active) {
-    const presets = allPresets(settings);
-    const old = Object.assign({}, BUILTIN[active] || {}, presets[active] || {});
-    const maxDet = uiLimit(settings, old);
-    const every = uiEvery(settings, old);
-    const area = uiArea(settings, old);
-    const model = uiModel(settings, old);
-
-    const ptz = Object.assign(
-      {},
-      old.ptz || {},
-      settings.ptzAutoZoom || {},
-      settings.ptzConfig || {}
-    );
-
-    return Object.assign({}, old, {
-      label: old.label || active,
-      model: model,
-      operatorModel: model,
-      classes: Array.isArray(old.classes) ? old.classes.map(Number).filter(Number.isFinite) : [],
-      detection_mode: area,
-      max_detections: maxDet,
-      max_raw_candidates: Math.max(20, Number(old.max_raw_candidates || maxDet * 5)),
-      detect_every_n_frames: every,
-      tracking_mode: old.tracking_mode || settings.objectPresetTrackingMode || 'single_auto',
-      loss_behavior: old.loss_behavior || settings.objectPresetLossBehavior || 'continuous_wide_scan_x',
-      ptz: ptz
-    });
-  }
-
-  async function applyDetectionBackend(preset) {
-    const model = String(preset.model || preset.operatorModel || '').trim();
-    const classes = Array.isArray(preset.classes) ? preset.classes.map(Number).filter(Number.isFinite) : [];
-    const maxDet = Number(preset.max_detections || 10);
-    const maxRaw = Number(preset.max_raw_candidates || Math.max(20, maxDet * 5));
-    const every = Number(preset.detect_every_n_frames || 1);
-    const area = String(preset.detection_mode || 'full_frame');
-
-    const detPayload = {
-      detect_enabled: true,
-      selected_classes: classes
-    };
-
-    if (model) {
-      detPayload.current_model = model;
-    }
-
-    const det = await postJson('/api/detector/config', detPayload);
-    const limits = await postJson('/api/detection/limits', {
-      max_detections: maxDet,
-      max_raw_candidates: maxRaw
-    });
-    const throttle = await postJson('/api/detection/throttle', {
-      detect_every_n_frames: every
-    });
-    const roi = await postJson('/api/detection/roi_config', await roiPayload(area));
-
-    return {
-      detector: det,
-      limits: limits,
-      throttle: throttle,
-      roi: roi
-    };
-  }
-
-  async function applyPtzFramingOnly(preset) {
-    const ptz = Object.assign({}, preset.ptz || {});
-    const allowed = [
-      'target_x',
-      'target_y',
-      'auto_zoom_enable',
-      'auto_zoom_target_h',
-      'auto_zoom_deadzone',
-      'auto_zoom_cmd',
-      'auto_zoom_sign',
-      'auto_zoom_period_ms'
-    ];
-
-    const body = {};
-
-    for (const key of allowed) {
-      if (ptz[key] !== undefined) body[key] = ptz[key];
-    }
-
-    if (!Object.keys(body).length) return {};
-
-    try {
-      return await postJson(`${autopilotBaseUrl()}/api/autopilot/config`, body);
-    } catch (e) {
-      console.warn('[object-preset-durable] ptz framing failed', e);
-      return { ok: false, error: String(e.message || e) };
-    }
-  }
-
-  function renderActivePreset(name) {
-    document.querySelectorAll('[data-object-preset]').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.objectPreset === name);
-    });
-
-    const state = $('objectPresetState');
-
-    if (state) {
-      state.textContent = `preset: ${name || '--'}`;
-    }
-
-    if (typeof window.paintActivePreset === 'function') {
-      try { window.paintActivePreset(name); } catch (_) {}
-    }
-  }
-
-  async function stopPtzBecausePresetSelection() {
-    try {
-      await postJson(`${autopilotBaseUrl()}/api/autopilot/stop`, {});
-    } catch (_) {}
-
-    try {
-      await postJson(`${autopilotBaseUrl()}/api/control/stop`, {});
-    } catch (_) {}
-  }
-
-  async function selectObjectPresetNoArm(name) {
-    let settings = await restoreCustomFromLocalIfMissing();
-    const presets = allPresets(settings);
-    const preset = Object.assign({}, BUILTIN[name] || {}, presets[name] || {});
-
-    if (!preset || !Object.keys(preset).length) {
-      throw new Error(`preset not found: ${name}`);
-    }
-
-    await stopPtzBecausePresetSelection();
-
-    const backend = await applyDetectionBackend(preset);
-    const ptz = await applyPtzFramingOnly(preset);
-
-    settings = await readSettings();
-    const custom = Object.assign({}, settings.objectPresetsCustom || {});
-
-    settings.activeObjectPreset = name;
-    settings.ptzArmed = false;
-    settings.detectorEnabled = true;
-    settings.detectorSelectedClasses = preset.classes || [];
-    settings.operatorModel = preset.model || preset.operatorModel || settings.operatorModel || '';
-    settings.operatorDetectionLimit = Number(preset.max_detections || 10);
-    settings.operatorDetectEvery = Number(preset.detect_every_n_frames || 1);
-    settings.operatorDetectionAreaMode = String(preset.detection_mode || 'full_frame');
-    settings.objectPresetTrackingMode = preset.tracking_mode || 'single_auto';
-    settings.objectPresetLossBehavior = preset.loss_behavior || 'continuous_wide_scan_x';
-    settings.lastAppliedObjectPreset = {
-      name: name,
-      label: preset.label || name,
-      tracking_mode: settings.objectPresetTrackingMode,
-      loss_behavior: settings.objectPresetLossBehavior,
-      ts: Math.floor(Date.now() / 1000)
-    };
-
-    settings.objectPresetsCustom = custom;
-
-    await writeSettings(settings);
-    saveLocalCustomBackup(custom);
-
-    if ($('operatorDetectionLimit')) $('operatorDetectionLimit').value = String(settings.operatorDetectionLimit);
-    if ($('operatorDetectEvery')) $('operatorDetectEvery').value = String(settings.operatorDetectEvery);
-    if ($('operatorDetectionAreaMode')) $('operatorDetectionAreaMode').value = String(settings.operatorDetectionAreaMode);
-
-    renderActivePreset(name);
-
-    const line = $('ptzStateLine');
-
-    if (line) {
-      line.textContent =
-        `preset selected, PTZ not armed: ${name} limit=${settings.operatorDetectionLimit} every=${settings.operatorDetectEvery}`;
-    }
-
-    if (typeof window.syncPtzRunStateHard === 'function') {
-      try { await window.syncPtzRunStateHard(); } catch (_) {}
-    }
-
-    console.log('[object-preset-no-arm]', { name, preset, backend, ptz });
-
-    return { name, preset, backend, ptz };
-  }
-
-  async function saveDetectionToActivePreset(reason) {
-    let settings = await restoreCustomFromLocalIfMissing();
-    const active = activePresetName(settings);
-    const preset = currentPresetFromUi(settings, active);
-
-    const backend = await applyDetectionBackend(preset);
-    const ptz = await applyPtzFramingOnly(preset);
-
-    settings = await readSettings();
-
-    const custom = Object.assign({}, settings.objectPresetsCustom || {});
-    custom[active] = preset;
-
-    settings.objectPresetsCustom = custom;
-    settings.activeObjectPreset = active;
-    settings.detectorEnabled = true;
-    settings.detectorSelectedClasses = preset.classes || [];
-    settings.operatorModel = preset.model || '';
-    settings.operatorDetectionLimit = Number(preset.max_detections || 10);
-    settings.operatorDetectEvery = Number(preset.detect_every_n_frames || 1);
-    settings.operatorDetectionAreaMode = String(preset.detection_mode || 'full_frame');
-    settings.objectPresetTrackingMode = preset.tracking_mode || 'single_auto';
-    settings.objectPresetLossBehavior = preset.loss_behavior || 'continuous_wide_scan_x';
-    settings.lastEditedObjectPreset = {
-      name: active,
-      label: preset.label || active,
-      reason: reason || 'manual',
-      ts: Math.floor(Date.now() / 1000)
-    };
-    settings.lastAppliedObjectPreset = {
-      name: active,
-      label: preset.label || active,
-      tracking_mode: preset.tracking_mode || 'single_auto',
-      loss_behavior: preset.loss_behavior || 'continuous_wide_scan_x',
-      ts: Math.floor(Date.now() / 1000)
-    };
-
-    await writeSettings(settings);
-    saveLocalCustomBackup(custom);
-
-    const verify = await readSettings();
-    const saved = verify?.objectPresetsCustom?.[active];
-
-    const ok =
-      saved &&
-      Number(saved.max_detections) === Number(preset.max_detections) &&
-      Number(saved.detect_every_n_frames) === Number(preset.detect_every_n_frames) &&
-      String(saved.detection_mode) === String(preset.detection_mode);
-
-    const state = $('objectPresetState');
-
-    if (state) {
-      state.textContent = ok
-        ? `preset: ${active} saved OK`
-        : `preset: ${active} SAVE VERIFY FAILED`;
-    }
-
-    const line = $('ptzStateLine');
-
-    if (line) {
-      line.textContent = ok
-        ? `saved ${active}: limit=${preset.max_detections} every=${preset.detect_every_n_frames} area=${preset.detection_mode}`
-        : `save verify failed: ${active}`;
-    }
-
-    console.log('[object-preset-durable-save]', { active, preset, backend, ptz, verify: saved, ok });
-
-    return {
-      ok: ok,
-      active: active,
-      preset: preset,
-      backend: backend,
-      ptz: ptz,
-      verify: saved
-    };
-  }
-
-  async function syncUiFromActivePreset() {
-    const settings = await restoreCustomFromLocalIfMissing();
-    const active = activePresetName(settings);
-    const preset = settings?.objectPresetsCustom?.[active] || BUILTIN[active];
-
-    if (!preset) return;
-
+  function syncUiFromPreset(preset) {
     if ($('operatorDetectionLimit') && preset.max_detections != null) {
       $('operatorDetectionLimit').value = String(preset.max_detections);
     }
@@ -10411,85 +7770,469 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
         }
       }
     }
-
-    renderActivePreset(active);
   }
 
-  function removeOldSaveButtons() {
-    for (const id of [
-      'objectPresetSaveCurrentBtn',
-      'objectPresetHardSaveBtn',
-      'objectPresetDurableSaveBtn'
-    ]) {
-      const el = $(id);
-      if (el) el.remove();
+  function presetFromUi(settings, name) {
+    const presets = mergedPresets(settings);
+    const old = Object.assign({}, OBJECT_PRESETS[name] || {}, presets[name] || {});
+
+    const maxDet = nval('operatorDetectionLimit', Number(old.max_detections || settings.operatorDetectionLimit || 10));
+    const every = nval('operatorDetectEvery', Number(old.detect_every_n_frames || settings.operatorDetectEvery || 1));
+    const area = sval('operatorDetectionAreaMode', String(old.detection_mode || settings.operatorDetectionAreaMode || 'full_frame'));
+    const model = sval('operatorModelSelect', String(old.model || old.operatorModel || settings.operatorModel || ''));
+
+    return Object.assign({}, old, {
+      label: old.label || name,
+      model,
+      operatorModel: model,
+      classes: Array.isArray(old.classes) ? old.classes.map(Number).filter(Number.isFinite) : [],
+      detection_mode: area,
+      max_detections: maxDet,
+      max_raw_candidates: Math.max(20, Number(old.max_raw_candidates || maxDet * 5)),
+      detect_every_n_frames: every,
+      tracking_mode: old.tracking_mode || 'single_auto',
+      loss_behavior: old.loss_behavior || 'continuous_wide_scan_x',
+      ptz: sanitizePtz(old.ptz || {})
+    });
+  }
+
+  async function applyDetection(preset) {
+    const classes = Array.isArray(preset.classes) ? preset.classes.map(Number).filter(Number.isFinite) : [];
+    const model = String(preset.model || preset.operatorModel || '').trim();
+    const maxDet = Number(preset.max_detections || 10);
+    const maxRaw = Number(preset.max_raw_candidates || Math.max(20, maxDet * 5));
+    const every = Number(preset.detect_every_n_frames || 1);
+    const mode = String(preset.detection_mode || 'full_frame');
+
+    const detectorPayload = {
+      detect_enabled: true,
+      selected_classes: classes
+    };
+
+    if (model) {
+      detectorPayload.current_model = model;
+    }
+
+    const detector = await postJson('/api/detector/config', detectorPayload);
+    const limits = await postJson('/api/detection/limits', {
+      max_detections: maxDet,
+      max_raw_candidates: maxRaw
+    });
+    const throttle = await postJson('/api/detection/throttle', {
+      detect_every_n_frames: every
+    });
+    const roi = await postJson('/api/detection/roi_config', await roiPayload(mode));
+
+    return { detector, limits, throttle, roi };
+  }
+
+  async function applyPtzFraming(preset) {
+    const body = sanitizePtz(preset.ptz || {});
+    if (!Object.keys(body).length) return { ok: true, skipped: true };
+    return await postJson(`${autopilotBaseUrl()}/api/autopilot/config`, body);
+  }
+
+  function ensureObjectPanel() {
+    let old = $('objectPresetPanel');
+
+    if (old && !old.__cleanPanel) {
+      old.remove();
+      old = null;
+    }
+
+    if (old) return;
+
+    const parent = $('detectionMenu') || document.querySelector('.controls-panel') || document.body;
+    const box = document.createElement('div');
+
+    box.id = 'objectPresetPanel';
+    box.__cleanPanel = true;
+    box.className = 'menu-body';
+    box.style.marginTop = '6px';
+
+    box.innerHTML = `
+      <strong>OBJECT PRESETS:</strong>
+      <button class="small-btn" data-clean-object-preset="person_single">ЧЕЛОВЕК</button>
+      <button class="small-btn" data-clean-object-preset="people">ЛЮДИ</button>
+      <button class="small-btn" data-clean-object-preset="car_single">МАШИНА</button>
+      <button class="small-btn" data-clean-object-preset="cars">МАШИНЫ</button>
+      <button class="small-btn" data-clean-object-preset="airplane_single">САМОЛЁТ</button>
+      <button class="small-btn" data-clean-object-preset="airplanes">САМОЛЁТЫ</button>
+      <button class="small-btn" data-clean-object-preset="bird_single">ПТИЦА</button>
+      <button class="small-btn" data-clean-object-preset="birds">ПТИЦЫ</button>
+      <button id="objectPresetCleanSaveBtn" class="small-btn">SAVE DETECTION TO PRESET</button>
+      <button id="objectTrackingLogsBtn" class="small-btn">LOGS</button>
+      <code id="objectPresetState">preset: --</code>
+    `;
+
+    parent.appendChild(box);
+  }
+
+  function ensureSearchPanel() {
+    if ($('searchPresetPanel')) return;
+
+    const objectPanel = $('objectPresetPanel');
+    if (!objectPanel || !objectPanel.parentNode) return;
+
+    const row = document.createElement('div');
+
+    row.id = 'searchPresetPanel';
+    row.style.marginTop = '6px';
+    row.style.display = 'flex';
+    row.style.gap = '6px';
+    row.style.alignItems = 'center';
+    row.style.flexWrap = 'wrap';
+
+    const label = document.createElement('strong');
+    label.textContent = 'SEARCH PRESET:';
+
+    const select = document.createElement('select');
+    select.id = 'searchPresetSelect';
+
+    for (const [id, text] of Object.entries(SEARCH_PRESETS)) {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = text;
+      select.appendChild(opt);
+    }
+
+    const state = document.createElement('code');
+    state.id = 'searchPresetState';
+    state.textContent = 'search: --';
+
+    row.appendChild(label);
+    row.appendChild(select);
+    row.appendChild(state);
+
+    objectPanel.parentNode.insertBefore(row, objectPanel.nextSibling);
+  }
+
+  function paintObjectPreset(name) {
+    document.querySelectorAll('[data-clean-object-preset]').forEach(btn => {
+      const on = btn.dataset.cleanObjectPreset === name;
+      btn.classList.toggle('active', on);
+      btn.classList.toggle('object-preset-active', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+
+    if ($('objectPresetState')) {
+      $('objectPresetState').textContent = `preset: ${name || '--'}`;
     }
   }
 
-  function ensureDurableSaveButton() {
-    removeOldSaveButtons();
+  function paintPtz(ap, settings) {
+    const start = $('ptzStartBtn');
+    const stop = $('ptzStopBtn');
+    const chip = $('ptzRunStateChip');
 
-    const panel = $('objectPresetPanel');
-    if (!panel || $('objectPresetDurableSaveBtn')) return;
+    const running = Boolean(ap && ap.enabled === true);
+    const armed = Boolean(settings && settings.ptzArmed === true);
 
-    const btn = document.createElement('button');
-    btn.id = 'objectPresetDurableSaveBtn';
-    btn.className = 'small-btn';
-    btn.textContent = 'SAVE DETECTION TO PRESET';
-    btn.title = 'Save Model / Limit / Detect FPS / Area to active object preset';
+    if (start) {
+      start.classList.remove('ptz-active-running', 'ptz-active-armed');
+      start.textContent = running ? 'PTZ ACTIVE' : (armed ? 'PTZ ARMED' : 'START PTZ');
 
-    btn.addEventListener('click', async (e) => {
+      if (running) start.classList.add('ptz-active-running');
+      else if (armed) start.classList.add('ptz-active-armed');
+    }
+
+    if (stop) {
+      stop.textContent = running || armed ? 'STOP PTZ' : 'STOP';
+    }
+
+    if (chip) {
+      chip.textContent = running
+        ? `ptz: ACTIVE / ${ap.mode || ''}`
+        : (armed ? 'ptz: ARMED / SEARCH' : 'ptz: STOPPED');
+    }
+  }
+
+  async function syncPtz() {
+    const ap = await getJson(`${autopilotBaseUrl()}/api/autopilot/state`).catch(() => ({ enabled: false, mode: 'offline' }));
+    const settings = await readSettings();
+    paintPtz(ap, settings);
+    return { ap, settings };
+  }
+
+  async function selectObjectPreset(name) {
+    let settings = await readSettings();
+    const presets = mergedPresets(settings);
+    const preset = Object.assign({}, OBJECT_PRESETS[name] || {}, presets[name] || {});
+    preset.ptz = sanitizePtz(preset.ptz || {});
+
+    await postJson(`${autopilotBaseUrl()}/api/autopilot/stop`, {}).catch(() => {});
+    await postJson(`${autopilotBaseUrl()}/api/control/stop`, {}).catch(() => {});
+
+    const detection = await applyDetection(preset);
+    const ptz = await applyPtzFraming(preset);
+
+    settings = await readSettings();
+
+    settings.activeObjectPreset = name;
+    settings.ptzArmed = false;
+    settings.controlMode = 'manual';
+    settings.detectorEnabled = true;
+    settings.detectorSelectedClasses = Array.isArray(preset.classes) ? preset.classes : [];
+    settings.operatorModel = preset.model || preset.operatorModel || settings.operatorModel || '';
+    settings.operatorDetectionLimit = Number(preset.max_detections || 10);
+    settings.operatorDetectEvery = Number(preset.detect_every_n_frames || 1);
+    settings.operatorDetectionAreaMode = String(preset.detection_mode || 'full_frame');
+    settings.objectPresetTrackingMode = preset.tracking_mode || 'single_auto';
+    settings.objectPresetLossBehavior = preset.loss_behavior || 'continuous_wide_scan_x';
+    settings.lastAppliedObjectPreset = {
+      name,
+      label: preset.label || name,
+      tracking_mode: settings.objectPresetTrackingMode,
+      loss_behavior: settings.objectPresetLossBehavior,
+      ts: Math.floor(Date.now() / 1000)
+    };
+
+    await writeSettings(settings);
+
+    syncUiFromPreset(preset);
+    paintObjectPreset(name);
+    await syncPtz();
+
+    if ($('ptzStateLine')) {
+      $('ptzStateLine').textContent =
+        `preset selected, PTZ OFF: ${name} limit=${settings.operatorDetectionLimit} every=${settings.operatorDetectEvery}`;
+    }
+
+    return { ok: true, name, preset, detection, ptz };
+  }
+
+  async function saveDetectionToPreset(reason) {
+    let settings = await readSettings();
+    const name = activeObjectName(settings);
+    const preset = presetFromUi(settings, name);
+
+    const detection = await applyDetection(preset);
+    const ptz = await applyPtzFraming(preset);
+
+    settings = await readSettings();
+
+    const custom = Object.assign({}, settings.objectPresetsCustom || {});
+    custom[name] = preset;
+
+    settings.objectPresetsCustom = custom;
+    settings.activeObjectPreset = name;
+    settings.detectorEnabled = true;
+    settings.detectorSelectedClasses = preset.classes || [];
+    settings.operatorModel = preset.model || '';
+    settings.operatorDetectionLimit = Number(preset.max_detections || 10);
+    settings.operatorDetectEvery = Number(preset.detect_every_n_frames || 1);
+    settings.operatorDetectionAreaMode = String(preset.detection_mode || 'full_frame');
+    settings.objectPresetTrackingMode = preset.tracking_mode || 'single_auto';
+    settings.objectPresetLossBehavior = preset.loss_behavior || 'continuous_wide_scan_x';
+    settings.lastEditedObjectPreset = {
+      name,
+      label: preset.label || name,
+      reason: reason || 'manual',
+      ts: Math.floor(Date.now() / 1000)
+    };
+
+    await writeSettings(settings);
+
+    const verify = await readSettings();
+    const saved = verify?.objectPresetsCustom?.[name] || {};
+
+    const ok =
+      Number(saved.max_detections) === Number(preset.max_detections) &&
+      Number(saved.detect_every_n_frames) === Number(preset.detect_every_n_frames) &&
+      String(saved.detection_mode) === String(preset.detection_mode);
+
+    paintObjectPreset(name);
+
+    if ($('objectPresetState')) {
+      $('objectPresetState').textContent = ok ? `preset: ${name} saved OK` : `preset: ${name} SAVE FAIL`;
+    }
+
+    if ($('ptzStateLine')) {
+      $('ptzStateLine').textContent = ok
+        ? `saved ${name}: limit=${preset.max_detections} every=${preset.detect_every_n_frames} area=${preset.detection_mode}`
+        : `save verify failed: ${name}`;
+    }
+
+    return { ok, name, preset, detection, ptz, saved };
+  }
+
+  async function setSearchPreset(name) {
+    const settings = await readSettings();
+
+    settings.activeSearchPreset = name;
+    settings.lastAppliedSearchPreset = {
+      name,
+      label: SEARCH_PRESETS[name] || name,
+      ts: Math.floor(Date.now() / 1000)
+    };
+
+    await writeSettings(settings);
+
+    if ($('searchPresetState')) {
+      $('searchPresetState').textContent = `search: ${name}`;
+    }
+
+    if ($('ptzStateLine')) {
+      $('ptzStateLine').textContent = `search preset saved: ${name}`;
+    }
+  }
+
+  async function startPtz() {
+    const settings = await readSettings();
+
+    settings.ptzArmed = true;
+    settings.controlMode = 'ptz';
+
+    await writeSettings(settings);
+    await syncPtz();
+
+    if ($('ptzStateLine')) {
+      $('ptzStateLine').textContent = 'PTZ ARMED: daemon controls runtime';
+    }
+  }
+
+  async function stopPtz() {
+    const settings = await readSettings();
+
+    settings.ptzArmed = false;
+    settings.controlMode = 'manual';
+
+    await writeSettings(settings);
+
+    await postJson(`${autopilotBaseUrl()}/api/autopilot/stop`, {}).catch(() => {});
+    await postJson(`${autopilotBaseUrl()}/api/control/stop`, {}).catch(() => {});
+    await postJson('/api/tracker/clear', {}).catch(() => {});
+
+    await syncPtz();
+
+    if ($('ptzStateLine')) {
+      $('ptzStateLine').textContent = 'PTZ stopped/disarmed';
+    }
+  }
+
+  async function syncUi() {
+    const settings = await readSettings();
+    const { name, preset } = getActivePreset(settings);
+
+    syncUiFromPreset(preset);
+    paintObjectPreset(name);
+
+    const search = settings.activeSearchPreset || 'lost_step_wait';
+
+    if ($('searchPresetSelect') && SEARCH_PRESETS[search]) {
+      $('searchPresetSelect').value = search;
+    }
+
+    if ($('searchPresetState')) {
+      $('searchPresetState').textContent = `search: ${search}`;
+    }
+
+    await syncPtz();
+  }
+
+  function bindHandlers() {
+    if (document.__ptzCleanLayerBound) return;
+    document.__ptzCleanLayerBound = true;
+
+    document.addEventListener('click', async (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest('[data-clean-object-preset]') : null;
+
+      if (!btn) return;
+
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
 
       try {
-        await saveDetectionToActivePreset('manual_button');
+        await selectObjectPreset(btn.dataset.cleanObjectPreset);
       } catch (err) {
-        console.error('[object-preset-durable-save]', err);
+        console.error('[clean select preset]', err);
 
         if ($('ptzStateLine')) {
-          $('ptzStateLine').textContent = `preset save error: ${String(err.message || err)}`;
+          $('ptzStateLine').textContent = `preset error: ${String(err.message || err)}`;
         }
       }
     }, true);
 
-    panel.appendChild(btn);
-  }
-
-  function replaceObjectPresetButtonHandlers() {
-    document.querySelectorAll('[data-object-preset]').forEach((oldBtn) => {
-      if (oldBtn.__noAutoArmButtonReplaced) return;
-
-      const btn = oldBtn.cloneNode(true);
-      btn.__presetBound = true;
-      btn.__noAutoArmButtonReplaced = true;
-
-      btn.addEventListener('click', async (e) => {
+    document.addEventListener('click', async (e) => {
+      if (e.target && e.target.id === 'objectPresetCleanSaveBtn') {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
 
-        const name = btn.dataset.objectPreset;
-
         try {
-          await selectObjectPresetNoArm(name);
+          await saveDetectionToPreset('manual_button');
         } catch (err) {
-          console.error('[object-preset-no-arm]', err);
+          console.error('[clean save preset]', err);
 
           if ($('ptzStateLine')) {
-            $('ptzStateLine').textContent = `preset select error: ${String(err.message || err)}`;
+            $('ptzStateLine').textContent = `save error: ${String(err.message || err)}`;
+          }
+        }
+      }
+    }, true);
+
+    document.addEventListener('change', async (e) => {
+      if (e.target && e.target.id === 'searchPresetSelect') {
+        await setSearchPreset(String(e.target.value || 'lost_step_wait'));
+      }
+    }, true);
+
+    document.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'objectTrackingLogsBtn') {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(`${location.protocol}//${location.hostname}:8091/`, '_blank', 'noopener,noreferrer');
+      }
+    }, true);
+
+    const start = $('ptzStartBtn');
+
+    if (start && !start.__cleanLayerBound) {
+      start.__cleanLayerBound = true;
+      start.onclick = null;
+      start.removeAttribute('onclick');
+
+      start.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+
+        try {
+          await startPtz();
+        } catch (err) {
+          console.error('[clean start ptz]', err);
+
+          if ($('ptzStateLine')) {
+            $('ptzStateLine').textContent = `start error: ${String(err.message || err)}`;
           }
         }
       }, true);
+    }
 
-      oldBtn.replaceWith(btn);
-    });
-  }
+    const stop = $('ptzStopBtn');
 
-  function bindControlAutoSave() {
-    if (document.__objectPresetDurableControlBound) return;
-    document.__objectPresetDurableControlBound = true;
+    if (stop && !stop.__cleanLayerBound) {
+      stop.__cleanLayerBound = true;
+      stop.onclick = null;
+      stop.removeAttribute('onclick');
+
+      stop.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+
+        try {
+          await stopPtz();
+        } catch (err) {
+          console.error('[clean stop ptz]', err);
+
+          if ($('ptzStateLine')) {
+            $('ptzStateLine').textContent = `stop error: ${String(err.message || err)}`;
+          }
+        }
+      }, true);
+    }
 
     document.addEventListener('change', (e) => {
       const id = String(e.target?.id || '');
@@ -10500,23 +8243,49 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
         'operatorDetectEvery',
         'operatorDetectionAreaMode'
       ].includes(id)) {
-        setTimeout(() => {
-          saveDetectionToActivePreset(id).catch((err) => {
-            console.error('[object-preset-durable-autosave]', err);
-          });
-        }, 450);
+        window.clearTimeout(window.__ptzCleanAutosaveTimer);
+
+        window.__ptzCleanAutosaveTimer = window.setTimeout(() => {
+          saveDetectionToPreset(id).catch(err => console.error('[clean autosave]', err));
+        }, 700);
       }
     }, true);
   }
 
-  function boot() {
-    replaceObjectPresetButtonHandlers();
-    ensureDurableSaveButton();
-    bindControlAutoSave();
+  function installStyle() {
+    if ($('ptzCleanLayerStyle')) return;
 
-    restoreCustomFromLocalIfMissing()
-      .then(() => syncUiFromActivePreset())
-      .catch(() => {});
+    const st = document.createElement('style');
+    st.id = 'ptzCleanLayerStyle';
+    st.textContent = `
+      [data-clean-object-preset].active,
+      [data-clean-object-preset].object-preset-active {
+        outline: 2px solid #00ff66 !important;
+        background: rgba(0,255,102,.22) !important;
+        color: #fff !important;
+        border-color: #00ff66 !important;
+      }
+
+      #ptzStartBtn.ptz-active-running {
+        background: #2e7d32 !important;
+        color: #fff !important;
+      }
+
+      #ptzStartBtn.ptz-active-armed {
+        background: #9c7b00 !important;
+        color: #fff !important;
+      }
+    `;
+
+    document.head.appendChild(st);
+  }
+
+  function boot() {
+    installStyle();
+    ensureObjectPanel();
+    ensureSearchPanel();
+    bindHandlers();
+    syncUi().catch(err => console.error('[clean sync]', err));
   }
 
   if (document.readyState === 'loading') {
@@ -10527,14 +8296,18 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
   setTimeout(boot, 500);
   setTimeout(boot, 1500);
-  setTimeout(boot, 3000);
-  setTimeout(syncUiFromActivePreset, 2500);
+  setInterval(() => syncPtz().catch(() => {}), 1500);
 
-  window.selectObjectPresetNoArm = selectObjectPresetNoArm;
-  window.saveDetectionToActivePreset = saveDetectionToActivePreset;
-  window.syncUiFromActivePreset = syncUiFromActivePreset;
+  window.ptzCleanLayer = {
+    selectObjectPreset,
+    saveDetectionToPreset,
+    setSearchPreset,
+    startPtz,
+    stopPtz,
+    syncUi
+  };
 })();
-// OBJECT_PRESET_NO_AUTO_ARM_DURABLE_SAVE_END
+// PTZ_CLEAN_LAYER_CONTROLLER_END
 </script>
 
 </body>
