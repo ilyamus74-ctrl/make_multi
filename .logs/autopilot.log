@@ -723,3 +723,7 @@ PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3
 PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
 PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
 PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3

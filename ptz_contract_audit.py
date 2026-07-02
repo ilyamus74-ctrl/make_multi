@@ -376,7 +376,7 @@ def audit_daemon_lifecycle():
     test_settings["activeObjectPreset"] = "car_single"
     test_settings["objectPresetTrackingMode"] = "single_auto"
     test_settings["objectPresetLossBehavior"] = "continuous_wide_scan_x"
-    test_settings["activeSearchPreset"] = test_settings.get("activeSearchPreset") or "lost_step_wait"
+    test_settings["activeSearchPreset"] = "lost_wide_cycle"
     test_settings["ptzArmed"] = False
     test_settings["controlMode"] = "manual"
     post_json(f"{MJPEG_BASE}/api/settings", test_settings)
@@ -390,6 +390,10 @@ def audit_daemon_lifecycle():
 
     def set_armed(value):
         s = get_json(f"{MJPEG_BASE}/api/settings")
+        s["activeObjectPreset"] = "car_single"
+        s["activeSearchPreset"] = "lost_wide_cycle"
+        s["objectPresetTrackingMode"] = "single_auto"
+        s["objectPresetLossBehavior"] = "continuous_wide_scan_x"
         s["ptzArmed"] = bool(value)
         s["controlMode"] = "ptz" if value else "manual"
         post_json(f"{MJPEG_BASE}/api/settings", s)

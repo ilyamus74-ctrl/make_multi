@@ -245,6 +245,44 @@ PTZ autopilot — низкоуровневый контроллер движен
 
 Основные API
 /api/autopilot/config
+## Framing-only fields
+
+text
+target_x
+target_y
+auto_zoom_enable
+auto_zoom_target_h
+auto_zoom_deadzone
+auto_zoom_cmd
+auto_zoom_sign
+auto_zoom_period_ms
+
+Framing-only config must not change PTZ speed profile source.
+
+Expected:
+
+speed_profile_source must remain user/exact/interpolated/clamped_left/clamped_right
+speed_profile_source must not become runtime_override
+
+Speed tune fields
+
+kp
+ki
+kd
+deadzone
+max_pan
+max_tilt
+max_accel
+min_pan
+min_tilt
+hz
+
+Only these fields are allowed to create runtime speed override.
+Rule
+
+Object preset may send framing-only config.
+Object preset must not create PTZ speed override.
+
 /api/autopilot/start
 /api/autopilot/stop
 /api/autopilot/state
@@ -274,6 +312,9 @@ Runtime Strategy
 Trajectory Analyzer
   ↓
 PTZ Autopilot
+
+
+
 Layer 5 — Orchestrator / Supervisor
 Файл
 object_tracking_daemon.py

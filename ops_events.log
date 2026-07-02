@@ -3841,3 +3841,6 @@
 2026-07-02T09:11:57Z type=detector_model_switch_ok payload={"type":"detector_model_switch_ok","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
 2026-07-02T09:19:56Z type=detector_model_switch_start payload={"type":"detector_model_switch_start","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
 2026-07-02T09:19:56Z type=detector_model_switch_ok payload={"type":"detector_model_switch_ok","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
+2026-07-02T09:23:24Z type=detector_model_switch_start payload={"type":"detector_model_switch_start","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
+2026-07-02T09:23:25Z type=detector_model_switch_ok payload={"type":"detector_model_switch_ok","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
+2026-07-02T09:23:26Z type=detector_model_switch_fail payload={"type":"detector_model_switch_fail","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn","reason":"cooldown"}
