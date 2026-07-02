@@ -517,3 +517,50 @@ PTZ_RUNTIME_SPEED_OVERRIDE sample=5 max_pan=31 max_tilt=25 max_accel=7 min_pan=3
 PTZ_RUNTIME_SPEED_OVERRIDE sample=4 max_pan=32 max_tilt=26 max_accel=7 min_pan=3 min_tilt=2
 PTZ_RUNTIME_SPEED_OVERRIDE sample=4 max_pan=32 max_tilt=26 max_accel=7 min_pan=3 min_tilt=2
 PTZ_RUNTIME_SPEED_OVERRIDE sample=4 max_pan=32 max_tilt=26 max_accel=7 min_pan=3 min_tilt=2
+PTZ_RUNTIME_SPEED_OVERRIDE sample=3 max_pan=33 max_tilt=27 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=3 max_pan=33 max_tilt=27 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=3 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+{
+  "ok": false,
+  "error": "unhandled_exception",
+  "message": "API not ready: http://127.0.0.1:8080/api/ping: <urlopen error [Errno 111] Connection refused>"
+}
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=1 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=1 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=1 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=1 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=1 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=1 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=1 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=1 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=1 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=1 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=1 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=1 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+{
+  "ok": false,
+  "error": "unhandled_exception",
+  "message": "API not ready: http://127.0.0.1:8080/api/ping: <urlopen error [Errno 111] Connection refused>"
+}
