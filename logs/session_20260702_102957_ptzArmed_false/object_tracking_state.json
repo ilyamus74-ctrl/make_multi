@@ -1,0 +1,9 @@
+{
+  "ts": 1782985783.052,
+  "mode": "error",
+  "result": {
+    "ok": false,
+    "error": "unhandled_exception",
+    "message": "API not ready: http://127.0.0.1:8080/api/ping: <urlopen error [Errno 111] Connection refused>"
+  }
+}
