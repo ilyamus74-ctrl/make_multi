@@ -748,7 +748,7 @@ This baseline was reached after the layer contract cleanup and focused fixes.
 
 ```text
 ptz_contract_audit.py
-PASS = 63
+PASS = 62
 FAIL = 0
 ```
 
@@ -793,18 +793,4 @@ Expected stable result:
 
 ```text
 FAIL = 0
-```
-
-## Latest confirmed baseline
-
-```text
-ptz_contract_audit.py
-PASS = 63
-FAIL = 0
-```
-
-Additional audit check included:
-
-```text
-Lifecycle persistent custom presets available
 ```
