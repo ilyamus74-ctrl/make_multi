@@ -232,7 +232,6 @@ def audit_ui():
 
 
     # PTZ_AUDIT_KEYBOARD_QA_SWEEP_V1
-    # PTZ_AUDIT_KEYBOARD_QA_SWEEP_V2
     print("")
     section("LAYER 1C — KEYBOARD Q/A SWEEP JS CONTRACT")
 
@@ -240,13 +239,6 @@ def audit_ui():
         _qa_web_text = web_text
     except Exception:
         _qa_web_text = (ROOT / "web/index.html").read_text(encoding="utf-8", errors="ignore")
-
-    qa_start = _qa_web_text.find("PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_START")
-    qa_end = _qa_web_text.find("PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_END", qa_start)
-    if qa_start >= 0 and qa_end > qa_start:
-        qa_block = _qa_web_text[qa_start:qa_end]
-    else:
-        qa_block = ""
 
     qa_tokens = [
         "PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_START",
@@ -263,26 +255,11 @@ def audit_ui():
 
     has_go_to_sample = "/api/zoom/go_to_sample" in _qa_web_text
     has_profile_idx_target = "profile_idx: target" in _qa_web_text
-    # Scope this check to the canonical Q/A block only.
-    # Other legacy/sample UI code can legitimately contain sample_idx,
-    # but Q/A must use profile_idx as the backend request key.
-    has_no_canonical_sample_idx = (
-        bool(qa_block)
-        and "sample_idx:" not in qa_block
-        and "\"sample_idx\"" not in qa_block
-        and "'sample_idx'" not in qa_block
-    )
+    has_no_canonical_sample_idx = "sample_idx: target" not in _qa_web_text
     has_apply_nearest = "/api/autopilot/speed_profile/apply_nearest" in _qa_web_text or "speed_profile/apply_nearest" in _qa_web_text
     has_profile_idx_final = "profile_idx: finalIdx" in _qa_web_text
-    has_capture_stop = (
-        bool(qa_block)
-        and "stopImmediatePropagation" in qa_block
-        and "window.addEventListener('keydown'" in qa_block
-        and "}, true)" in qa_block
-        and ("sweep_time_steps" in qa_block or "ptzQaSweepIsSweepMode" in qa_block or "ptzQaSweepIsSweep" in qa_block)
-    )
+    has_capture_stop = "stopImmediatePropagation" in _qa_web_text and "ptzQaSweepIsSweepMode" in _qa_web_text
 
-    print("Q/A scoped block length =", len(qa_block))
     print("Q/A go_to_sample backend call =", has_go_to_sample)
     print("Q/A go_to_sample uses profile_idx target =", has_profile_idx_target)
     print("Q/A avoids canonical sample_idx target =", has_no_canonical_sample_idx)

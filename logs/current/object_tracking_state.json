@@ -1,8 +1,8 @@
 {
-  "ts": 1783004265.648,
+  "ts": 1783004690.731,
   "mode": "tracking",
   "preset": "car_single",
-  "track_id": 104,
+  "track_id": 248,
   "ptz": "ACTIVE",
   "cmd_pan": -8,
   "cmd_tilt": -8,

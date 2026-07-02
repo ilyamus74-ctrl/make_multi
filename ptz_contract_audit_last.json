@@ -1,12 +1,12 @@
 {
-  "ts": 1783004279,
-  "pass": 77,
-  "fail": 3,
+  "ts": 1783004704,
+  "pass": 68,
+  "fail": 4,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
       "ok": true,
-      "detail": "size=26759"
+      "detail": "size=27670"
     },
     {
       "name": "file exists: web/index.html",
@@ -16,7 +16,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=6121"
+      "detail": "size=1429"
     },
     {
       "name": "file exists: launcher.sh",
@@ -185,7 +185,7 @@
     },
     {
       "name": "Keyboard Q/A sweep does not rely on sample_idx target",
-      "ok": false,
+      "ok": true,
       "detail": "canonical request key must be profile_idx"
     },
     {
@@ -195,8 +195,8 @@
     },
     {
       "name": "Keyboard Q/A sweep owns event before older handlers",
-      "ok": false,
-      "detail": "capture_stop=False"
+      "ok": true,
+      "detail": "capture_stop=True"
     },
     {
       "name": "Settings API reachable",
@@ -210,28 +210,28 @@
     },
     {
       "name": "Settings API custom presets non-empty",
-      "ok": true,
-      "detail": "keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
+      "ok": false,
+      "detail": "keys=[]"
     },
     {
       "name": "Settings FILE custom presets non-empty",
-      "ok": true,
-      "detail": "keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
+      "ok": false,
+      "detail": "keys=[]"
     },
     {
       "name": "Settings activeObjectPreset API/FILE match",
       "ok": true,
-      "detail": "api=car_single file=car_single"
+      "detail": "api=None file=None"
     },
     {
       "name": "Settings activeSearchPreset API/FILE match",
       "ok": true,
-      "detail": "api=lost_step_wait file=lost_step_wait"
+      "detail": "api=None file=None"
     },
     {
       "name": "Settings FILE ptzArmed false",
-      "ok": true,
-      "detail": "file=False"
+      "ok": false,
+      "detail": "file=None"
     },
     {
       "name": "Settings FILE controlMode manual",
@@ -240,28 +240,8 @@
     },
     {
       "name": "Settings active custom preset exists",
-      "ok": true,
-      "detail": "active=car_single"
-    },
-    {
-      "name": "Settings top-level limit matches active preset",
-      "ok": true,
-      "detail": "settings=5 preset=5"
-    },
-    {
-      "name": "Settings top-level detect_every matches active preset",
-      "ok": true,
-      "detail": "settings=1 preset=1"
-    },
-    {
-      "name": "Settings top-level area matches active preset",
-      "ok": true,
-      "detail": "settings=full_frame preset=full_frame"
-    },
-    {
-      "name": "Settings active object preset has no PTZ speed keys",
-      "ok": true,
-      "detail": "bad=[]"
+      "ok": false,
+      "detail": "active=None"
     },
     {
       "name": "Detector limits reachable",
@@ -282,26 +262,6 @@
       "name": "Detector config reachable",
       "ok": true,
       "detail": "ok"
-    },
-    {
-      "name": "Detector max_detections matches active preset",
-      "ok": true,
-      "detail": "backend=5 preset=5"
-    },
-    {
-      "name": "Detector detect_every matches active preset",
-      "ok": true,
-      "detail": "backend=1 preset=1"
-    },
-    {
-      "name": "Detector area matches active preset",
-      "ok": true,
-      "detail": "backend=full_frame preset=full_frame"
-    },
-    {
-      "name": "Detector classes match active preset",
-      "ok": false,
-      "detail": "backend=[] preset=[2, 3, 5, 7]"
     },
     {
       "name": "PTZ autopilot reachable",
