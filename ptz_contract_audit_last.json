@@ -1,7 +1,7 @@
 {
-  "ts": 1782991140,
-  "pass": 48,
-  "fail": 4,
+  "ts": 1782991865,
+  "pass": 63,
+  "fail": 0,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
@@ -16,7 +16,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=2666"
+      "detail": "size=7418"
     },
     {
       "name": "file exists: launcher.sh",
@@ -125,18 +125,18 @@
     },
     {
       "name": "Settings API custom presets non-empty",
-      "ok": false,
-      "detail": "keys=[]"
+      "ok": true,
+      "detail": "keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
     },
     {
       "name": "Settings FILE custom presets non-empty",
-      "ok": false,
-      "detail": "keys=[]"
+      "ok": true,
+      "detail": "keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
     },
     {
       "name": "Settings activeObjectPreset API/FILE match",
       "ok": true,
-      "detail": "api=contract_default_object file=contract_default_object"
+      "detail": "api=car_single file=car_single"
     },
     {
       "name": "Settings activeSearchPreset API/FILE match",
@@ -155,8 +155,28 @@
     },
     {
       "name": "Settings active custom preset exists",
-      "ok": false,
-      "detail": "active=contract_default_object"
+      "ok": true,
+      "detail": "active=car_single"
+    },
+    {
+      "name": "Settings top-level limit matches active preset",
+      "ok": true,
+      "detail": "settings=8 preset=8"
+    },
+    {
+      "name": "Settings top-level detect_every matches active preset",
+      "ok": true,
+      "detail": "settings=1 preset=1"
+    },
+    {
+      "name": "Settings top-level area matches active preset",
+      "ok": true,
+      "detail": "settings=full_frame preset=full_frame"
+    },
+    {
+      "name": "Settings active object preset has no PTZ speed keys",
+      "ok": true,
+      "detail": "bad=[]"
     },
     {
       "name": "Detector limits reachable",
@@ -177,6 +197,26 @@
       "name": "Detector config reachable",
       "ok": true,
       "detail": "ok"
+    },
+    {
+      "name": "Detector max_detections matches active preset",
+      "ok": true,
+      "detail": "backend=8 preset=8"
+    },
+    {
+      "name": "Detector detect_every matches active preset",
+      "ok": true,
+      "detail": "backend=1 preset=1"
+    },
+    {
+      "name": "Detector area matches active preset",
+      "ok": true,
+      "detail": "backend=full_frame preset=full_frame"
+    },
+    {
+      "name": "Detector classes match active preset",
+      "ok": true,
+      "detail": "backend=[2, 3, 5, 7] preset=[2, 3, 5, 7]"
     },
     {
       "name": "PTZ autopilot reachable",
@@ -260,8 +300,23 @@
     },
     {
       "name": "Lifecycle persistent custom presets available",
-      "ok": false,
-      "detail": "api_keys=[] file_keys=[]"
+      "ok": true,
+      "detail": "api_keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single'] file_keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
+    },
+    {
+      "name": "Daemon lifecycle disarm watch_count=0",
+      "ok": true,
+      "detail": "watch_count=0"
+    },
+    {
+      "name": "Daemon lifecycle arm child_start observed",
+      "ok": true,
+      "detail": "child_start_events=1 max_watch_count=1 final_watch_count=0 samples=[1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]"
+    },
+    {
+      "name": "Daemon lifecycle final disarm watch_count=0",
+      "ok": true,
+      "detail": "watch_count=0"
     }
   ]
 }

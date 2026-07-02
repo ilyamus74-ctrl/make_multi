@@ -1710,8 +1710,3 @@
 2026-07-02 11:23:52 settings persist daemon start
 2026-07-02 11:23:53 settings persist daemon stop
 2026-07-02 11:23:58 persisted settings active=car_single search=contract_default_object custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
-2026-07-02 11:29:18 persisted settings active=car_single search=contract_default_object custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
-2026-07-02 11:30:17 persisted settings active=car_single search=contract_default_object custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
-2026-07-02 11:30:43 settings persist daemon stop
-2026-07-02 11:30:45 settings persist daemon start
-2026-07-02 11:30:51 persisted settings active=car_single search=contract_default_object custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
