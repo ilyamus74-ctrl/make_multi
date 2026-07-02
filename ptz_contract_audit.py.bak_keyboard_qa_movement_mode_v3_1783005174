@@ -233,7 +233,6 @@ def audit_ui():
 
     # PTZ_AUDIT_KEYBOARD_QA_SWEEP_V1
     # PTZ_AUDIT_KEYBOARD_QA_SWEEP_V2
-    # PTZ_AUDIT_KEYBOARD_QA_MOVEMENT_MODE_V3
     print("")
     section("LAYER 1C — KEYBOARD Q/A SWEEP JS CONTRACT")
 
@@ -283,15 +282,6 @@ def audit_ui():
         and ("sweep_time_steps" in qa_block or "ptzQaSweepIsSweepMode" in qa_block or "ptzQaSweepIsSweep" in qa_block)
     )
 
-    has_movement_mode_v2 = "PTZ_QA_SAMPLE_STEP_MOVEMENT_MODE_V2" in qa_block
-    qa_owns_both_zoom_movement_modes = (
-        bool(qa_block)
-        and "if (!ptzQaSweepIsSweepMode()) return" not in qa_block
-        and "legacy_impulse" in qa_block
-        and "sweep_time_steps" in qa_block
-        and "ptzQaSweepMovementMode" in qa_block
-    )
-
     print("Q/A scoped block length =", len(qa_block))
     print("Q/A go_to_sample backend call =", has_go_to_sample)
     print("Q/A go_to_sample uses profile_idx target =", has_profile_idx_target)
@@ -299,8 +289,6 @@ def audit_ui():
     print("Q/A apply_nearest backend call =", has_apply_nearest)
     print("Q/A apply_nearest uses profile_idx finalIdx =", has_profile_idx_final)
     print("Q/A capture stop =", has_capture_stop)
-    print("Q/A movement mode v2 marker =", has_movement_mode_v2)
-    print("Q/A owns both ZOOM CALIB movement modes =", qa_owns_both_zoom_movement_modes)
 
     add(
         "Keyboard Q/A sweep moves real backend zoom sample",
@@ -321,11 +309,6 @@ def audit_ui():
         "Keyboard Q/A sweep owns event before older handlers",
         has_capture_stop,
         f"capture_stop={has_capture_stop}"
-    )
-    add(
-        "Keyboard Q/A sample step respects ZOOM CALIB Movement",
-        has_movement_mode_v2 and qa_owns_both_zoom_movement_modes,
-        f"movement_marker={has_movement_mode_v2} owns_both_modes={qa_owns_both_zoom_movement_modes}"
     )
 
 def audit_settings(api, file_data):
