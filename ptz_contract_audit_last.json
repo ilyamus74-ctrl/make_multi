@@ -1,7 +1,7 @@
 {
-  "ts": 1783010090,
-  "pass": 109,
-  "fail": 1,
+  "ts": 1783010345,
+  "pass": 110,
+  "fail": 0,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
@@ -515,8 +515,8 @@
     },
     {
       "name": "Runtime Detection OFF pauses search/reacquire",
-      "ok": false,
-      "detail": "search=True continuous=True custom_plan=False"
+      "ok": true,
+      "detail": "search=True continuous=True custom_plan=True"
     },
     {
       "name": "Runtime wide zoom uses sample-speed contract",

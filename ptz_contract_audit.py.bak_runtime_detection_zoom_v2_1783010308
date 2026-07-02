@@ -601,7 +601,6 @@ def audit_processes():
 def audit_daemon_lifecycle():
 
     # PTZ_AUDIT_RUNTIME_DETECTION_ZOOM_V1
-# PTZ_AUDIT_RUNTIME_DETECTION_ZOOM_V2
     print("")
     section("LAYER 6B — RUNTIME DETECTION OFF / ZOOM SAMPLE SYNC")
 
@@ -668,31 +667,6 @@ def audit_daemon_lifecycle():
     print("zoom_move_frames scoped /api/zoom/jog =", move_raw_jog)
     print("search pause guard =", search_has_pause_guard)
     print("continuous pause guard =", continuous_has_pause_guard)
-    # PTZ_AUDIT_RUNTIME_DETECTION_ZOOM_V2
-    # v1 could miss a valid custom-plan guard if the guard is placed
-    # before event_log("custom_plan_start") / before zoom_wide_on_start.
-    def _ptz_runtime_function_block_containing_v2(src, token):
-        pos = src.find(token)
-        if pos < 0:
-            return ""
-        start = src.rfind("\ndef ", 0, pos)
-        if start < 0:
-            start = 0
-        else:
-            start += 1
-        end = src.find("\ndef ", pos + 1)
-        if end < 0:
-            end = len(src)
-        return src[start:end]
-
-    _custom_plan_block_v2 = _ptz_runtime_function_block_containing_v2(runtime_text, 'custom_plan_start')
-    if not _custom_plan_block_v2:
-        _custom_plan_block_v2 = _ptz_runtime_function_block_containing_v2(runtime_text, 'runtime_pause_if_detection_disabled("custom_plan"')
-    custom_plan_has_pause_guard = (
-        'runtime_pause_if_detection_disabled("custom_plan"' in _custom_plan_block_v2
-        or 'runtime_pause_if_detection_disabled("custom_plan"' in runtime_text
-    )
-    print("custom plan function scoped block length =", len(_custom_plan_block_v2))
     print("custom plan pause guard =", custom_plan_has_pause_guard)
 
     add(
