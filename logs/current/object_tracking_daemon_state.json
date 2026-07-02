@@ -1,7 +1,7 @@
 {
-  "ts": 1782981444.941,
-  "event": "idle_disarmed",
-  "preset": "car_single",
-  "armed": false,
-  "single_auto": true
+  "ts": 1782983996.911,
+  "event": "child_stop",
+  "reason": "ptzArmed_false",
+  "preset": "car_single::lost_step_wait",
+  "pid": 155073
 }

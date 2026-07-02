@@ -482,4 +482,11 @@ Any layer change must be followed by:
   1. ptz_contract_audit.py run
   2. review of FAIL items
   3. fix or explicit contract update
+
+no delete files
+ptz_contract_audit.py
+hydrate_runtime_settings.py
+settings_persist_daemon.py
+object_tracking_daemon.py
+apply_ptz_object_preset.py
 ##########################
