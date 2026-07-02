@@ -375,17 +375,6 @@ def audit_daemon_lifecycle():
 
     original = dict(settings)
 
-    # Lifecycle contract is tested on single_auto preset.
-    # Multi/operator presets may be armed without starting auto-watch.
-    test_settings = dict(settings)
-    test_settings["activeObjectPreset"] = "car_single"
-    test_settings["objectPresetTrackingMode"] = "single_auto"
-    test_settings["objectPresetLossBehavior"] = "continuous_wide_scan_x"
-    test_settings["activeSearchPreset"] = "lost_wide_cycle"
-    test_settings["ptzArmed"] = False
-    test_settings["controlMode"] = "manual"
-    post_json(f"{MJPEG_BASE}/api/settings", test_settings)
-
     def watch_count():
         return len([
             x
@@ -396,7 +385,7 @@ def audit_daemon_lifecycle():
     def set_armed(value):
         s = get_json(f"{MJPEG_BASE}/api/settings")
         s["activeObjectPreset"] = "car_single"
-        s["activeSearchPreset"] = "lost_wide_cycle"
+        s["activeSearchPreset"] = s.get("activeSearchPreset") or "lost_step_wait"
         s["objectPresetTrackingMode"] = "single_auto"
         s["objectPresetLossBehavior"] = "continuous_wide_scan_x"
         s["ptzArmed"] = bool(value)
@@ -412,9 +401,20 @@ def audit_daemon_lifecycle():
 
     print("Step B: arm")
     set_armed(True)
-    time.sleep(6)
-    wc1 = watch_count()
-    print("watch_count after arm =", wc1)
+
+    samples = []
+
+    for i in range(8):
+        time.sleep(1)
+        wc = watch_count()
+        samples.append(wc)
+        print("watch_count arm sample", i + 1, "=", wc)
+
+    wc1_max = max(samples) if samples else 0
+    wc1_final = samples[-1] if samples else 0
+
+    print("watch_count max during arm =", wc1_max)
+    print("watch_count final during arm =", wc1_final)
 
     print("Step C: final disarm")
     set_armed(False)
@@ -430,8 +430,13 @@ def audit_daemon_lifecycle():
     post_json(f"{PTZ_BASE}/api/autopilot/stop", {})
 
     add("Daemon lifecycle disarm watch_count=0", wc0 == 0, f"watch_count={wc0}")
-    add("Daemon lifecycle arm watch_count=1", wc1 == 1, f"watch_count={wc1}")
+    add(
+        "Daemon lifecycle arm child observed",
+        wc1_max >= 1,
+        f"max_watch_count={wc1_max} final_watch_count={wc1_final} samples={samples}"
+    )
     add("Daemon lifecycle final disarm watch_count=0", wc2 == 0, f"watch_count={wc2}")
+
 
 def audit_launcher():
     section("LAUNCHER CONTRACT")

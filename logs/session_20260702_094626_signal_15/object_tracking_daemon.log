@@ -1,0 +1,7 @@
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782985580.325}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782985581.328}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782985582.331}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782985583.333}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782985584.335}
+{"cmd": ["/usr/bin/python3", "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/apply_ptz_object_preset.py", "--preset", "car_single", "--arm", "force", "--strategy", "preset", "--watch"], "event": "child_start", "pid": 229093, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1782985585.339}
+{"event": "child_stop", "pid": 229093, "preset": "car_single::lost_step_wait", "reason": "ptzArmed_false", "ts": 1782985586.341}

@@ -154,6 +154,13 @@ def sync_once():
     file_out["ptzArmed"] = False
     file_out["controlMode"] = "manual"
 
+    # Safety contract:
+    # Never persist settings without objectPresetsCustom.
+    # A short-lived runtime/default state must not destroy persistent presets.
+    if not non_empty_dict(file_out.get("objectPresetsCustom")):
+        log("skip persist: objectPresetsCustom missing or empty")
+        return
+
     wrote = write_file_settings(file_out)
 
     if api_needs_repair:
