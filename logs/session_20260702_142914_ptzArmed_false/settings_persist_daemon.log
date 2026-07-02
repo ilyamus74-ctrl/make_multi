@@ -1785,3 +1785,30 @@
 2026-07-02 13:37:45 skip persist: objectPresetsCustom missing or empty
 2026-07-02 13:37:47 persisted settings active=person_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
 2026-07-02 13:43:20 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+2026-07-02 13:49:29 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+2026-07-02 13:52:21 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+2026-07-02 13:52:31 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+2026-07-02 13:53:59 read file error: Expecting value: line 1 column 1 (char 0)
+2026-07-02 13:53:59 skip persist: objectPresetsCustom missing or empty
+2026-07-02 13:54:01 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+2026-07-02 13:55:17 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+2026-07-02 14:01:02 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+2026-07-02 14:10:44 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+2026-07-02 14:14:12 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+2026-07-02 14:17:52 settings persist daemon stop
+2026-07-02 14:18:22 settings persist daemon start
+2026-07-02 14:18:34 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+2026-07-02 14:20:19 settings persist daemon stop
+2026-07-02 14:20:41 settings persist daemon start
+2026-07-02 14:20:56 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+2026-07-02 14:26:36 settings persist daemon stop
+2026-07-02 14:26:58 settings persist daemon start
+2026-07-02 14:27:14 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-02 14:27:16 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-02 14:27:18 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-02 14:27:20 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-02 14:27:22 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-02 14:27:24 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-02 14:29:09 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-02 14:29:11 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-02 14:29:13 skip persist: runtime armed ptzArmed=True controlMode=ptz

@@ -1,7 +1,7 @@
 {
-  "ts": 1782998584.278,
+  "ts": 1783002563.415,
   "event": "child_stop",
   "reason": "ptzArmed_false",
   "preset": "car_single::lost_step_wait",
-  "pid": 191024
+  "pid": 375086
 }
