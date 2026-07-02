@@ -1,7 +1,7 @@
 {
-  "ts": 1783000455,
-  "pass": 63,
-  "fail": 0,
+  "ts": 1783000879,
+  "pass": 70,
+  "fail": 1,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
@@ -112,6 +112,46 @@
       "name": "UI clean object preset buttons exist",
       "ok": true,
       "detail": "count=12"
+    },
+    {
+      "name": "UI detection JS marker PTZ_CLEAN_DETECTION_UI_HYDRATE_F5_START",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "UI detection JS marker PTZ_CLEAN_DETECTION_ACTIVE_PRESET_PERSIST_START",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "UI detection JS marker hydrateDetectionControlsFromSettings",
+      "ok": true,
+      "detail": "count=5"
+    },
+    {
+      "name": "UI detection JS marker scheduleDetectionUiHydrate",
+      "ok": true,
+      "detail": "count=2"
+    },
+    {
+      "name": "UI detection JS marker persistActiveDetectionControlsToPreset",
+      "ok": true,
+      "detail": "count=4"
+    },
+    {
+      "name": "UI detection JS marker schedulePersistActiveDetectionControlsToPreset",
+      "ok": true,
+      "detail": "count=3"
+    },
+    {
+      "name": "UI saveSettings preserves objectPresetsCustom fallback",
+      "ok": true,
+      "detail": "requires OBJECT_PRESETS fallback when before.objectPresetsCustom is empty"
+    },
+    {
+      "name": "UI detection controls persist to active object preset",
+      "ok": true,
+      "detail": "missing=[]"
     },
     {
       "name": "Settings API reachable",
@@ -310,8 +350,8 @@
     },
     {
       "name": "Daemon lifecycle arm child_start observed",
-      "ok": true,
-      "detail": "child_start_events=1 max_watch_count=1 final_watch_count=0 samples=[1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]"
+      "ok": false,
+      "detail": "child_start_events=0 max_watch_count=0 final_watch_count=0 samples=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]"
     },
     {
       "name": "Daemon lifecycle final disarm watch_count=0",
