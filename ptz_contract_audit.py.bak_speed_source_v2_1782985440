@@ -321,12 +321,7 @@ def audit_ptz():
 
     if "__error__" not in ap:
         add("PTZ autopilot not auto-running", ap.get("enabled") is False, f"enabled={ap.get('enabled')} mode={ap.get('mode')}")
-        src = ap.get("speed_profile_source")
-        add(
-            "PTZ speed profile source not runtime override",
-            src not in [None, "", "fallback", "runtime_override"],
-            f"source={src}"
-        )
+        add("PTZ speed profile source user", ap.get("speed_profile_source") == "user", f"source={ap.get('speed_profile_source')}")
 
 def audit_processes():
     section("PROCESSES")

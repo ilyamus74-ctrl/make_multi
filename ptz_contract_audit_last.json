@@ -1,12 +1,12 @@
 {
-  "ts": 1782983615,
-  "pass": 60,
-  "fail": 2,
+  "ts": 1782985460,
+  "pass": 50,
+  "fail": 4,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
       "ok": true,
-      "detail": "size=16371"
+      "detail": "size=17136"
     },
     {
       "name": "file exists: web/index.html",
@@ -16,7 +16,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=6783"
+      "detail": "size=1510"
     },
     {
       "name": "file exists: launcher.sh",
@@ -51,7 +51,7 @@
     {
       "name": "file exists: ptz_autopilot.cpp",
       "ok": true,
-      "detail": "size=49959"
+      "detail": "size=50524"
     },
     {
       "name": "UI required marker PTZ_CLEAN_LAYER_CONTROLLER_START",
@@ -125,18 +125,18 @@
     },
     {
       "name": "Settings API custom presets non-empty",
-      "ok": true,
-      "detail": "keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
+      "ok": false,
+      "detail": "keys=[]"
     },
     {
       "name": "Settings FILE custom presets non-empty",
-      "ok": true,
-      "detail": "keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
+      "ok": false,
+      "detail": "keys=[]"
     },
     {
       "name": "Settings activeObjectPreset API/FILE match",
       "ok": true,
-      "detail": "api=cars file=cars"
+      "detail": "api=person_single file=person_single"
     },
     {
       "name": "Settings activeSearchPreset API/FILE match",
@@ -155,28 +155,8 @@
     },
     {
       "name": "Settings active custom preset exists",
-      "ok": true,
-      "detail": "active=cars"
-    },
-    {
-      "name": "Settings top-level limit matches active preset",
-      "ok": true,
-      "detail": "settings=15 preset=15"
-    },
-    {
-      "name": "Settings top-level detect_every matches active preset",
-      "ok": true,
-      "detail": "settings=1 preset=1"
-    },
-    {
-      "name": "Settings top-level area matches active preset",
-      "ok": true,
-      "detail": "settings=tiled preset=tiled"
-    },
-    {
-      "name": "Settings active object preset has no PTZ speed keys",
-      "ok": true,
-      "detail": "bad=[]"
+      "ok": false,
+      "detail": "active=person_single"
     },
     {
       "name": "Detector limits reachable",
@@ -199,26 +179,6 @@
       "detail": "ok"
     },
     {
-      "name": "Detector max_detections matches active preset",
-      "ok": true,
-      "detail": "backend=15 preset=15"
-    },
-    {
-      "name": "Detector detect_every matches active preset",
-      "ok": true,
-      "detail": "backend=1 preset=1"
-    },
-    {
-      "name": "Detector area matches active preset",
-      "ok": true,
-      "detail": "backend=tiled preset=tiled"
-    },
-    {
-      "name": "Detector classes match active preset",
-      "ok": true,
-      "detail": "backend=[2, 3, 5, 7] preset=[2, 3, 5, 7]"
-    },
-    {
       "name": "PTZ autopilot reachable",
       "ok": true,
       "detail": "ok"
@@ -229,9 +189,9 @@
       "detail": "enabled=False mode=IDLE"
     },
     {
-      "name": "PTZ speed profile source user",
-      "ok": false,
-      "detail": "source=runtime_override"
+      "name": "PTZ speed profile source not runtime override",
+      "ok": true,
+      "detail": "source=user"
     },
     {
       "name": "Process mjpeg_rknn_http count 1",
