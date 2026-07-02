@@ -1,7 +1,0 @@
-{
-  "ts": 1782991438.706,
-  "event": "child_stop",
-  "reason": "ptzArmed_false",
-  "preset": "car_single::contract_default_object",
-  "pid": 498653
-}

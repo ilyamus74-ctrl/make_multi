@@ -1788,6 +1788,3 @@
 2026-07-02 13:49:29 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
 2026-07-02 13:52:21 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
 2026-07-02 13:52:31 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
-2026-07-02 13:53:59 read file error: Expecting value: line 1 column 1 (char 0)
-2026-07-02 13:53:59 skip persist: objectPresetsCustom missing or empty
-2026-07-02 13:54:01 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
