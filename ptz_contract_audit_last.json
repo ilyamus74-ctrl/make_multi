@@ -1,0 +1,277 @@
+{
+  "ts": 1782983130,
+  "pass": 49,
+  "fail": 5,
+  "results": [
+    {
+      "name": "file exists: PTZ_MASTER_CONTRACT.md",
+      "ok": true,
+      "detail": "size=15013"
+    },
+    {
+      "name": "file exists: web/index.html",
+      "ok": true,
+      "detail": "size=303038"
+    },
+    {
+      "name": "file exists: ui_settings.json",
+      "ok": true,
+      "detail": "size=1734"
+    },
+    {
+      "name": "file exists: launcher.sh",
+      "ok": true,
+      "detail": "size=13869"
+    },
+    {
+      "name": "file exists: hydrate_runtime_settings.py",
+      "ok": true,
+      "detail": "size=2919"
+    },
+    {
+      "name": "file exists: settings_persist_daemon.py",
+      "ok": true,
+      "detail": "size=5183"
+    },
+    {
+      "name": "file exists: object_tracking_daemon.py",
+      "ok": true,
+      "detail": "size=7937"
+    },
+    {
+      "name": "file exists: apply_ptz_object_preset.py",
+      "ok": true,
+      "detail": "size=51122"
+    },
+    {
+      "name": "file exists: mjpeg_gst_http.cpp",
+      "ok": true,
+      "detail": "size=216959"
+    },
+    {
+      "name": "file exists: ptz_autopilot.cpp",
+      "ok": true,
+      "detail": "size=49959"
+    },
+    {
+      "name": "UI required marker PTZ_CLEAN_LAYER_CONTROLLER_START",
+      "ok": true,
+      "detail": "count=1 expected=1"
+    },
+    {
+      "name": "UI required marker PTZ_CLEAN_SAVESETTINGS_GUARD_START",
+      "ok": true,
+      "detail": "count=1 expected=1"
+    },
+    {
+      "name": "UI forbidden marker SINGLE_PRESET_AUTO_ARM",
+      "ok": true,
+      "detail": "count=0"
+    },
+    {
+      "name": "UI forbidden marker OBJECT_PRESET_MANAGER_START",
+      "ok": true,
+      "detail": "count=0"
+    },
+    {
+      "name": "UI forbidden marker OBJECT_PRESET_BUTTONS_ACTIVE_FIX_START",
+      "ok": true,
+      "detail": "count=0"
+    },
+    {
+      "name": "UI forbidden marker OBJECT_PRESET_AUTO_LEARN_OPERATOR_CONTROLS_START",
+      "ok": true,
+      "detail": "count=0"
+    },
+    {
+      "name": "UI forbidden marker OPERATOR_CONTROLS_HARD_PERSIST_APPLY_START",
+      "ok": true,
+      "detail": "count=0"
+    },
+    {
+      "name": "UI forbidden marker OBJECT_PRESET_NO_AUTO_ARM_DURABLE_SAVE_START",
+      "ok": true,
+      "detail": "count=0"
+    },
+    {
+      "name": "UI forbidden marker PTZ_START_STOP_ACTIVE_STATE_FIX_START",
+      "ok": true,
+      "detail": "count=0"
+    },
+    {
+      "name": "UI forbidden marker SEARCH_PRESET_SELECTOR_START",
+      "ok": true,
+      "detail": "count=0"
+    },
+    {
+      "name": "UI old object preset buttons removed",
+      "ok": true,
+      "detail": "count=0"
+    },
+    {
+      "name": "UI clean object preset buttons exist",
+      "ok": true,
+      "detail": "count=12"
+    },
+    {
+      "name": "Settings API reachable",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "Settings file readable",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "Settings API custom presets non-empty",
+      "ok": false,
+      "detail": "keys=[]"
+    },
+    {
+      "name": "Settings FILE custom presets non-empty",
+      "ok": false,
+      "detail": "keys=[]"
+    },
+    {
+      "name": "Settings activeObjectPreset API/FILE match",
+      "ok": true,
+      "detail": "api=cars file=cars"
+    },
+    {
+      "name": "Settings activeSearchPreset API/FILE match",
+      "ok": true,
+      "detail": "api=lost_step_wait file=lost_step_wait"
+    },
+    {
+      "name": "Settings FILE ptzArmed false",
+      "ok": true,
+      "detail": "file=False"
+    },
+    {
+      "name": "Settings FILE controlMode manual",
+      "ok": true,
+      "detail": "file=manual"
+    },
+    {
+      "name": "Settings active custom preset exists",
+      "ok": false,
+      "detail": "active=cars"
+    },
+    {
+      "name": "Detector limits reachable",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "Detector throttle reachable",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "Detector roi reachable",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "Detector config reachable",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "PTZ autopilot reachable",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "PTZ autopilot not auto-running",
+      "ok": true,
+      "detail": "enabled=False mode=IDLE"
+    },
+    {
+      "name": "PTZ speed profile source user",
+      "ok": false,
+      "detail": "source=runtime_override"
+    },
+    {
+      "name": "Process mjpeg_rknn_http count 1",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Process ptz_autopilot count 1",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Process settings_persist_daemon count 1",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Process object_tracking_daemon count 1",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Launcher token HYDRATE_RUNTIME_SETTINGS",
+      "ok": true,
+      "detail": "count=4"
+    },
+    {
+      "name": "Launcher token hydrate_runtime_settings()",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Launcher token hydrate_runtime_settings",
+      "ok": true,
+      "detail": "count=3"
+    },
+    {
+      "name": "Launcher token SETTINGS_PERSIST_DAEMON",
+      "ok": true,
+      "detail": "count=6"
+    },
+    {
+      "name": "Launcher token start_settings_persist_daemon()",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Launcher token start_settings_persist_daemon",
+      "ok": true,
+      "detail": "count=2"
+    },
+    {
+      "name": "Launcher token OBJECT_TRACKING_DAEMON",
+      "ok": true,
+      "detail": "count=14"
+    },
+    {
+      "name": "Launcher token start_object_tracking_daemon()",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Launcher token start_object_tracking_daemon",
+      "ok": true,
+      "detail": "count=2"
+    },
+    {
+      "name": "Daemon lifecycle disarm watch_count=0",
+      "ok": true,
+      "detail": "watch_count=0"
+    },
+    {
+      "name": "Daemon lifecycle arm watch_count=1",
+      "ok": false,
+      "detail": "watch_count=0"
+    },
+    {
+      "name": "Daemon lifecycle final disarm watch_count=0",
+      "ok": true,
+      "detail": "watch_count=0"
+    }
+  ]
+}
