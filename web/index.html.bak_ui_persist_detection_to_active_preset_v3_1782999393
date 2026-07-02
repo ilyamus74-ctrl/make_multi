@@ -8258,103 +8258,9 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
   // PTZ_CLEAN_DETECTION_UI_HYDRATE_F5_END
 
-
-  // PTZ_CLEAN_DETECTION_ACTIVE_PRESET_PERSIST_START
-  async function persistActiveDetectionControlsToPreset(reason = 'ui_change') {
-    const settings = await readSettings();
-    const active = activeObjectName(settings);
-    const presets = mergedPresets(settings);
-    const base = Object.assign({}, OBJECT_PRESETS[active] || {}, presets[active] || {});
-
-    const limitEl = $('operatorDetectionLimit');
-    const everyEl = $('operatorDetectEvery');
-    const areaEl = $('operatorDetectionAreaMode');
-
-    const maxDet = Number(limitEl?.value || settings.operatorDetectionLimit || base.max_detections || 10);
-    const maxRaw = Math.max(
-      Number(base.max_raw_candidates || settings.operatorMaxRawCandidates || 0),
-      Math.max(20, maxDet * 5)
-    );
-    const every = Number(everyEl?.value || settings.operatorDetectEvery || base.detect_every_n_frames || 1);
-    const area = String(areaEl?.value || settings.operatorDetectionAreaMode || base.detection_mode || 'full_frame');
-
-    const custom = Object.assign({}, settings.objectPresetsCustom || {});
-
-    // Contract safety: objectPresetsCustom must never become empty from browser UI.
-    if (!Object.keys(custom).length) {
-      Object.assign(custom, OBJECT_PRESETS || {});
-    }
-
-    const nextPreset = Object.assign({}, base, custom[active] || {}, {
-      max_detections: maxDet,
-      max_raw_candidates: maxRaw,
-      detect_every_n_frames: every,
-      detection_mode: area
-    });
-
-    if (!Array.isArray(nextPreset.classes)) {
-      nextPreset.classes = Array.isArray(settings.detectorSelectedClasses) ? settings.detectorSelectedClasses : [];
-    }
-
-    custom[active] = nextPreset;
-
-    const next = Object.assign({}, settings, {
-      objectPresetsCustom: custom,
-      activeObjectPreset: active,
-      detectorEnabled: true,
-      detectorSelectedClasses: Array.isArray(nextPreset.classes) ? nextPreset.classes : [],
-      operatorModel: nextPreset.model || nextPreset.operatorModel || settings.operatorModel || '',
-      operatorDetectionLimit: maxDet,
-      operatorDetectEvery: every,
-      operatorDetectionAreaMode: area
-    });
-
-    await writeSettings(next);
-
-    window.__ptzCleanLayerLastDetectionPersist = {
-      reason,
-      activeObjectPreset: active,
-      operatorDetectionLimit: maxDet,
-      operatorDetectEvery: every,
-      operatorDetectionAreaMode: area,
-      ts: Date.now()
-    };
-
-    try {
-      await hydrateDetectionControlsFromSettings('persist_' + reason);
-    } catch (_) {}
-
-    return next;
-  }
-
-  function schedulePersistActiveDetectionControlsToPreset(reason = 'ui_change') {
-    for (const delay of [250, 750, 1500]) {
-      setTimeout(() => {
-        persistActiveDetectionControlsToPreset(reason).catch(err => {
-          console.error('[ptz-clean-detection-persist]', reason, err);
-        });
-      }, delay);
-    }
-  }
-  // PTZ_CLEAN_DETECTION_ACTIVE_PRESET_PERSIST_END
-
   function bindHandlers() {
     if (document.__ptzCleanLayerBound) return;
     document.__ptzCleanLayerBound = true;
-
-    document.addEventListener('change', (e) => {
-      const id = e.target && e.target.id ? String(e.target.id) : '';
-      if (id === 'operatorDetectionLimit' || id === 'operatorDetectEvery' || id === 'operatorDetectionAreaMode') {
-        schedulePersistActiveDetectionControlsToPreset('change_' + id);
-      }
-    }, true);
-
-    document.addEventListener('click', (e) => {
-      const target = e.target && e.target.closest ? e.target.closest('#operatorLimitApplyBtn,#operatorDetectEveryApplyBtn,#operatorDetectionAreaApplyBtn') : null;
-      if (target) {
-        schedulePersistActiveDetectionControlsToPreset('click_' + target.id);
-      }
-    }, true);
 
     document.addEventListener('click', async (e) => {
       const btn = e.target && e.target.closest ? e.target.closest('[data-clean-object-preset]') : null;
@@ -8521,7 +8427,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   setInterval(() => syncPtz().catch(() => {}), 1500);
 
   scheduleDetectionUiHydrate('clean_layer_boot');
-  setTimeout(() => persistActiveDetectionControlsToPreset('boot_safety').catch(() => {}), 2500);
 
   window.ptzCleanLayer = {
     selectObjectPreset,
@@ -8531,7 +8436,6 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     stopPtz,
     syncUi,
     hydrateDetectionControlsFromSettings,
-    persistActiveDetectionControlsToPreset,
     rebuildPanels: async function () {
       await boot();
       return hydrateDetectionControlsFromSettings('manual_rebuild');
@@ -8594,7 +8498,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       const keep = {
         activeObjectPreset: before.activeObjectPreset,
         lastAppliedObjectPreset: before.lastAppliedObjectPreset,
-        objectPresetsCustom: (before.objectPresetsCustom && Object.keys(before.objectPresetsCustom).length ? before.objectPresetsCustom : Object.assign({}, OBJECT_PRESETS || {})),
+        objectPresetsCustom: before.objectPresetsCustom,
         activeSearchPreset: before.activeSearchPreset,
         lastAppliedSearchPreset: before.lastAppliedSearchPreset,
         ptzArmed: before.ptzArmed,

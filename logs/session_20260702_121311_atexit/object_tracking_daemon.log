@@ -1,0 +1,20 @@
+{"event": "daemon_start", "pid": 1895, "ts": 1782994382.566}
+{"event": "daemon_start", "pid": 1895, "ts": 1782994382.566}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994382.569}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994382.569}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994383.57}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994383.57}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994384.571}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994384.571}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994385.572}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994385.572}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994386.573}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994386.573}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994387.574}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994387.574}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994388.575}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994388.575}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994389.576}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994389.576}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994390.577}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1782994390.577}

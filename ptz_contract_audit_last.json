@@ -1,5 +1,5 @@
 {
-  "ts": 1782992238,
+  "ts": 1782998599,
   "pass": 63,
   "fail": 0,
   "results": [
@@ -11,12 +11,12 @@
     {
       "name": "file exists: web/index.html",
       "ok": true,
-      "detail": "size=303038"
+      "detail": "size=309496"
     },
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=6729"
+      "detail": "size=6852"
     },
     {
       "name": "file exists: launcher.sh",
@@ -141,7 +141,7 @@
     {
       "name": "Settings activeSearchPreset API/FILE match",
       "ok": true,
-      "detail": "api=contract_default_object file=contract_default_object"
+      "detail": "api=lost_step_wait file=lost_step_wait"
     },
     {
       "name": "Settings FILE ptzArmed false",
@@ -311,7 +311,7 @@
     {
       "name": "Daemon lifecycle arm child_start observed",
       "ok": true,
-      "detail": "child_start_events=2 max_watch_count=1 final_watch_count=0 samples=[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]"
+      "detail": "child_start_events=2 max_watch_count=1 final_watch_count=0 samples=[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]"
     },
     {
       "name": "Daemon lifecycle final disarm watch_count=0",

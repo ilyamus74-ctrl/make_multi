@@ -606,44 +606,6 @@ Stream:
 
     </div>
   </div>
-
-<script>
-// PTZ_SELECT_DYNAMIC_OPTION_FIX_START
-(function () {
-  window.ptzEnsureSelectOption = window.ptzEnsureSelectOption || function (id, value, label) {
-    const el = document.getElementById(id);
-
-    if (!el) return null;
-
-    const v = String(value ?? '');
-    const txt = String(label ?? value ?? '');
-
-    if (v !== '') {
-      let found = false;
-
-      for (const opt of Array.from(el.options || [])) {
-        if (String(opt.value) === v) {
-          found = true;
-          break;
-        }
-      }
-
-      if (!found) {
-        const opt = document.createElement('option');
-        opt.value = v;
-        opt.textContent = txt || v;
-        opt.dataset.ptzDynamicOption = '1';
-        el.appendChild(opt);
-      }
-    }
-
-    el.value = v;
-    return el.value;
-  };
-})();
-// PTZ_SELECT_DYNAMIC_OPTION_FIX_END
-</script>
-
 <script>
   // ===== Маппинг осей =====
   const AXIS_PAN  = 2;    // правый стик X → pan
@@ -2844,13 +2806,13 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     zoomState = clamp01(Number(saved.zoomState ?? defaults.zoomState));
 
     if ($('operatorDetectionLimit') && saved.operatorDetectionLimit != null) {
-      window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectionLimit', String(saved.operatorDetectionLimit), String(saved.operatorDetectionLimit)) : ($('operatorDetectionLimit').value = String(saved.operatorDetectionLimit));
+      $('operatorDetectionLimit').value = String(saved.operatorDetectionLimit);
     }
     if ($('operatorDetectEvery') && saved.operatorDetectEvery != null) {
-      window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectEvery', String(saved.operatorDetectEvery), String(saved.operatorDetectEvery)) : ($('operatorDetectEvery').value = String(saved.operatorDetectEvery));
+      $('operatorDetectEvery').value = String(saved.operatorDetectEvery);
     }
     if ($('operatorDetectionAreaMode') && saved.operatorDetectionAreaMode) {
-      window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectionAreaMode', String(saved.operatorDetectionAreaMode), String(saved.operatorDetectionAreaMode)) : ($('operatorDetectionAreaMode').value = String(saved.operatorDetectionAreaMode));
+      $('operatorDetectionAreaMode').value = String(saved.operatorDetectionAreaMode);
     }
 
     const pc = saved.ptzConfig || {};
@@ -3088,14 +3050,14 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
   async function refreshDetectionLimits() {
     const lim = await apiGetJson('/api/detection/limits');
-    window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectionLimit', String(lim.max_detections || 10), String(lim.max_detections || 10)) : ($('operatorDetectionLimit').value = String(lim.max_detections || 10));
+    $('operatorDetectionLimit').value = String(lim.max_detections || 10);
     $('operatorLimitState').textContent = `limit: ${lim.max_detections}/${lim.max_raw_candidates}`;
     updateOperatorMenuSummaries();
   }
 
   async function refreshDetectionThrottle() {
     const th = await apiGetJson('/api/detection/throttle');
-    window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectEvery', String(th.detect_every_n_frames || 1), String(th.detect_every_n_frames || 1)) : ($('operatorDetectEvery').value = String(th.detect_every_n_frames || 1));
+    $('operatorDetectEvery').value = String(th.detect_every_n_frames || 1);
     $('operatorDetectEveryState').textContent = `detect: 1/${th.detect_every_n_frames || 1}`;
     updateOperatorMenuSummaries();
   }
@@ -5022,7 +4984,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       const mode = cfg.detection_mode || localStorage.getItem('operatorDetectionAreaMode') || 'full_frame';
 
       if ($('operatorDetectionAreaMode')) {
-        window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectionAreaMode', mode, mode) : ($('operatorDetectionAreaMode').value = mode);
+        $('operatorDetectionAreaMode').value = mode;
       }
 
       if ($('operatorDetectionAreaState')) {
@@ -6741,7 +6703,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     const maxRaw = Number(lim?.max_raw_candidates || lim?.maxRawCandidates || Math.max(20, maxDet * 5));
 
     if ($('operatorDetectionLimit')) {
-      window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectionLimit', String(maxDet), String(maxDet)) : ($('operatorDetectionLimit').value = String(maxDet));
+      $('operatorDetectionLimit').value = String(maxDet);
     }
 
     if ($('operatorLimitState')) {
@@ -6753,7 +6715,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     const n = Number(th?.detect_every_n_frames || th?.detectEveryNFrames || 1);
 
     if ($('operatorDetectEvery')) {
-      window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectEvery', String(n), String(n)) : ($('operatorDetectEvery').value = String(n));
+      $('operatorDetectEvery').value = String(n);
     }
 
     if ($('operatorDetectEveryState')) {
@@ -6765,7 +6727,7 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     const mode = String(roi?.detection_mode || roi?.mode || 'full_frame');
 
     if ($('operatorDetectionAreaMode')) {
-      window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectionAreaMode', mode, mode) : ($('operatorDetectionAreaMode').value = mode);
+      $('operatorDetectionAreaMode').value = mode;
     }
 
     const count = Array.isArray(roi?.rois) ? roi.rois.length : 0;
@@ -7762,15 +7724,15 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
   function syncUiFromPreset(preset) {
     if ($('operatorDetectionLimit') && preset.max_detections != null) {
-      window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectionLimit', String(preset.max_detections), String(preset.max_detections)) : ($('operatorDetectionLimit').value = String(preset.max_detections));
+      $('operatorDetectionLimit').value = String(preset.max_detections);
     }
 
     if ($('operatorDetectEvery') && preset.detect_every_n_frames != null) {
-      window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectEvery', String(preset.detect_every_n_frames), String(preset.detect_every_n_frames)) : ($('operatorDetectEvery').value = String(preset.detect_every_n_frames));
+      $('operatorDetectEvery').value = String(preset.detect_every_n_frames);
     }
 
     if ($('operatorDetectionAreaMode') && preset.detection_mode) {
-      window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectionAreaMode', String(preset.detection_mode), String(preset.detection_mode)) : ($('operatorDetectionAreaMode').value = String(preset.detection_mode));
+      $('operatorDetectionAreaMode').value = String(preset.detection_mode);
     }
 
     if ($('operatorModelSelect') && (preset.model || preset.operatorModel)) {
@@ -8154,207 +8116,9 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     await syncPtz();
   }
 
-
-
-  // PTZ_CLEAN_DETECTION_UI_HYDRATE_F5_START
-  function cleanNumber(value, fallback) {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : fallback;
-  }
-
-  function activeDetectionValuesFromSettings(settings) {
-    settings = settings || {};
-    const name = activeObjectName(settings);
-    const preset = getActivePreset(settings) || {};
-
-    const maxDet = cleanNumber(
-      preset.max_detections ?? settings.operatorDetectionLimit,
-      10
-    );
-
-    const maxRaw = cleanNumber(
-      preset.max_raw_candidates,
-      Math.max(20, maxDet * 5)
-    );
-
-    const every = cleanNumber(
-      preset.detect_every_n_frames ?? settings.operatorDetectEvery,
-      1
-    );
-
-    const area = String(
-      preset.detection_mode || settings.operatorDetectionAreaMode || 'full_frame'
-    );
-
-    return { name, preset, maxDet, maxRaw, every, area };
-  }
-
-  async function hydrateDetectionControlsFromSettings(reason) {
-    const settings = await readSettings();
-    const d = activeDetectionValuesFromSettings(settings);
-
-    cleanActiveObjectPresetName = d.name;
-
-    if ($('operatorDetectionLimit')) {
-      window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectionLimit', String(d.maxDet), String(d.maxDet)) : ($('operatorDetectionLimit').value = String(d.maxDet));
-    }
-
-    if ($('operatorLimitState')) {
-      $('operatorLimitState').textContent = `limit: ${d.maxDet}/${d.maxRaw}`;
-    }
-
-    if ($('operatorDetectEvery')) {
-      window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectEvery', String(d.every), String(d.every)) : ($('operatorDetectEvery').value = String(d.every));
-    }
-
-    if ($('operatorDetectEveryState')) {
-      $('operatorDetectEveryState').textContent = `detect: 1/${d.every}`;
-    }
-
-    if ($('operatorDetectionAreaMode')) {
-      window.ptzEnsureSelectOption ? window.ptzEnsureSelectOption('operatorDetectionAreaMode', d.area, d.area) : ($('operatorDetectionAreaMode').value = d.area);
-    }
-
-    if ($('operatorDetectionAreaState')) {
-      $('operatorDetectionAreaState').textContent = `area: ${d.area}`;
-    }
-
-    if ($('operatorModelState')) {
-      const model = d.preset.model || d.preset.operatorModel || settings.operatorModel || '';
-      if (model) $('operatorModelState').textContent = `model: ${model.split('/').pop()}`;
-    }
-
-    paintObjectPreset(d.name);
-
-    if ($('objectPresetState')) {
-      $('objectPresetState').textContent = `preset: ${d.name} limit=${d.maxDet} detect=1/${d.every} area=${d.area}`;
-    }
-
-    try {
-      if (typeof updateOperatorMenuSummaries === 'function') updateOperatorMenuSummaries();
-    } catch (_) {}
-
-    window.__ptzCleanLayerHydrated = true;
-    window.__ptzCleanLayerLastHydrate = {
-      reason: reason || 'manual',
-      activeObjectPreset: d.name,
-      operatorDetectionLimit: d.maxDet,
-      operatorDetectEvery: d.every,
-      operatorDetectionAreaMode: d.area,
-      ts: Date.now()
-    };
-
-    return window.__ptzCleanLayerLastHydrate;
-  }
-
-  function scheduleDetectionUiHydrate(reason) {
-    [0, 250, 750, 1500, 3000, 5000, 8000, 12000].forEach((ms) => {
-      setTimeout(() => {
-        hydrateDetectionControlsFromSettings(`${reason || 'boot'}:${ms}`).catch((err) => {
-          console.error('[ptz-clean-detection-hydrate]', err);
-        });
-      }, ms);
-    });
-  }
-  // PTZ_CLEAN_DETECTION_UI_HYDRATE_F5_END
-
-
-  // PTZ_CLEAN_DETECTION_ACTIVE_PRESET_PERSIST_START
-  async function persistActiveDetectionControlsToPreset(reason = 'ui_change') {
-    const settings = await readSettings();
-    const active = activeObjectName(settings);
-    const presets = mergedPresets(settings);
-    const base = Object.assign({}, OBJECT_PRESETS[active] || {}, presets[active] || {});
-
-    const limitEl = $('operatorDetectionLimit');
-    const everyEl = $('operatorDetectEvery');
-    const areaEl = $('operatorDetectionAreaMode');
-
-    const maxDet = Number(limitEl?.value || settings.operatorDetectionLimit || base.max_detections || 10);
-    const maxRaw = Math.max(
-      Number(base.max_raw_candidates || settings.operatorMaxRawCandidates || 0),
-      Math.max(20, maxDet * 5)
-    );
-    const every = Number(everyEl?.value || settings.operatorDetectEvery || base.detect_every_n_frames || 1);
-    const area = String(areaEl?.value || settings.operatorDetectionAreaMode || base.detection_mode || 'full_frame');
-
-    const custom = Object.assign({}, settings.objectPresetsCustom || {});
-
-    // Contract safety: objectPresetsCustom must never become empty from browser UI.
-    if (!Object.keys(custom).length) {
-      Object.assign(custom, OBJECT_PRESETS || {});
-    }
-
-    const nextPreset = Object.assign({}, base, custom[active] || {}, {
-      max_detections: maxDet,
-      max_raw_candidates: maxRaw,
-      detect_every_n_frames: every,
-      detection_mode: area
-    });
-
-    if (!Array.isArray(nextPreset.classes)) {
-      nextPreset.classes = Array.isArray(settings.detectorSelectedClasses) ? settings.detectorSelectedClasses : [];
-    }
-
-    custom[active] = nextPreset;
-
-    const next = Object.assign({}, settings, {
-      objectPresetsCustom: custom,
-      activeObjectPreset: active,
-      detectorEnabled: true,
-      detectorSelectedClasses: Array.isArray(nextPreset.classes) ? nextPreset.classes : [],
-      operatorModel: nextPreset.model || nextPreset.operatorModel || settings.operatorModel || '',
-      operatorDetectionLimit: maxDet,
-      operatorDetectEvery: every,
-      operatorDetectionAreaMode: area
-    });
-
-    await writeSettings(next);
-
-    window.__ptzCleanLayerLastDetectionPersist = {
-      reason,
-      activeObjectPreset: active,
-      operatorDetectionLimit: maxDet,
-      operatorDetectEvery: every,
-      operatorDetectionAreaMode: area,
-      ts: Date.now()
-    };
-
-    try {
-      await hydrateDetectionControlsFromSettings('persist_' + reason);
-    } catch (_) {}
-
-    return next;
-  }
-
-  function schedulePersistActiveDetectionControlsToPreset(reason = 'ui_change') {
-    for (const delay of [250, 750, 1500]) {
-      setTimeout(() => {
-        persistActiveDetectionControlsToPreset(reason).catch(err => {
-          console.error('[ptz-clean-detection-persist]', reason, err);
-        });
-      }, delay);
-    }
-  }
-  // PTZ_CLEAN_DETECTION_ACTIVE_PRESET_PERSIST_END
-
   function bindHandlers() {
     if (document.__ptzCleanLayerBound) return;
     document.__ptzCleanLayerBound = true;
-
-    document.addEventListener('change', (e) => {
-      const id = e.target && e.target.id ? String(e.target.id) : '';
-      if (id === 'operatorDetectionLimit' || id === 'operatorDetectEvery' || id === 'operatorDetectionAreaMode') {
-        schedulePersistActiveDetectionControlsToPreset('change_' + id);
-      }
-    }, true);
-
-    document.addEventListener('click', (e) => {
-      const target = e.target && e.target.closest ? e.target.closest('#operatorLimitApplyBtn,#operatorDetectEveryApplyBtn,#operatorDetectionAreaApplyBtn') : null;
-      if (target) {
-        schedulePersistActiveDetectionControlsToPreset('click_' + target.id);
-      }
-    }, true);
 
     document.addEventListener('click', async (e) => {
       const btn = e.target && e.target.closest ? e.target.closest('[data-clean-object-preset]') : null;
@@ -8520,22 +8284,13 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   setTimeout(boot, 1500);
   setInterval(() => syncPtz().catch(() => {}), 1500);
 
-  scheduleDetectionUiHydrate('clean_layer_boot');
-  setTimeout(() => persistActiveDetectionControlsToPreset('boot_safety').catch(() => {}), 2500);
-
   window.ptzCleanLayer = {
     selectObjectPreset,
     saveDetectionToPreset,
     setSearchPreset,
     startPtz,
     stopPtz,
-    syncUi,
-    hydrateDetectionControlsFromSettings,
-    persistActiveDetectionControlsToPreset,
-    rebuildPanels: async function () {
-      await boot();
-      return hydrateDetectionControlsFromSettings('manual_rebuild');
-    }
+    syncUi
   };
 })();
 // PTZ_CLEAN_LAYER_CONTROLLER_END
@@ -8594,18 +8349,13 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
       const keep = {
         activeObjectPreset: before.activeObjectPreset,
         lastAppliedObjectPreset: before.lastAppliedObjectPreset,
-        objectPresetsCustom: (before.objectPresetsCustom && Object.keys(before.objectPresetsCustom).length ? before.objectPresetsCustom : Object.assign({}, OBJECT_PRESETS || {})),
+        objectPresetsCustom: before.objectPresetsCustom,
         activeSearchPreset: before.activeSearchPreset,
         lastAppliedSearchPreset: before.lastAppliedSearchPreset,
         ptzArmed: before.ptzArmed,
         controlMode: before.controlMode,
         objectPresetTrackingMode: before.objectPresetTrackingMode,
-        objectPresetLossBehavior: before.objectPresetLossBehavior,
-        operatorModel: before.operatorModel,
-        detectorSelectedClasses: before.detectorSelectedClasses,
-        operatorDetectionLimit: before.operatorDetectionLimit,
-        operatorDetectEvery: before.operatorDetectEvery,
-        operatorDetectionAreaMode: before.operatorDetectionAreaMode
+        objectPresetLossBehavior: before.objectPresetLossBehavior
       };
 
       let result = await original.apply(this, args);
