@@ -8208,27 +8208,3 @@
 {"event": "armed_running", "pid": 305300, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1783009100.156}
 {"event": "child_stop", "pid": 305300, "preset": "car_single::lost_step_wait", "reason": "ptzArmed_false", "ts": 1783009113.188}
 {"event": "child_stop", "pid": 305300, "preset": "car_single::lost_step_wait", "reason": "ptzArmed_false", "ts": 1783009113.188}
-{"archived": "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/logs/session_20260702_161833_ptzArmed_false", "event": "logs_archived", "reason": "ptzArmed_false", "ts": 1783009113.28}
-{"archived": "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/logs/session_20260702_161833_ptzArmed_false", "event": "logs_archived", "reason": "ptzArmed_false", "ts": 1783009113.28}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009113.281}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009113.281}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009114.284}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009114.284}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009115.287}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009115.287}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009116.289}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009116.289}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009117.292}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009117.292}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009118.295}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009118.295}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009119.298}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009119.298}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009120.3}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783009120.3}
-{"cmd": ["/usr/bin/python3", "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/apply_ptz_object_preset.py", "--preset", "car_single", "--arm", "force", "--strategy", "preset", "--watch"], "event": "child_start", "pid": 306528, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1783009121.304}
-{"cmd": ["/usr/bin/python3", "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/apply_ptz_object_preset.py", "--preset", "car_single", "--arm", "force", "--strategy", "preset", "--watch"], "event": "child_start", "pid": 306528, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1783009121.304}
-{"event": "armed_running", "pid": 306528, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1783009122.307}
-{"event": "armed_running", "pid": 306528, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1783009122.307}
-{"event": "child_stop", "pid": 306528, "preset": "car_single::lost_step_wait", "reason": "ptzArmed_false", "ts": 1783009133.334}
-{"event": "child_stop", "pid": 306528, "preset": "car_single::lost_step_wait", "reason": "ptzArmed_false", "ts": 1783009133.334}
