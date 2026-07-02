@@ -409,8 +409,7 @@ def zoom_wide_pulse(reason="search", hold_ms=220, cooldown_sec=8.0, skip_ratio=0
     Wide zoom movement must use the sample contract:
       /api/zoom/go_to_sample {profile_idx}
       /api/autopilot/speed_profile/apply_nearest {profile_idx}
-    PTZ_RUNTIME_ZOOM_WIDE_DOCSTRING_NO_RAW_JOG_V2
-    Never use raw zoom jog here; raw jog can desync physical zoom and PTZ SPEED TUNE sample.
+    Never raw /api/zoom/jog here; raw jog can desync physical zoom and PTZ SPEED TUNE sample.
     """
     now = time.time()
     last_ts = getattr(zoom_wide_pulse, "_last_ts", 0.0)

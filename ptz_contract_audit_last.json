@@ -1,12 +1,12 @@
 {
-  "ts": 1783008996,
-  "pass": 97,
-  "fail": 0,
+  "ts": 1783010090,
+  "pass": 109,
+  "fail": 1,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
       "ok": true,
-      "detail": "size=29486"
+      "detail": "size=31079"
     },
     {
       "name": "file exists: web/index.html",
@@ -16,7 +16,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=6923"
+      "detail": "size=6922"
     },
     {
       "name": "file exists: launcher.sh",
@@ -41,7 +41,7 @@
     {
       "name": "file exists: apply_ptz_object_preset.py",
       "ok": true,
-      "detail": "size=53749"
+      "detail": "size=53798"
     },
     {
       "name": "file exists: mjpeg_gst_http.cpp",
@@ -469,6 +469,71 @@
       "detail": "count=2"
     },
     {
+      "name": "Runtime contract marker PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_START",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Runtime contract marker PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_END",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Runtime contract marker PTZ_RUNTIME_ZOOM_SAMPLE_SPEED_SYNC_V1",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Runtime contract marker PTZ_RUNTIME_ZOOM_WIDE_DOCSTRING_NO_RAW_JOG_V2",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Runtime contract marker runtime_detection_disabled_pause",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Runtime contract marker runtime_pause_if_detection_disabled(\"search_preset\"",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Runtime contract marker runtime_pause_if_detection_disabled(\"continuous_wide_scan_x\"",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Runtime contract marker runtime_pause_if_detection_disabled(\"custom_plan\"",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Runtime contract marker zoom_wide_sample_move",
+      "ok": true,
+      "detail": "count=2"
+    },
+    {
+      "name": "Runtime Detection OFF pauses search/reacquire",
+      "ok": false,
+      "detail": "search=True continuous=True custom_plan=False"
+    },
+    {
+      "name": "Runtime wide zoom uses sample-speed contract",
+      "ok": true,
+      "detail": "raw_jog=0 go_to_sample=2 apply_speed=1"
+    },
+    {
+      "name": "Runtime search zoom step uses profile_idx sample contract",
+      "ok": true,
+      "detail": "go_to_sample=2 profile_idx=1 apply_speed=2"
+    },
+    {
+      "name": "Runtime search zoom step avoids raw zoom state/jog writes",
+      "ok": true,
+      "detail": "zoom_state=0 zoom_jog=0"
+    },
+    {
       "name": "Lifecycle persistent custom presets available",
       "ok": true,
       "detail": "api_keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single'] file_keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
@@ -481,7 +546,7 @@
     {
       "name": "Daemon lifecycle arm runtime start observed",
       "ok": true,
-      "detail": "runtime_events=4 max_watch_count=1 final_watch_count=1 samples=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]"
+      "detail": "runtime_events=2 max_watch_count=1 final_watch_count=1 samples=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]"
     },
     {
       "name": "Daemon lifecycle final disarm watch_count=0",

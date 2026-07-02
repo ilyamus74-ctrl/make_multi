@@ -935,3 +935,4 @@
     "preset": "car_single"
   }
 }
+PTZ_RUNTIME_SPEED_OVERRIDE sample=9 max_pan=12 max_tilt=12 max_accel=2 min_pan=8 min_tilt=8
