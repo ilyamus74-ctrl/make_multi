@@ -1,7 +1,7 @@
 {
-  "ts": 1782987006,
-  "pass": 61,
-  "fail": 1,
+  "ts": 1782987845,
+  "pass": 49,
+  "fail": 5,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
@@ -16,7 +16,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=6956"
+      "detail": "size=1935"
     },
     {
       "name": "file exists: launcher.sh",
@@ -125,13 +125,13 @@
     },
     {
       "name": "Settings API custom presets non-empty",
-      "ok": true,
-      "detail": "keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
+      "ok": false,
+      "detail": "keys=[]"
     },
     {
       "name": "Settings FILE custom presets non-empty",
-      "ok": true,
-      "detail": "keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
+      "ok": false,
+      "detail": "keys=[]"
     },
     {
       "name": "Settings activeObjectPreset API/FILE match",
@@ -145,38 +145,18 @@
     },
     {
       "name": "Settings FILE ptzArmed false",
-      "ok": true,
-      "detail": "file=False"
+      "ok": false,
+      "detail": "file=True"
     },
     {
       "name": "Settings FILE controlMode manual",
-      "ok": true,
-      "detail": "file=manual"
+      "ok": false,
+      "detail": "file=ptz"
     },
     {
       "name": "Settings active custom preset exists",
-      "ok": true,
+      "ok": false,
       "detail": "active=car_single"
-    },
-    {
-      "name": "Settings top-level limit matches active preset",
-      "ok": true,
-      "detail": "settings=5 preset=5"
-    },
-    {
-      "name": "Settings top-level detect_every matches active preset",
-      "ok": true,
-      "detail": "settings=2 preset=2"
-    },
-    {
-      "name": "Settings top-level area matches active preset",
-      "ok": true,
-      "detail": "settings=full_frame preset=full_frame"
-    },
-    {
-      "name": "Settings active object preset has no PTZ speed keys",
-      "ok": true,
-      "detail": "bad=[]"
     },
     {
       "name": "Detector limits reachable",
@@ -197,26 +177,6 @@
       "name": "Detector config reachable",
       "ok": true,
       "detail": "ok"
-    },
-    {
-      "name": "Detector max_detections matches active preset",
-      "ok": true,
-      "detail": "backend=5 preset=5"
-    },
-    {
-      "name": "Detector detect_every matches active preset",
-      "ok": true,
-      "detail": "backend=2 preset=2"
-    },
-    {
-      "name": "Detector area matches active preset",
-      "ok": true,
-      "detail": "backend=full_frame preset=full_frame"
-    },
-    {
-      "name": "Detector classes match active preset",
-      "ok": true,
-      "detail": "backend=[2, 3, 5, 7] preset=[2, 3, 5, 7]"
     },
     {
       "name": "PTZ autopilot reachable",
@@ -304,9 +264,9 @@
       "detail": "watch_count=0"
     },
     {
-      "name": "Daemon lifecycle arm child observed",
-      "ok": false,
-      "detail": "max_watch_count=0 final_watch_count=0 samples=[0, 0, 0, 0, 0, 0, 0, 0]"
+      "name": "Daemon lifecycle arm child_start observed",
+      "ok": true,
+      "detail": "child_start_events=1 max_watch_count=1 final_watch_count=1 samples=[0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]"
     },
     {
       "name": "Daemon lifecycle final disarm watch_count=0",
