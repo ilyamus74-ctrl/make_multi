@@ -1,4 +1,16 @@
-#!/usr/bin/env python3
+from pathlib import Path
+import time
+
+ROOT = Path('/root/new_yolo8')
+p = ROOT / 'hydrate_runtime_settings.py'
+
+if not p.exists():
+    raise SystemExit('hydrate_runtime_settings.py not found')
+
+bak = p.with_suffix(p.suffix + f'.bak_self_heal_v2_{int(time.time())}')
+bak.write_text(p.read_text(encoding='utf-8', errors='replace'), encoding='utf-8')
+
+content = r'''#!/usr/bin/env python3
 import json
 import time
 import urllib.request
@@ -282,3 +294,10 @@ def main():
 
 if __name__ == '__main__':
     main()
+'''
+
+p.write_text(content, encoding='utf-8')
+p.chmod(0o755)
+
+print('OK replaced hydrate_runtime_settings.py with self-healing v2')
+print('Backup:', bak)

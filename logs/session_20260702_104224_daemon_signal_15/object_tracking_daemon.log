@@ -6478,25 +6478,3 @@
 {"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988942.509}
 {"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988943.511}
 {"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988943.511}
-{"archived": "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/logs/session_20260702_104224_daemon_signal_15", "event": "logs_archived", "reason": "daemon_signal_15", "ts": 1782988944.252}
-{"archived": "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/logs/session_20260702_104224_daemon_signal_15", "event": "logs_archived", "reason": "daemon_signal_15", "ts": 1782988944.252}
-{"event": "daemon_stop", "signal": 15, "ts": 1782988944.253}
-{"event": "daemon_stop", "signal": 15, "ts": 1782988944.253}
-{"event": "daemon_start", "pid": 383611, "ts": 1782988966.268}
-{"event": "daemon_start", "pid": 383611, "ts": 1782988966.268}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988966.269}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988966.269}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988967.272}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988967.272}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988968.273}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988968.273}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988969.274}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988969.274}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988970.275}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988970.275}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988971.276}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988971.276}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988972.277}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988972.277}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988973.278}
-{"armed": false, "event": "idle_disarmed", "preset": "person_single", "single_auto": true, "ts": 1782988973.278}
