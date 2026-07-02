@@ -3957,40 +3957,9 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
   bindTouchControls();
 
-  document.addEventListener('change', (e) => {
-    const id = String(e.target?.id || '');
-    const persistIds = new Set([
-      'operatorModelSelect',
-      'operatorDetectionLimit',
-      'operatorDetectEvery',
-      'operatorDetectionAreaMode',
-      'detectionToggleBtn',
-      'ptzInvertTilt',
-      'ptzInvertPan',
-      'ptzTargetX',
-      'ptzTargetY',
-      'ptzMinPan',
-      'ptzMinTilt',
-      'ptzTuneKp',
-      'ptzTuneKd',
-      'ptzTuneMaxPan',
-      'ptzTuneMaxTilt',
-      'ptzTuneMaxAccel',
-      'ptzTuneMinPan',
-      'ptzTuneMinTilt',
-      'ptzTuneDeadzone',
-      'ptzTuneCurve',
-      'ptzTuneLeadMs',
-      'ptzTuneNudgePan',
-      'ptzTuneNudgeTilt',
-      'ptzTuneJPulseMs',
-      'ptzTuneJPulseMsNum',
-      'ptzTuneKeyboardMode'
-    ]);
-    if (persistIds.has(id) || id.startsWith('ptzTune') || id.startsWith('operator')) {
-      scheduleSettingsSave('operator_field_change');
-    }
-  }, true);
+  
+  /* removed stale operator autosave by clean layer v4 */
+
 
   window.addEventListener('pointerup', () => {
     touchState = { pan: 0, tilt: 0, zoom: 0 };
@@ -7669,8 +7638,15 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     return out;
   }
 
+  let cleanActiveObjectPresetName = null;
+
   function activeObjectName(settings) {
-    return String(settings.activeObjectPreset || settings?.lastAppliedObjectPreset?.name || 'person_single');
+    return String(
+      cleanActiveObjectPresetName ||
+      settings.activeObjectPreset ||
+      settings?.lastAppliedObjectPreset?.name ||
+      'person_single'
+    );
   }
 
   function mergedPresets(settings) {
@@ -7955,6 +7931,8 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   }
 
   async function selectObjectPreset(name) {
+    cleanActiveObjectPresetName = String(name || cleanActiveObjectPresetName || 'person_single');
+
     let settings = await readSettings();
     const presets = mergedPresets(settings);
     const preset = Object.assign({}, OBJECT_PRESETS[name] || {}, presets[name] || {});
@@ -8083,6 +8061,10 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     settings.ptzArmed = true;
     settings.controlMode = 'ptz';
 
+    if ($('controlMode')) {
+      $('controlMode').value = 'ptz';
+    }
+
     await writeSettings(settings);
     await syncPtz();
 
@@ -8096,6 +8078,10 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
 
     settings.ptzArmed = false;
     settings.controlMode = 'manual';
+
+    if ($('controlMode')) {
+      $('controlMode').value = 'manual';
+    }
 
     await writeSettings(settings);
 
@@ -8308,6 +8294,101 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
   };
 })();
 // PTZ_CLEAN_LAYER_CONTROLLER_END
+</script>
+
+
+<script>
+// PTZ_CLEAN_SAVESETTINGS_GUARD_START
+(function () {
+  const $ = (id) => document.getElementById(id);
+
+  async function getJson(url) {
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`${r.status} ${url}`);
+    return await r.json();
+  }
+
+  async function postJson(url, body) {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {})
+    });
+
+    if (!r.ok) throw new Error(`${r.status} ${url}`);
+    return await r.json().catch(() => ({ ok: true }));
+  }
+
+  async function readSettings() {
+    try {
+      const data = await getJson('/api/settings');
+      return data && typeof data === 'object' ? data : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  async function writeSettings(settings) {
+    const next = Object.assign({}, settings || {});
+    next.config_version = Math.max(16, Number(next.config_version || 16));
+    await postJson('/api/settings', next);
+    return next;
+  }
+
+  function installGuard() {
+    if (window.__ptzCleanSaveSettingsGuardInstalled) return;
+    window.__ptzCleanSaveSettingsGuardInstalled = true;
+
+    const original = window.saveSettings;
+
+    if (typeof original !== 'function') return;
+
+    window.saveSettings = async function (...args) {
+      const before = await readSettings();
+
+      const keep = {
+        activeObjectPreset: before.activeObjectPreset,
+        lastAppliedObjectPreset: before.lastAppliedObjectPreset,
+        objectPresetsCustom: before.objectPresetsCustom,
+        activeSearchPreset: before.activeSearchPreset,
+        lastAppliedSearchPreset: before.lastAppliedSearchPreset,
+        ptzArmed: before.ptzArmed,
+        controlMode: before.controlMode,
+        objectPresetTrackingMode: before.objectPresetTrackingMode,
+        objectPresetLossBehavior: before.objectPresetLossBehavior
+      };
+
+      let result = await original.apply(this, args);
+
+      const after = await readSettings();
+
+      let changed = false;
+
+      for (const [key, val] of Object.entries(keep)) {
+        if (val !== undefined && JSON.stringify(after[key]) !== JSON.stringify(val)) {
+          after[key] = val;
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        await writeSettings(after);
+      }
+
+      return result;
+    };
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', installGuard, { once: true });
+  } else {
+    installGuard();
+  }
+
+  setTimeout(installGuard, 500);
+  setTimeout(installGuard, 1500);
+})();
+// PTZ_CLEAN_SAVESETTINGS_GUARD_END
 </script>
 
 </body>
