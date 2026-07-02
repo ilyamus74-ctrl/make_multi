@@ -1796,7 +1796,3 @@
 2026-07-02 14:10:44 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
 2026-07-02 14:14:12 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
 2026-07-02 14:17:52 settings persist daemon stop
-2026-07-02 14:18:22 settings persist daemon start
-2026-07-02 14:18:34 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
-2026-07-02 14:20:19 settings persist daemon stop
-2026-07-02 14:20:41 settings persist daemon start

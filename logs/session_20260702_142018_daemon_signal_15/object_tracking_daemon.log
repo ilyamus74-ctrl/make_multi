@@ -2942,25 +2942,3 @@
 {"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002017.36}
 {"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002018.361}
 {"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002018.361}
-{"archived": "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/logs/session_20260702_142018_daemon_signal_15", "event": "logs_archived", "reason": "daemon_signal_15", "ts": 1783002018.8}
-{"archived": "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/logs/session_20260702_142018_daemon_signal_15", "event": "logs_archived", "reason": "daemon_signal_15", "ts": 1783002018.8}
-{"event": "daemon_stop", "signal": 15, "ts": 1783002018.801}
-{"event": "daemon_stop", "signal": 15, "ts": 1783002018.801}
-{"event": "daemon_start", "pid": 352243, "ts": 1783002041.191}
-{"event": "daemon_start", "pid": 352243, "ts": 1783002041.191}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002041.192}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002041.192}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002042.193}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002042.193}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002043.194}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002043.194}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002044.195}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002044.195}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002045.196}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002045.196}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002046.197}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002046.197}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002047.198}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002047.198}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002048.199}
-{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002048.199}

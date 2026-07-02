@@ -1,5 +1,5 @@
 {
-  "ts": 1783001460,
+  "ts": 1783002071,
   "pass": 70,
   "fail": 1,
   "results": [
@@ -16,7 +16,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=6290"
+      "detail": "size=7068"
     },
     {
       "name": "file exists: launcher.sh",

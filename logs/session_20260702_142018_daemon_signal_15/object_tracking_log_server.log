@@ -7381,12 +7381,3 @@ Object log server: http://0.0.0.0:8091
 192.168.2.142 - - [02/Jul/2026 14:20:15] "GET /api/logs?tail=120 HTTP/1.1" 200 -
 192.168.2.142 - - [02/Jul/2026 14:20:17] "GET /api/logs?tail=120 HTTP/1.1" 200 -
 192.168.2.142 - - [02/Jul/2026 14:20:17] "GET /api/logs?tail=120 HTTP/1.1" 200 -
-Object log server: http://0.0.0.0:8091
-192.168.2.142 - - [02/Jul/2026 14:20:41] "GET /api/logs?tail=120 HTTP/1.1" 200 -
-192.168.2.142 - - [02/Jul/2026 14:20:41] "GET /api/logs?tail=120 HTTP/1.1" 200 -
-192.168.2.142 - - [02/Jul/2026 14:20:43] "GET /api/logs?tail=120 HTTP/1.1" 200 -
-192.168.2.142 - - [02/Jul/2026 14:20:43] "GET /api/logs?tail=120 HTTP/1.1" 200 -
-192.168.2.142 - - [02/Jul/2026 14:20:45] "GET /api/logs?tail=120 HTTP/1.1" 200 -
-192.168.2.142 - - [02/Jul/2026 14:20:45] "GET /api/logs?tail=120 HTTP/1.1" 200 -
-192.168.2.142 - - [02/Jul/2026 14:20:47] "GET /api/logs?tail=120 HTTP/1.1" 200 -
-192.168.2.142 - - [02/Jul/2026 14:20:47] "GET /api/logs?tail=120 HTTP/1.1" 200 -
