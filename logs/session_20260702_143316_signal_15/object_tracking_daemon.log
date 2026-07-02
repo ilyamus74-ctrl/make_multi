@@ -1,0 +1,52 @@
+{"event": "daemon_start", "pid": 1905, "ts": 1783002761.966}
+{"event": "daemon_start", "pid": 1905, "ts": 1783002761.966}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002761.968}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002761.968}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002762.969}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002762.969}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002763.97}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002763.97}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002764.971}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002764.971}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002765.972}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002765.972}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002766.974}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002766.974}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002767.975}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002767.975}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002768.976}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002768.976}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002769.977}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002769.977}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002770.978}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002770.978}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002771.979}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002771.979}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002772.981}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002772.981}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002773.982}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002773.982}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002774.983}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002774.983}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002775.984}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002775.984}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002776.985}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002776.985}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002777.987}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002777.987}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002778.99}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002778.99}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002779.991}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002779.991}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002780.992}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002780.992}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002781.994}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002781.994}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002782.997}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783002782.997}
+{"cmd": ["/usr/bin/python3", "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/apply_ptz_object_preset.py", "--preset", "car_single", "--arm", "force", "--strategy", "preset", "--watch"], "event": "child_start", "pid": 2665, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1783002784.002}
+{"cmd": ["/usr/bin/python3", "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/apply_ptz_object_preset.py", "--preset", "car_single", "--arm", "force", "--strategy", "preset", "--watch"], "event": "child_start", "pid": 2665, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1783002784.002}
+{"event": "armed_running", "pid": 2665, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1783002785.004}
+{"event": "armed_running", "pid": 2665, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1783002785.004}
+{"event": "child_stop", "pid": 2665, "preset": "car_single::lost_step_wait", "reason": "ptzArmed_false", "ts": 1783002796.016}
+{"event": "child_stop", "pid": 2665, "preset": "car_single::lost_step_wait", "reason": "ptzArmed_false", "ts": 1783002796.016}

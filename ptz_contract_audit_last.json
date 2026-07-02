@@ -1,22 +1,22 @@
 {
-  "ts": 1783002450,
-  "pass": 71,
-  "fail": 0,
+  "ts": 1783004279,
+  "pass": 77,
+  "fail": 3,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
       "ok": true,
-      "detail": "size=25720"
+      "detail": "size=26759"
     },
     {
       "name": "file exists: web/index.html",
       "ok": true,
-      "detail": "size=313307"
+      "detail": "size=318958"
     },
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=7068"
+      "detail": "size=6121"
     },
     {
       "name": "file exists: launcher.sh",
@@ -154,6 +154,51 @@
       "detail": "missing=[]"
     },
     {
+      "name": "Keyboard Q/A sweep marker PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_START",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Keyboard Q/A sweep marker PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_END",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Keyboard Q/A sweep marker ptzQaSweepProfileIdxStep",
+      "ok": true,
+      "detail": "count=4"
+    },
+    {
+      "name": "Keyboard Q/A sweep marker keyboard_Q_profile_idx_sweep",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Keyboard Q/A sweep marker keyboard_A_profile_idx_sweep",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "Keyboard Q/A sweep moves real backend zoom sample",
+      "ok": true,
+      "detail": "go_to_sample=True profile_idx_target=True"
+    },
+    {
+      "name": "Keyboard Q/A sweep does not rely on sample_idx target",
+      "ok": false,
+      "detail": "canonical request key must be profile_idx"
+    },
+    {
+      "name": "Keyboard Q/A sweep applies PTZ speed profile by profile_idx",
+      "ok": true,
+      "detail": "apply_nearest=True profile_idx_final=True"
+    },
+    {
+      "name": "Keyboard Q/A sweep owns event before older handlers",
+      "ok": false,
+      "detail": "capture_stop=False"
+    },
+    {
       "name": "Settings API reachable",
       "ok": true,
       "detail": "ok"
@@ -255,8 +300,8 @@
     },
     {
       "name": "Detector classes match active preset",
-      "ok": true,
-      "detail": "backend=[2, 3, 5, 7] preset=[2, 3, 5, 7]"
+      "ok": false,
+      "detail": "backend=[] preset=[2, 3, 5, 7]"
     },
     {
       "name": "PTZ autopilot reachable",

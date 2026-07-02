@@ -230,6 +230,64 @@ def audit_ui():
         f"missing={missing_persist_parts}"
     )
 
+
+    # PTZ_AUDIT_KEYBOARD_QA_SWEEP_V1
+    print("")
+    section("LAYER 1C — KEYBOARD Q/A SWEEP JS CONTRACT")
+
+    try:
+        _qa_web_text = web_text
+    except Exception:
+        _qa_web_text = (ROOT / "web/index.html").read_text(encoding="utf-8", errors="ignore")
+
+    qa_tokens = [
+        "PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_START",
+        "PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_END",
+        "ptzQaSweepProfileIdxStep",
+        "keyboard_Q_profile_idx_sweep",
+        "keyboard_A_profile_idx_sweep",
+    ]
+
+    for token in qa_tokens:
+        cnt = _qa_web_text.count(token)
+        print(token, "=", cnt)
+        add(f"Keyboard Q/A sweep marker {token}", cnt >= 1, f"count={cnt}")
+
+    has_go_to_sample = "/api/zoom/go_to_sample" in _qa_web_text
+    has_profile_idx_target = "profile_idx: target" in _qa_web_text
+    has_no_canonical_sample_idx = "sample_idx: target" not in _qa_web_text
+    has_apply_nearest = "/api/autopilot/speed_profile/apply_nearest" in _qa_web_text or "speed_profile/apply_nearest" in _qa_web_text
+    has_profile_idx_final = "profile_idx: finalIdx" in _qa_web_text
+    has_capture_stop = "stopImmediatePropagation" in _qa_web_text and "ptzQaSweepIsSweepMode" in _qa_web_text
+
+    print("Q/A go_to_sample backend call =", has_go_to_sample)
+    print("Q/A go_to_sample uses profile_idx target =", has_profile_idx_target)
+    print("Q/A avoids canonical sample_idx target =", has_no_canonical_sample_idx)
+    print("Q/A apply_nearest backend call =", has_apply_nearest)
+    print("Q/A apply_nearest uses profile_idx finalIdx =", has_profile_idx_final)
+    print("Q/A capture stop =", has_capture_stop)
+
+    add(
+        "Keyboard Q/A sweep moves real backend zoom sample",
+        has_go_to_sample and has_profile_idx_target,
+        f"go_to_sample={has_go_to_sample} profile_idx_target={has_profile_idx_target}"
+    )
+    add(
+        "Keyboard Q/A sweep does not rely on sample_idx target",
+        has_no_canonical_sample_idx,
+        "canonical request key must be profile_idx"
+    )
+    add(
+        "Keyboard Q/A sweep applies PTZ speed profile by profile_idx",
+        has_apply_nearest and has_profile_idx_final,
+        f"apply_nearest={has_apply_nearest} profile_idx_final={has_profile_idx_final}"
+    )
+    add(
+        "Keyboard Q/A sweep owns event before older handlers",
+        has_capture_stop,
+        f"capture_stop={has_capture_stop}"
+    )
+
 def audit_settings(api, file_data):
     section("LAYER 2 — SETTINGS / PRESETS")
 

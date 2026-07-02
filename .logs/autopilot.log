@@ -795,3 +795,8 @@
   },
   "arm_result": null
 }
+{
+  "ok": false,
+  "error": "unhandled_exception",
+  "message": "API not ready: http://127.0.0.1:8080/api/ping: <urlopen error [Errno 111] Connection refused>"
+}
