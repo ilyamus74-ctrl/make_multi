@@ -95,6 +95,7 @@ OBJECT_PRESET_NAME="${OBJECT_PRESET_NAME:-active}"
 OBJECT_PRESET_APPLIER="${OBJECT_PRESET_APPLIER:-$ROOT_DIR/apply_ptz_object_preset.py}"
 OBJECT_TRACKING_DAEMON_ENABLE="${OBJECT_TRACKING_DAEMON_ENABLE:-1}"
 OBJECT_TRACKING_DAEMON="${OBJECT_TRACKING_DAEMON:-$ROOT_DIR/object_tracking_daemon.py}"
+HYDRATE_RUNTIME_SETTINGS="${HYDRATE_RUNTIME_SETTINGS:-$ROOT_DIR/hydrate_runtime_settings.py}"
 OBJECT_TRACKING_DAEMON_LOG="${OBJECT_TRACKING_DAEMON_LOG:-/dev/shm/new_yolo8_object_tracking/object_tracking_daemon.log}"
 OBJECT_LOG_SERVER_ENABLE="${OBJECT_LOG_SERVER_ENABLE:-1}"
 OBJECT_LOG_SERVER="${OBJECT_LOG_SERVER:-$ROOT_DIR/object_tracking_log_server.py}"
@@ -293,6 +294,14 @@ apply_object_preset_on_start() {
 }
 
 
+
+hydrate_runtime_settings() {
+  if [ -f "$HYDRATE_RUNTIME_SETTINGS" ]; then
+    echo "[launcher] hydrate runtime settings"
+    python3 "$HYDRATE_RUNTIME_SETTINGS" || true
+  fi
+}
+
 start_object_tracking_daemon() {
   if [[ "${OBJECT_TRACKING_DAEMON_ENABLE:-1}" != "1" ]]; then
     log "Object tracking daemon disabled"
@@ -363,7 +372,8 @@ if ! start_bridge; then
 fi
 if [[ "$AUTOPILOT_ENABLE" == "1" ]]; then
   start_autopilot
-  apply_object_preset_on_start
+  hydrate_runtime_settings
+apply_object_preset_on_start
   start_object_log_server
   start_object_tracking_daemon
 fi

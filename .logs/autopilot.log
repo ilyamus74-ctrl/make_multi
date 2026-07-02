@@ -624,3 +624,15 @@ PTZ_RUNTIME_SPEED_OVERRIDE sample=0 max_pan=35 max_tilt=28 max_accel=8 min_pan=3
 PTZ_RUNTIME_SPEED_OVERRIDE sample=9 max_pan=12 max_tilt=12 max_accel=2 min_pan=8 min_tilt=8
 PTZ_RUNTIME_SPEED_OVERRIDE sample=9 max_pan=12 max_tilt=12 max_accel=2 min_pan=8 min_tilt=8
 PTZ_RUNTIME_SPEED_OVERRIDE sample=9 max_pan=12 max_tilt=12 max_accel=2 min_pan=8 min_tilt=8
+PTZ_RUNTIME_SPEED_OVERRIDE sample=9 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=9 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=9 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=9 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=9 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=9 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+PTZ_RUNTIME_SPEED_OVERRIDE sample=9 max_pan=35 max_tilt=28 max_accel=8 min_pan=3 min_tilt=3
+{
+  "ok": false,
+  "error": "unhandled_exception",
+  "message": "API not ready: http://127.0.0.1:8080/api/ping: <urlopen error [Errno 111] Connection refused>"
+}

@@ -1,7 +1,0 @@
-{
-  "ts": 1782976242.781,
-  "event": "child_stop",
-  "reason": "preset_or_search_preset_changed",
-  "preset": "person_single::lost_step_wait",
-  "pid": 167311
-}

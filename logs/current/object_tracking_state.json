@@ -1,11 +1,9 @@
 {
-  "ts": 1782980311.852,
-  "mode": "tracking",
-  "preset": "car_single",
-  "track_id": 29,
-  "ptz": "ACTIVE",
-  "cmd_pan": 9,
-  "cmd_tilt": 8,
-  "zoom_sample": 9,
-  "zoom_ratio": 1
+  "ts": 1782980729.087,
+  "mode": "error",
+  "result": {
+    "ok": false,
+    "error": "unhandled_exception",
+    "message": "API not ready: http://127.0.0.1:8080/api/ping: <urlopen error [Errno 111] Connection refused>"
+  }
 }

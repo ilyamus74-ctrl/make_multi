@@ -1,0 +1,7 @@
+{
+  "ts": 1782980728.516,
+  "event": "idle_disarmed",
+  "preset": "car_single",
+  "armed": false,
+  "single_auto": true
+}
