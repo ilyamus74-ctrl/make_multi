@@ -1,12 +1,12 @@
 {
-  "ts": 1782986277,
-  "pass": 62,
-  "fail": 0,
+  "ts": 1782987006,
+  "pass": 61,
+  "fail": 1,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
       "ok": true,
-      "detail": "size=17136"
+      "detail": "size=22203"
     },
     {
       "name": "file exists: web/index.html",
@@ -305,8 +305,8 @@
     },
     {
       "name": "Daemon lifecycle arm child observed",
-      "ok": true,
-      "detail": "max_watch_count=1 final_watch_count=0 samples=[1, 0, 0, 0, 0, 0, 0, 0]"
+      "ok": false,
+      "detail": "max_watch_count=0 final_watch_count=0 samples=[0, 0, 0, 0, 0, 0, 0, 0]"
     },
     {
       "name": "Daemon lifecycle final disarm watch_count=0",
