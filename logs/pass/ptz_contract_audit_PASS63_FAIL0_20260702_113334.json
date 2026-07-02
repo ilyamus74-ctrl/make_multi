@@ -1,5 +1,5 @@
 {
-  "ts": 1782992238,
+  "ts": 1782991865,
   "pass": 63,
   "fail": 0,
   "results": [
@@ -16,7 +16,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=6729"
+      "detail": "size=7418"
     },
     {
       "name": "file exists: launcher.sh",
@@ -311,7 +311,7 @@
     {
       "name": "Daemon lifecycle arm child_start observed",
       "ok": true,
-      "detail": "child_start_events=2 max_watch_count=1 final_watch_count=0 samples=[1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]"
+      "detail": "child_start_events=1 max_watch_count=1 final_watch_count=0 samples=[1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]"
     },
     {
       "name": "Daemon lifecycle final disarm watch_count=0",
