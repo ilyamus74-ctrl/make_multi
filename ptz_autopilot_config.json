@@ -18,9 +18,9 @@
   "zoom_scale_max": 1,
   "zoom_scale_smoothing": 0.25,
   "auto_zoom_enable": true,
-  "auto_zoom_target_h": 0.24,
-  "auto_zoom_deadzone": 0.07,
-  "auto_zoom_cmd": 12,
+  "auto_zoom_target_h": 0.3,
+  "auto_zoom_deadzone": 0.08,
+  "auto_zoom_cmd": 10,
   "auto_zoom_sign": 1,
-  "auto_zoom_period_ms": 300
+  "auto_zoom_period_ms": 350
 }

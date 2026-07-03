@@ -4447,3 +4447,7 @@
 2026-07-03T06:49:32Z type=detector_model_switch_ok payload={"type":"detector_model_switch_ok","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
 2026-07-03T06:49:48Z type=detector_model_switch_start payload={"type":"detector_model_switch_start","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
 2026-07-03T06:49:48Z type=detector_model_switch_ok payload={"type":"detector_model_switch_ok","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
+2026-07-03T06:53:04Z type=detector_model_switch_start payload={"type":"detector_model_switch_start","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
+2026-07-03T06:53:04Z type=detector_model_switch_ok payload={"type":"detector_model_switch_ok","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
+2026-07-03T06:53:48Z type=detector_model_switch_start payload={"type":"detector_model_switch_start","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
+2026-07-03T06:53:48Z type=detector_model_switch_ok payload={"type":"detector_model_switch_ok","model":"/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"}
