@@ -1,0 +1,13 @@
+activeObjectPreset = car_single
+activeSearchPreset = lost_step_wait
+ptzArmed = True
+controlMode = ptz
+zoom_sample_idx = 7
+zoom_ratio = 0.457
+zoom_move_busy = False
+ap.active_profile_idx = 7
+ap.active_zoom_sample_idx = 7
+ap.speed_profile_source = user
+tracker.mode = TRACKING
+tracker.selected_track_id = 90
+tracker.selected_box_valid = True

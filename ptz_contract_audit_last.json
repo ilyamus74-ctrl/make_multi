@@ -1,12 +1,12 @@
 {
-  "ts": 1783011343,
-  "pass": 110,
+  "ts": 1783054683,
+  "pass": 117,
   "fail": 0,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
       "ok": true,
-      "detail": "size=31079"
+      "detail": "size=32201"
     },
     {
       "name": "file exists: web/index.html",
@@ -16,7 +16,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=6922"
+      "detail": "size=7082"
     },
     {
       "name": "file exists: launcher.sh",
@@ -41,7 +41,7 @@
     {
       "name": "file exists: apply_ptz_object_preset.py",
       "ok": true,
-      "detail": "size=53798"
+      "detail": "size=59712"
     },
     {
       "name": "file exists: mjpeg_gst_http.cpp",
@@ -514,6 +514,36 @@
       "detail": "count=2"
     },
     {
+      "name": "Runtime exact marker PTZ_ZOOM_SAMPLE_TRANSACTION_V1_START",
+      "ok": true,
+      "detail": "count=1 expected=1"
+    },
+    {
+      "name": "Runtime exact marker PTZ_SEARCH_PRESET_NO_ACQUIRE_WHILE_ZOOM_BUSY_V1_START",
+      "ok": true,
+      "detail": "count=1 expected=1"
+    },
+    {
+      "name": "Runtime zoom transaction waits for target settlement",
+      "ok": true,
+      "detail": "requires wait_zoom_sample_settled"
+    },
+    {
+      "name": "Runtime zoom transaction checks zoom_move_busy",
+      "ok": true,
+      "detail": "requires zoom_move_busy checks"
+    },
+    {
+      "name": "Runtime zoom code uses go_to_sample",
+      "ok": true,
+      "detail": "requires /api/zoom/go_to_sample"
+    },
+    {
+      "name": "Runtime zoom code applies nearest speed profile",
+      "ok": true,
+      "detail": "requires /api/autopilot/speed_profile/apply_nearest"
+    },
+    {
       "name": "Runtime Detection OFF pauses search/reacquire",
       "ok": true,
       "detail": "search=True continuous=True custom_plan=True"
@@ -534,6 +564,11 @@
       "detail": "zoom_state=0 zoom_jog=0"
     },
     {
+      "name": "Runtime wide/search zoom functions do not raw jog",
+      "ok": true,
+      "detail": "wide_raw_jog=0 move_raw_jog=0"
+    },
+    {
       "name": "Lifecycle persistent custom presets available",
       "ok": true,
       "detail": "api_keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single'] file_keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
@@ -546,7 +581,7 @@
     {
       "name": "Daemon lifecycle arm runtime start observed",
       "ok": true,
-      "detail": "runtime_events=2 max_watch_count=1 final_watch_count=1 samples=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]"
+      "detail": "runtime_events=4 max_watch_count=1 final_watch_count=1 samples=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]"
     },
     {
       "name": "Daemon lifecycle final disarm watch_count=0",

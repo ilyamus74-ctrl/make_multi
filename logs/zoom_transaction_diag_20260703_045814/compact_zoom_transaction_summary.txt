@@ -1,0 +1,9 @@
+diag = /root/new_yolo8/logs/zoom_transaction_diag_20260703_045814
+
+target=0 before= 3 before_busy= False post_ok= True post_error= None after= 0 after_ratio= 0 after_busy= False speed_ok= True speed_source= user
+target=3 before= 6 before_busy= False post_ok= True post_error= None after= 3 after_ratio= 0.062 after_busy= False speed_ok= True speed_source= user
+target=6 before= 9 before_busy= False post_ok= True post_error= None after= 6 after_ratio= 0.313 after_busy= False speed_ok= True speed_source= user
+target=9 before= 6 before_busy= False post_ok= True post_error= None after= 9 after_ratio= 1 after_busy= False speed_ok= True speed_source= user
+target=6 before= 9 before_busy= False post_ok= True post_error= None after= 6 after_ratio= 0.313 after_busy= False speed_ok= True speed_source= user
+target=3 before= 6 before_busy= False post_ok= True post_error= None after= 3 after_ratio= 0.062 after_busy= False speed_ok= True speed_source= user
+target=0 before= 3 before_busy= False post_ok= True post_error= None after= 0 after_ratio= 0 after_busy= False speed_ok= True speed_source= user
