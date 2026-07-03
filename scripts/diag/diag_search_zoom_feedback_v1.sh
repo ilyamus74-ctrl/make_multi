@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 set -u
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+cd "$ROOT" || exit 1
+
 cd /root/new_yolo8 || exit 1
 
 TS="$(date +%Y%m%d_%H%M%S)"
-DIAG="/root/new_yolo8/logs/search_zoom_feedback_diag_$TS"
+DIAG="$ROOT/logs/search_zoom_feedback_diag_$TS"
 mkdir -p "$DIAG"
 
 echo "DIAG=$DIAG"

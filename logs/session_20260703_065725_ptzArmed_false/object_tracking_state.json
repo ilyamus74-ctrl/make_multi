@@ -1,0 +1,11 @@
+{
+  "ts": 1783061842.873,
+  "mode": "searching",
+  "preset": "airplane_single",
+  "active_search_preset": "lost_step_wait",
+  "result": {
+    "ok": false,
+    "preset": "lost_step_wait",
+    "reason": "target_not_acquired"
+  }
+}

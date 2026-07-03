@@ -1,8 +1,8 @@
 {
-  "ts": 1783061389,
-  "pass": 90,
-  "fail": 35,
-  "warn": 22,
+  "ts": 1783061865,
+  "pass": 88,
+  "fail": 37,
+  "warn": 45,
   "warnings": [
     {
       "name": "Layer 6D apply_nearest API contract: response point mismatch",
@@ -10,7 +10,15 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=9"
+      "detail": "response_profile=0 logical_sample=1"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=2"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=2"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -18,79 +26,163 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=2"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=3"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=2"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=2"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=3"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=2"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=3"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=2"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=3"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=2"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=3"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=2"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=3"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=2"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=3"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=2"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=3"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=2"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=3"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=2"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=3"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=2"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=3"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=2"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=3"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=2"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=2"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=3"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=2"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=3"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=3"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=2"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=3"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=2"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=3"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=2"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=3"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=2"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=3"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=2"
     }
   ],
   "results": [
@@ -107,7 +199,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=7074"
+      "detail": "size=7053"
     },
     {
       "name": "file exists: launcher.sh",
@@ -402,7 +494,7 @@
     {
       "name": "Settings activeObjectPreset API/FILE match",
       "ok": true,
-      "detail": "api=bird_single file=bird_single"
+      "detail": "api=airplane_single file=airplane_single"
     },
     {
       "name": "Settings activeSearchPreset API/FILE match",
@@ -411,23 +503,23 @@
     },
     {
       "name": "Settings FILE ptzArmed false",
-      "ok": true,
-      "detail": "file=False"
+      "ok": false,
+      "detail": "file=True"
     },
     {
       "name": "Settings FILE controlMode manual",
-      "ok": true,
-      "detail": "file=manual"
+      "ok": false,
+      "detail": "file=ptz"
     },
     {
       "name": "Settings active custom preset exists",
       "ok": true,
-      "detail": "active=bird_single"
+      "detail": "active=airplane_single"
     },
     {
       "name": "Settings top-level limit matches active preset",
       "ok": true,
-      "detail": "settings=10 preset=10"
+      "detail": "settings=5 preset=5"
     },
     {
       "name": "Settings top-level detect_every matches active preset",
@@ -437,7 +529,7 @@
     {
       "name": "Settings top-level area matches active preset",
       "ok": true,
-      "detail": "settings=hybrid preset=hybrid"
+      "detail": "settings=full_frame preset=full_frame"
     },
     {
       "name": "Settings active object preset has no PTZ speed keys",
@@ -467,7 +559,7 @@
     {
       "name": "Detector max_detections matches active preset",
       "ok": true,
-      "detail": "backend=10 preset=10"
+      "detail": "backend=5 preset=5"
     },
     {
       "name": "Detector detect_every matches active preset",
@@ -477,12 +569,12 @@
     {
       "name": "Detector area matches active preset",
       "ok": true,
-      "detail": "backend=hybrid preset=hybrid"
+      "detail": "backend=full_frame preset=full_frame"
     },
     {
       "name": "Detector classes match active preset",
       "ok": true,
-      "detail": "backend=[14] preset=[14]"
+      "detail": "backend=[4] preset=[4]"
     },
     {
       "name": "PTZ autopilot reachable",
@@ -577,12 +669,12 @@
     {
       "name": "Runtime logical zoom sample matches autopilot active_zoom_sample_idx",
       "ok": true,
-      "detail": "logical_zoom=1 ap_active_zoom=1"
+      "detail": "logical_zoom=2 ap_active_zoom=2"
     },
     {
       "name": "Runtime PTZ speed derives from canonical logical zoom sample",
       "ok": true,
-      "detail": "logical_zoom=1 ap_active_zoom=1 ap_active_profile=1 source=user"
+      "detail": "logical_zoom=2 ap_active_zoom=2 ap_active_profile=2 source=user"
     },
     {
       "name": "Runtime zoom event logical sample coherence",
@@ -697,7 +789,7 @@
     {
       "name": "Lifecycle original active preset snapshot available",
       "ok": true,
-      "detail": "active=bird_single preset={'classes': [14], 'detection_mode': 'hybrid', 'max_detections': 10, 'max_raw_candidates': 80, 'detect_every_n_frames': 1}"
+      "detail": "active=airplane_single preset={'classes': [4], 'detection_mode': 'full_frame', 'max_detections': 5, 'max_raw_candidates': 60, 'detect_every_n_frames': 1}"
     },
     {
       "name": "Daemon lifecycle disarm watch_count=0",
@@ -717,7 +809,7 @@
     {
       "name": "Audit restored active detector preset after lifecycle",
       "ok": true,
-      "detail": "backend=[14] preset=[14] limits={'max_detections': 10, 'detect_every_n_frames': 1, 'detection_mode': hybrid} activeObjectPreset=bird_single activeSearchPreset=lost_step_wait hydrate_ok=True"
+      "detail": "backend=[4] preset=[4] limits={'max_detections': 5, 'detect_every_n_frames': 1, 'detection_mode': full_frame} activeObjectPreset=airplane_single activeSearchPreset=lost_step_wait hydrate_ok=True"
     }
   ]
 }
