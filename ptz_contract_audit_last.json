@@ -1,9 +1,13 @@
 {
-  "ts": 1783060024,
-  "pass": 122,
+  "ts": 1783060617,
+  "pass": 124,
   "fail": 0,
-  "warn": 11,
+  "warn": 12,
   "warnings": [
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=1"
+    },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
       "detail": "response_profile=0 logical_sample=1"
@@ -53,7 +57,7 @@
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
       "ok": true,
-      "detail": "size=34968"
+      "detail": "size=36375"
     },
     {
       "name": "file exists: web/index.html",
@@ -538,7 +542,7 @@
     {
       "name": "Runtime zoom event logical sample coherence",
       "ok": true,
-      "detail": "events=25"
+      "detail": "events=28"
     },
     {
       "name": "Runtime contract marker PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_START",
@@ -646,6 +650,11 @@
       "detail": "api_keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single'] file_keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']"
     },
     {
+      "name": "Lifecycle original active preset snapshot available",
+      "ok": true,
+      "detail": "active=airplane_single preset={'classes': [4], 'detection_mode': 'full_frame', 'max_detections': 5, 'max_raw_candidates': 60, 'detect_every_n_frames': 1}"
+    },
+    {
       "name": "Daemon lifecycle disarm watch_count=0",
       "ok": true,
       "detail": "watch_count=0"
@@ -659,6 +668,11 @@
       "name": "Daemon lifecycle final disarm watch_count=0",
       "ok": true,
       "detail": "watch_count=0"
+    },
+    {
+      "name": "Audit restored active detector preset after lifecycle",
+      "ok": true,
+      "detail": "backend=[4] preset=[4] limits={'max_detections': 5, 'detect_every_n_frames': 1, 'detection_mode': full_frame} activeObjectPreset=airplane_single activeSearchPreset=lost_step_wait hydrate_ok=True"
     }
   ]
 }

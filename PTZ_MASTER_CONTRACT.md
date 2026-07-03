@@ -1104,3 +1104,21 @@ Optional Layer 6D API contract check:
 - Audit may call `POST /api/autopilot/speed_profile/apply_nearest {"profile_idx":1}`.
 - If `response.point.profile_idx != 1`, report WARN or a separate Layer 6D API-contract result, not a Layer 6C runtime logical-state failure.
 - This optional check must not block Layer 6C logical zoom/PTZ coherence when `/api/zoom/state` and `/api/autopilot/state` are coherent.
+
+## Layer 5/6 Audit Non-Destructive Preset Restore Contract
+
+Audit lifecycle coverage must be non-destructive. Running `ptz_contract_audit.py` must not leave runtime detector, autopilot, or persisted settings in a different active object preset than the system had before audit execution.
+
+Required audit behavior:
+
+- Before lifecycle arm/disarm tests, capture `activeObjectPreset` and `activeSearchPreset` from `/api/settings`.
+- Before lifecycle arm/disarm tests, capture the active object preset detector contract fields: `classes`, `detection_mode`, `max_detections`, `max_raw_candidates`, and `detect_every_n_frames`.
+- Lifecycle tests should use the current `activeObjectPreset` and `activeSearchPreset` for arm/disarm whenever possible.
+- If a fixed test preset is ever required, audit must restore the original `activeObjectPreset`, `activeSearchPreset`, and detector backend state after lifecycle testing.
+- After final lifecycle disarm, audit must restore original active preset settings, run the runtime hydrate/apply mechanism, wait for detector backend state to reflect the original active preset, and verify detector classes, limits, and ROI/detection mode match that original active preset.
+
+Audit coverage:
+
+- marker `PTZ_AUDIT_NON_DESTRUCTIVE_PRESET_RESTORE_V1_START`
+- marker `PTZ_AUDIT_NON_DESTRUCTIVE_PRESET_RESTORE_V1_END`
+- PASS `Audit restored active detector preset after lifecycle`

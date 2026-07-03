@@ -974,6 +974,69 @@ def audit_daemon_lifecycle():
             if "--watch" in x[1]
         ])
 
+    # PTZ_AUDIT_NON_DESTRUCTIVE_PRESET_RESTORE_V1_START
+    original_active_object_preset = settings.get("activeObjectPreset")
+    original_active_search_preset = settings.get("activeSearchPreset")
+    lifecycle_active_object_preset = original_active_object_preset if preset_for(original_active_object_preset) else next(iter(sorted(persistent_custom.keys())), None)
+    lifecycle_active_search_preset = original_active_search_preset or settings.get("activeSearchPreset") or "lost_step_wait"
+    original_active_preset = preset_for(original_active_object_preset)
+    original_preset_snapshot = {
+        "classes": normalize_list_numbers(original_active_preset.get("classes")),
+        "detection_mode": original_active_preset.get("detection_mode"),
+        "max_detections": original_active_preset.get("max_detections"),
+        "max_raw_candidates": original_active_preset.get("max_raw_candidates"),
+        "detect_every_n_frames": original_active_preset.get("detect_every_n_frames"),
+    }
+
+    print("Lifecycle original activeObjectPreset =", original_active_object_preset)
+    print("Lifecycle original activeSearchPreset =", original_active_search_preset)
+    print("Lifecycle original active preset snapshot =", json.dumps(original_preset_snapshot, ensure_ascii=False, sort_keys=True))
+    print("Lifecycle test activeObjectPreset =", lifecycle_active_object_preset)
+    print("Lifecycle test activeSearchPreset =", lifecycle_active_search_preset)
+
+    add(
+        "Lifecycle original active preset snapshot available",
+        bool(original_active_object_preset and original_active_preset),
+        f"active={original_active_object_preset} preset={original_preset_snapshot}"
+    )
+
+    def preset_backend_matches(preset):
+        limits = get_json(f"{MJPEG_BASE}/api/detection/limits")
+        throttle = get_json(f"{MJPEG_BASE}/api/detection/throttle")
+        roi = get_json(f"{MJPEG_BASE}/api/detection/roi_config")
+        det = get_json(f"{MJPEG_BASE}/api/detector/config")
+
+        if any("__error__" in x for x in [limits, throttle, roi, det]):
+            return False, det, limits, throttle, roi
+
+        classes_ok = normalize_list_numbers(det.get("selected_classes")) == normalize_list_numbers(preset.get("classes"))
+        limit_ok = int(limits.get("max_detections") or -1) == int(preset.get("max_detections") or -2)
+        throttle_ok = int(throttle.get("detect_every_n_frames") or -1) == int(preset.get("detect_every_n_frames") or -2)
+        roi_ok = str(roi.get("detection_mode") or "") == str(preset.get("detection_mode") or "")
+        return classes_ok and limit_ok and throttle_ok and roi_ok, det, limits, throttle, roi
+
+    def hydrate_runtime_settings():
+        hydrate = ROOT / "hydrate_runtime_settings.py"
+        if not hydrate.exists():
+            return False, "missing hydrate_runtime_settings.py"
+        try:
+            proc = subprocess.run(["python3", str(hydrate)], cwd=str(ROOT), text=True, capture_output=True, timeout=20)
+        except Exception as e:
+            return False, str(e)
+        detail = (proc.stdout + proc.stderr).strip()[-1000:]
+        return proc.returncode == 0, detail or f"returncode={proc.returncode}"
+
+    def wait_for_original_backend(timeout_s=15):
+        deadline = time.time() + timeout_s
+        last = ({}, {}, {}, {})
+        while time.time() < deadline:
+            ok, det, limits, throttle, roi = preset_backend_matches(original_active_preset)
+            last = (det, limits, throttle, roi)
+            if ok:
+                return True, det, limits, throttle, roi
+            time.sleep(1)
+        return (False,) + last
+
     def build_settings(value):
         s = get_json(f"{MJPEG_BASE}/api/settings")
 
@@ -985,11 +1048,12 @@ def audit_daemon_lifecycle():
         # object without objectPresetsCustom can destroy persistent presets.
         s["objectPresetsCustom"] = persistent_custom
 
-        active = "car_single"
+        active = lifecycle_active_object_preset
         preset = preset_for(active)
 
-        s["activeObjectPreset"] = active
-        s["activeSearchPreset"] = s.get("activeSearchPreset") or "lost_step_wait"
+        if active:
+            s["activeObjectPreset"] = active
+        s["activeSearchPreset"] = lifecycle_active_search_preset
         s["objectPresetTrackingMode"] = "single_auto"
         s["objectPresetLossBehavior"] = "continuous_wide_scan_x"
         s["ptzArmed"] = bool(value)
@@ -1058,17 +1122,50 @@ def audit_daemon_lifecycle():
     wc2 = watch_count()
     print("watch_count after final disarm =", wc2)
 
-    # Restore active preset/control state safely.
+    # Restore active preset/control state safely, then re-apply settings to runtime
+    # so detector backend state is the same active preset the audit observed before
+    # the lifecycle arm/disarm sequence.
     restored = dict(original)
     restored["objectPresetsCustom"] = persistent_custom
     restored["ptzArmed"] = False
     restored["controlMode"] = "manual"
 
-    if not restored.get("activeObjectPreset"):
-        restored["activeObjectPreset"] = "car_single"
+    if original_active_object_preset:
+        restored["activeObjectPreset"] = original_active_object_preset
+    if original_active_search_preset:
+        restored["activeSearchPreset"] = original_active_search_preset
 
     post_json(f"{MJPEG_BASE}/api/settings", restored)
     post_json(f"{PTZ_BASE}/api/autopilot/stop", {})
+
+    hydrate_ok, hydrate_detail = hydrate_runtime_settings()
+    print("hydrate restore ok =", hydrate_ok)
+    print("hydrate restore detail =", hydrate_detail)
+
+    restore_ok = False
+    restore_det = {}
+    restore_limits = {}
+    restore_throttle = {}
+    restore_roi = {}
+    if original_active_preset:
+        restore_ok, restore_det, restore_limits, restore_throttle, restore_roi = wait_for_original_backend()
+
+    restored_settings = get_json(f"{MJPEG_BASE}/api/settings")
+    settings_restore_ok = (
+        restored_settings.get("activeObjectPreset") == original_active_object_preset
+        and restored_settings.get("activeSearchPreset") == original_active_search_preset
+    )
+
+    backend_classes = normalize_list_numbers(restore_det.get("selected_classes"))
+    preset_classes = normalize_list_numbers(original_active_preset.get("classes")) if original_active_preset else []
+    restore_detail = (
+        f"backend={backend_classes} preset={preset_classes} "
+        f"limits={{'max_detections': {restore_limits.get('max_detections')}, "
+        f"'detect_every_n_frames': {restore_throttle.get('detect_every_n_frames')}, "
+        f"'detection_mode': {restore_roi.get('detection_mode')}}} "
+        f"activeObjectPreset={restored_settings.get('activeObjectPreset')} "
+        f"activeSearchPreset={restored_settings.get('activeSearchPreset')} hydrate_ok={hydrate_ok}"
+    )
 
     add("Daemon lifecycle disarm watch_count=0", wc0 == 0, f"watch_count={wc0}")
     add(
@@ -1077,6 +1174,13 @@ def audit_daemon_lifecycle():
         f"runtime_events={len(events)} max_watch_count={wc1_max} final_watch_count={wc1_final} samples={samples}"
     )
     add("Daemon lifecycle final disarm watch_count=0", wc2 == 0, f"watch_count={wc2}")
+    add(
+        "Audit restored active detector preset after lifecycle",
+        bool(hydrate_ok and restore_ok and settings_restore_ok),
+        restore_detail
+    )
+    print(f"PASS: Audit restored active detector preset after lifecycle — backend={backend_classes} preset={preset_classes}" if hydrate_ok and restore_ok and settings_restore_ok else f"FAIL: Audit restored active detector preset after lifecycle — {restore_detail}")
+    # PTZ_AUDIT_NON_DESTRUCTIVE_PRESET_RESTORE_V1_END
 
 
 def audit_launcher():
