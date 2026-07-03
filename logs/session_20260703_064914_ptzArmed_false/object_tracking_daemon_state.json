@@ -1,0 +1,7 @@
+{
+  "ts": 1783061354.306,
+  "event": "child_stop",
+  "reason": "ptzArmed_false",
+  "preset": "bird_single::lost_step_wait",
+  "pid": 415887
+}

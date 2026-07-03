@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "active": "airplane_single",
+  "active": "bird_single",
   "presets": {
     "person_single": {
       "label": "Человек",

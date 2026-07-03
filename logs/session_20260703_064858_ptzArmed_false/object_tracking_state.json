@@ -1,0 +1,11 @@
+{
+  "ts": 1783061331.657,
+  "mode": "searching",
+  "preset": "bird_single",
+  "active_search_preset": "lost_step_wait",
+  "result": {
+    "ok": false,
+    "preset": "lost_step_wait",
+    "reason": "target_not_acquired"
+  }
+}

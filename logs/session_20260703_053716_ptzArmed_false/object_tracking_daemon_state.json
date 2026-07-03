@@ -1,7 +1,0 @@
-{
-  "ts": 1783057036.284,
-  "event": "child_stop",
-  "reason": "ptzArmed_false",
-  "preset": "airplane_single::lost_step_wait",
-  "pid": 210243
-}

@@ -1,9 +1,49 @@
 {
-  "ts": 1783060617,
-  "pass": 124,
-  "fail": 0,
-  "warn": 12,
+  "ts": 1783061389,
+  "pass": 90,
+  "fail": 35,
+  "warn": 22,
   "warnings": [
+    {
+      "name": "Layer 6D apply_nearest API contract: response point mismatch",
+      "detail": "requested=1 returned=0; does not block Layer 6C logical coherence"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=9"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=1"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=1"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=1"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=1"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=1"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=1"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=1"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=1"
+    },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
       "detail": "response_profile=0 logical_sample=1"
@@ -67,7 +107,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=7095"
+      "detail": "size=7074"
     },
     {
       "name": "file exists: launcher.sh",
@@ -165,174 +205,179 @@
       "detail": "count=12"
     },
     {
+      "name": "UI JS contract web/index.html readable",
+      "ok": false,
+      "detail": "[Errno 2] No such file or directory: 'web/index.html'"
+    },
+    {
       "name": "UI detection JS marker PTZ_CLEAN_DETECTION_UI_HYDRATE_F5_START",
-      "ok": true,
-      "detail": "count=1"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "UI detection JS marker PTZ_CLEAN_DETECTION_ACTIVE_PRESET_PERSIST_START",
-      "ok": true,
-      "detail": "count=1"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "UI detection JS marker hydrateDetectionControlsFromSettings",
-      "ok": true,
-      "detail": "count=5"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "UI detection JS marker scheduleDetectionUiHydrate",
-      "ok": true,
-      "detail": "count=2"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "UI detection JS marker persistActiveDetectionControlsToPreset",
-      "ok": true,
-      "detail": "count=4"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "UI detection JS marker schedulePersistActiveDetectionControlsToPreset",
-      "ok": true,
-      "detail": "count=3"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "UI saveSettings preserves objectPresetsCustom fallback",
-      "ok": true,
+      "ok": false,
       "detail": "requires OBJECT_PRESETS fallback when before.objectPresetsCustom is empty"
     },
     {
       "name": "UI detection controls persist to active object preset",
-      "ok": true,
-      "detail": "missing=[]"
+      "ok": false,
+      "detail": "missing=['max_detections', 'detect_every_n_frames', 'detection_mode', 'activeObjectPreset', 'objectPresetsCustom']"
     },
     {
       "name": "Keyboard Q/A sweep marker PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_START",
-      "ok": true,
-      "detail": "count=1"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard Q/A sweep marker PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_END",
-      "ok": true,
-      "detail": "count=1"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard Q/A sweep marker ptzQaSweepProfileIdxStep",
-      "ok": true,
-      "detail": "count=5"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard Q/A sweep marker keyboard_Q_profile_idx_sweep",
-      "ok": true,
-      "detail": "count=1"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard Q/A sweep marker keyboard_A_profile_idx_sweep",
-      "ok": true,
-      "detail": "count=1"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard Q/A sweep moves real backend zoom sample",
-      "ok": true,
-      "detail": "go_to_sample=True profile_idx_target=True"
+      "ok": false,
+      "detail": "go_to_sample=False profile_idx_target=False"
     },
     {
       "name": "Keyboard Q/A sweep does not rely on sample_idx target",
-      "ok": true,
+      "ok": false,
       "detail": "canonical request key must be profile_idx"
     },
     {
       "name": "Keyboard Q/A sweep applies PTZ speed profile by profile_idx",
-      "ok": true,
-      "detail": "apply_nearest=True profile_idx_final=True"
+      "ok": false,
+      "detail": "apply_nearest=False profile_idx_final=False"
     },
     {
       "name": "Keyboard Q/A sweep owns event before older handlers",
-      "ok": true,
-      "detail": "capture_stop=True"
+      "ok": false,
+      "detail": "capture_stop=False"
     },
     {
       "name": "Keyboard Q/A sample step respects ZOOM CALIB Movement",
-      "ok": true,
-      "detail": "movement_marker=True owns_both_modes=True"
+      "ok": false,
+      "detail": "movement_marker=False owns_both_modes=False"
     },
     {
       "name": "Keyboard arrow marker ptzKeyboardCaptureDirection",
-      "ok": true,
-      "detail": "count=3"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard arrow marker ptzKeyboardCaptureEnabled",
-      "ok": true,
-      "detail": "count=3"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard arrow marker window.__ptzKeyCaptureInstalled",
-      "ok": true,
-      "detail": "count=1"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard arrow marker ArrowLeft",
-      "ok": true,
-      "detail": "count=4"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard arrow marker ArrowRight",
-      "ok": true,
-      "detail": "count=4"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard arrow marker ArrowUp",
-      "ok": true,
-      "detail": "count=4"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard arrow marker ArrowDown",
-      "ok": true,
-      "detail": "count=4"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard arrow marker keyboard_left",
-      "ok": true,
-      "detail": "count=5"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard arrow marker keyboard_right",
-      "ok": true,
-      "detail": "count=5"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard arrow marker keyboard_up",
-      "ok": true,
-      "detail": "count=3"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard arrow marker keyboard_down",
-      "ok": true,
-      "detail": "count=3"
+      "ok": false,
+      "detail": "count=0"
     },
     {
       "name": "Keyboard arrows own PTZ pan/tilt directions",
-      "ok": true,
-      "detail": "block=True all_directions=True"
+      "ok": false,
+      "detail": "block=False all_directions=False"
     },
     {
       "name": "Keyboard arrows are gated to PTZ mode",
-      "ok": true,
-      "detail": "ptz_mode_guard=True"
+      "ok": false,
+      "detail": "ptz_mode_guard=False"
     },
     {
       "name": "Keyboard arrows capture keydown before browser/page handlers",
-      "ok": true,
-      "detail": "capture_keydown=True"
+      "ok": false,
+      "detail": "capture_keydown=False"
     },
     {
       "name": "Keyboard arrows capture keyup and release movement",
-      "ok": true,
-      "detail": "capture_keyup=True release_stop=True"
+      "ok": false,
+      "detail": "capture_keyup=False release_stop=False"
     },
     {
       "name": "Keyboard arrows have backend/manual motion path",
-      "ok": true,
-      "detail": "motion_path=True"
+      "ok": false,
+      "detail": "motion_path=False"
     },
     {
       "name": "Settings API reachable",
@@ -357,7 +402,7 @@
     {
       "name": "Settings activeObjectPreset API/FILE match",
       "ok": true,
-      "detail": "api=airplane_single file=airplane_single"
+      "detail": "api=bird_single file=bird_single"
     },
     {
       "name": "Settings activeSearchPreset API/FILE match",
@@ -377,12 +422,12 @@
     {
       "name": "Settings active custom preset exists",
       "ok": true,
-      "detail": "active=airplane_single"
+      "detail": "active=bird_single"
     },
     {
       "name": "Settings top-level limit matches active preset",
       "ok": true,
-      "detail": "settings=5 preset=5"
+      "detail": "settings=10 preset=10"
     },
     {
       "name": "Settings top-level detect_every matches active preset",
@@ -392,7 +437,7 @@
     {
       "name": "Settings top-level area matches active preset",
       "ok": true,
-      "detail": "settings=full_frame preset=full_frame"
+      "detail": "settings=hybrid preset=hybrid"
     },
     {
       "name": "Settings active object preset has no PTZ speed keys",
@@ -422,7 +467,7 @@
     {
       "name": "Detector max_detections matches active preset",
       "ok": true,
-      "detail": "backend=5 preset=5"
+      "detail": "backend=10 preset=10"
     },
     {
       "name": "Detector detect_every matches active preset",
@@ -432,12 +477,12 @@
     {
       "name": "Detector area matches active preset",
       "ok": true,
-      "detail": "backend=full_frame preset=full_frame"
+      "detail": "backend=hybrid preset=hybrid"
     },
     {
       "name": "Detector classes match active preset",
       "ok": true,
-      "detail": "backend=[4] preset=[4]"
+      "detail": "backend=[14] preset=[14]"
     },
     {
       "name": "PTZ autopilot reachable",
@@ -542,7 +587,7 @@
     {
       "name": "Runtime zoom event logical sample coherence",
       "ok": true,
-      "detail": "events=28"
+      "detail": "events=50"
     },
     {
       "name": "Runtime contract marker PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_START",
@@ -652,7 +697,7 @@
     {
       "name": "Lifecycle original active preset snapshot available",
       "ok": true,
-      "detail": "active=airplane_single preset={'classes': [4], 'detection_mode': 'full_frame', 'max_detections': 5, 'max_raw_candidates': 60, 'detect_every_n_frames': 1}"
+      "detail": "active=bird_single preset={'classes': [14], 'detection_mode': 'hybrid', 'max_detections': 10, 'max_raw_candidates': 80, 'detect_every_n_frames': 1}"
     },
     {
       "name": "Daemon lifecycle disarm watch_count=0",
@@ -672,7 +717,7 @@
     {
       "name": "Audit restored active detector preset after lifecycle",
       "ok": true,
-      "detail": "backend=[4] preset=[4] limits={'max_detections': 5, 'detect_every_n_frames': 1, 'detection_mode': full_frame} activeObjectPreset=airplane_single activeSearchPreset=lost_step_wait hydrate_ok=True"
+      "detail": "backend=[14] preset=[14] limits={'max_detections': 10, 'detect_every_n_frames': 1, 'detection_mode': hybrid} activeObjectPreset=bird_single activeSearchPreset=lost_step_wait hydrate_ok=True"
     }
   ]
 }
