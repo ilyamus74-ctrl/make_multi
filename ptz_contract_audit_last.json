@@ -1,8 +1,8 @@
 {
-  "ts": 1783062732,
-  "pass": 124,
+  "ts": 1783068449,
+  "pass": 136,
   "fail": 0,
-  "warn": 37,
+  "warn": 47,
   "warnings": [
     {
       "name": "Layer 6D apply_nearest API contract: response point mismatch",
@@ -10,154 +10,194 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=6"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=7"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=1"
+      "detail": "response_profile=0 logical_sample=6"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=7"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=6"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=7"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=6"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=7"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=6"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=7"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=6"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=7"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=6"
     }
   ],
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
       "ok": true,
-      "detail": "size=36375"
+      "detail": "size=37505"
     },
     {
       "name": "file exists: web/index.html",
@@ -167,7 +207,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=6360"
+      "detail": "size=8646"
     },
     {
       "name": "file exists: launcher.sh",
@@ -177,7 +217,7 @@
     {
       "name": "file exists: hydrate_runtime_settings.py",
       "ok": true,
-      "detail": "size=11759"
+      "detail": "size=14324"
     },
     {
       "name": "file exists: settings_persist_daemon.py",
@@ -192,17 +232,17 @@
     {
       "name": "file exists: apply_ptz_object_preset.py",
       "ok": true,
-      "detail": "size=60579"
+      "detail": "size=61801"
     },
     {
       "name": "file exists: mjpeg_gst_http.cpp",
       "ok": true,
-      "detail": "size=216959"
+      "detail": "size=228402"
     },
     {
       "name": "file exists: ptz_autopilot.cpp",
       "ok": true,
-      "detail": "size=50524"
+      "detail": "size=50949"
     },
     {
       "name": "UI required marker PTZ_CLEAN_LAYER_CONTROLLER_START",
@@ -457,7 +497,7 @@
     {
       "name": "Settings activeObjectPreset API/FILE match",
       "ok": true,
-      "detail": "api=airplane_single file=airplane_single"
+      "detail": "api=car_single file=car_single"
     },
     {
       "name": "Settings activeSearchPreset API/FILE match",
@@ -477,7 +517,7 @@
     {
       "name": "Settings active custom preset exists",
       "ok": true,
-      "detail": "active=airplane_single"
+      "detail": "active=car_single"
     },
     {
       "name": "Settings top-level limit matches active preset",
@@ -537,7 +577,7 @@
     {
       "name": "Detector classes match active preset",
       "ok": true,
-      "detail": "backend=[4] preset=[4]"
+      "detail": "backend=[2, 3, 5, 7] preset=[2, 3, 5, 7]"
     },
     {
       "name": "PTZ autopilot reachable",
@@ -632,17 +672,17 @@
     {
       "name": "Runtime logical zoom sample matches autopilot active_zoom_sample_idx",
       "ok": true,
-      "detail": "logical_zoom=0 ap_active_zoom=0"
+      "detail": "logical_zoom=9 ap_active_zoom=9"
     },
     {
       "name": "Runtime PTZ speed derives from canonical logical zoom sample",
       "ok": true,
-      "detail": "logical_zoom=0 ap_active_zoom=0 ap_active_profile=0 source=user"
+      "detail": "logical_zoom=9 ap_active_zoom=9 ap_active_profile=9 source=user"
     },
     {
       "name": "Runtime zoom event logical sample coherence",
       "ok": true,
-      "detail": "events=49"
+      "detail": "events=48"
     },
     {
       "name": "Runtime contract marker PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_START",
@@ -752,7 +792,7 @@
     {
       "name": "Lifecycle original active preset snapshot available",
       "ok": true,
-      "detail": "active=airplane_single preset={'classes': [4], 'detection_mode': 'full_frame', 'max_detections': 5, 'max_raw_candidates': 60, 'detect_every_n_frames': 1}"
+      "detail": "active=car_single preset={'classes': [2, 3, 5, 7], 'detection_mode': 'full_frame', 'max_detections': 5, 'max_raw_candidates': 40, 'detect_every_n_frames': 1}"
     },
     {
       "name": "Daemon lifecycle disarm watch_count=0",
@@ -772,7 +812,67 @@
     {
       "name": "Audit restored active detector preset after lifecycle",
       "ok": true,
-      "detail": "backend=[4] preset=[4] limits={'max_detections': 5, 'detect_every_n_frames': 1, 'detection_mode': full_frame} activeObjectPreset=airplane_single activeSearchPreset=lost_step_wait hydrate_ok=True"
+      "detail": "backend=[2, 3, 5, 7] preset=[2, 3, 5, 7] limits={'max_detections': 5, 'detect_every_n_frames': 1, 'detection_mode': full_frame} activeObjectPreset=car_single activeSearchPreset=lost_step_wait hydrate_ok=True"
+    },
+    {
+      "name": "Layer 7 marker PTZ_TARGET_POLICY_PROFILES_V1_START",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "Layer 7 marker PTZ_TARGET_POLICY_PROFILES_V1_END",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "Layer 7 marker PTZ_SINGLE_TARGET_STICKY_SELECTION_V1_START",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "Layer 7 marker PTZ_SINGLE_TARGET_STICKY_SELECTION_V1_END",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "Layer 7 marker PTZ_TARGET_MOVING_PRIORITY_V1_START",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "Layer 7 marker PTZ_TARGET_MOVING_PRIORITY_V1_END",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "Layer 7 marker PTZ_PREDICTIVE_CENTERING_V1_START",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "Layer 7 marker PTZ_PREDICTIVE_CENTERING_V1_END",
+      "ok": true,
+      "detail": "present"
+    },
+    {
+      "name": "targetPolicyProfiles exists",
+      "ok": true,
+      "detail": "profiles=['fastest_stable', 'moving_near_sticky', 'nearest_stable']"
+    },
+    {
+      "name": "car_single references moving_near_sticky",
+      "ok": true,
+      "detail": "moving_near_sticky"
+    },
+    {
+      "name": "Predictive fields supported in code",
+      "ok": true,
+      "detail": "predictive field tokens checked"
+    },
+    {
+      "name": "Runtime exposes selected/predictive target fields",
+      "ok": true,
+      "detail": "keys=['box', 'candidate_scores', 'frameId', 'has_selected_track', 'lost_frames', 'max_lost_frames', 'mode', 'ok', 'predicted_cx', 'predicted_cy', 'selected_box_valid', 'selected_cx', 'selected_cy', 'selected_track_id', 'target_motion_norm', 'target_policy_profile', 'target_selection_score', 'target_switch_reason', 'target_vx', 'target_vy']"
     }
   ]
 }
