@@ -1,22 +1,22 @@
 {
-  "ts": 1783054683,
-  "pass": 117,
-  "fail": 0,
+  "ts": 1783056623,
+  "pass": 121,
+  "fail": 1,
   "results": [
     {
       "name": "file exists: PTZ_MASTER_CONTRACT.md",
       "ok": true,
-      "detail": "size=32201"
+      "detail": "size=32855"
     },
     {
       "name": "file exists: web/index.html",
       "ok": true,
-      "detail": "size=299927"
+      "detail": "size=303106"
     },
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=7082"
+      "detail": "size=7066"
     },
     {
       "name": "file exists: launcher.sh",
@@ -41,7 +41,7 @@
     {
       "name": "file exists: apply_ptz_object_preset.py",
       "ok": true,
-      "detail": "size=59712"
+      "detail": "size=60579"
     },
     {
       "name": "file exists: mjpeg_gst_http.cpp",
@@ -306,7 +306,7 @@
     {
       "name": "Settings activeObjectPreset API/FILE match",
       "ok": true,
-      "detail": "api=car_single file=car_single"
+      "detail": "api=bird_single file=bird_single"
     },
     {
       "name": "Settings activeSearchPreset API/FILE match",
@@ -326,12 +326,12 @@
     {
       "name": "Settings active custom preset exists",
       "ok": true,
-      "detail": "active=car_single"
+      "detail": "active=bird_single"
     },
     {
       "name": "Settings top-level limit matches active preset",
       "ok": true,
-      "detail": "settings=5 preset=5"
+      "detail": "settings=10 preset=10"
     },
     {
       "name": "Settings top-level detect_every matches active preset",
@@ -341,7 +341,7 @@
     {
       "name": "Settings top-level area matches active preset",
       "ok": true,
-      "detail": "settings=full_frame preset=full_frame"
+      "detail": "settings=hybrid preset=hybrid"
     },
     {
       "name": "Settings active object preset has no PTZ speed keys",
@@ -371,7 +371,7 @@
     {
       "name": "Detector max_detections matches active preset",
       "ok": true,
-      "detail": "backend=5 preset=5"
+      "detail": "backend=10 preset=10"
     },
     {
       "name": "Detector detect_every matches active preset",
@@ -381,12 +381,12 @@
     {
       "name": "Detector area matches active preset",
       "ok": true,
-      "detail": "backend=full_frame preset=full_frame"
+      "detail": "backend=hybrid preset=hybrid"
     },
     {
       "name": "Detector classes match active preset",
       "ok": true,
-      "detail": "backend=[2, 3, 5, 7] preset=[2, 3, 5, 7]"
+      "detail": "backend=[14] preset=[14]"
     },
     {
       "name": "PTZ autopilot reachable",
@@ -467,6 +467,31 @@
       "name": "Launcher token start_object_tracking_daemon",
       "ok": true,
       "detail": "count=2"
+    },
+    {
+      "name": "UI runtime zoom feedback markers",
+      "ok": true,
+      "detail": "start=1 end=1"
+    },
+    {
+      "name": "UI runtime zoom feedback is read-only",
+      "ok": true,
+      "detail": "missing=[] active=True forbidden=[]"
+    },
+    {
+      "name": "Runtime zoom sample matches autopilot active sample",
+      "ok": true,
+      "detail": "zoom=6 ap_zoom=6"
+    },
+    {
+      "name": "Runtime PTZ speed profile matches active zoom sample",
+      "ok": true,
+      "detail": "ap_profile=6 ap_zoom=6 source=user"
+    },
+    {
+      "name": "Runtime zoom event sample/speed coherence",
+      "ok": false,
+      "detail": "speed profile_idx mismatch profile=0 actual=6; speed profile_idx mismatch profile=0 actual=7; speed profile_idx mismatch profile=0 actual=6; speed profile_idx mismatch profile=0 actual=7; speed profile_idx mismatch profile=0 actual=6"
     },
     {
       "name": "Runtime contract marker PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_START",

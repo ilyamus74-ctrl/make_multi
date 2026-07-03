@@ -1066,3 +1066,12 @@ Audit coverage:
 - marker `PTZ_ZOOM_SAMPLE_TRANSACTION_V1_END`
 - marker `PTZ_SEARCH_PRESET_NO_ACQUIRE_WHILE_ZOOM_BUSY_V1_START`
 - marker `PTZ_SEARCH_PRESET_NO_ACQUIRE_WHILE_ZOOM_BUSY_V1_END`
+
+## Layer 6C — Runtime Zoom Feedback / Speed Sample Coherence
+
+- Runtime search/reacquire may change the zoom sample without browser keyboard or button input.
+- Browser UI must poll backend zoom/autopilot state and reflect the current zoom/PTZ speed sample.
+- The UI feedback loop is read-only UI hydration and must not trigger motion, auto-arm PTZ, or persist settings.
+- Physical zoom sample, `autopilot.active_zoom_sample_idx`, and `autopilot.active_profile_idx` must remain coherent.
+- Runtime zoom events must log `actual_sample` and speed-profile sample coherently.
+- The audit must detect any mismatch between zoom sample and PTZ speed sample.

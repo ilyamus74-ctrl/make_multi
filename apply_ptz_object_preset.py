@@ -875,12 +875,35 @@ def runtime_pause_if_detection_disabled(context="runtime", preset_name=None):
 # PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_END
 
 
-def apply_ptz_speed_profile_for_zoom(sample_idx, zoom_ratio):
+def apply_ptz_speed_profile_for_zoom(sample_idx, zoom_ratio=None):
+    """
+    PTZ_RUNTIME_SPEED_PROFILE_IDX_ONLY_V1
+    Runtime zoom/search must apply PTZ speed profile by settled zoom sample index.
+    Do not send zoom_ratio to apply_nearest here: ratio-based nearest/clamp can return
+    a point whose profile_idx does not match actual_sample.
+    """
     try:
-        return post_json(f"{AUTOPILOT_BASE}/api/autopilot/speed_profile/apply_nearest", {
-            "profile_idx": int(sample_idx),
-            "zoom_ratio": float(zoom_ratio)
+        sample_idx = int(sample_idx)
+        res = post_json(f"{AUTOPILOT_BASE}/api/autopilot/speed_profile/apply_nearest", {
+            "profile_idx": sample_idx
         }, timeout=3)
+
+        point = {}
+        if isinstance(res, dict):
+            point = res.get("point") or res.get("applied_point") or res.get("config") or {}
+
+        event_log(
+            "ptz_speed_profile_apply_for_zoom",
+            requested_profile_idx=sample_idx,
+            zoom_ratio=zoom_ratio,
+            ok=bool(isinstance(res, dict) and res.get("ok", True)),
+            returned_profile_idx=point.get("profile_idx") if isinstance(point, dict) else None,
+            source=res.get("source") if isinstance(res, dict) else None,
+            response=res
+        )
+
+        return res
+
     except Exception as e:
         event_log("ptz_speed_profile_apply_for_zoom_failed", error=str(e), sample_idx=sample_idx, zoom_ratio=zoom_ratio)
         return {"ok": False, "error": str(e)}

@@ -2412,6 +2412,101 @@ async function ptzTuneGoToSample(sampleIdx, opts = {}) {
     } catch (_) {}
     return Number(ptzTuneCurrentSample || 0);
   }
+
+  // PTZ_UI_RUNTIME_ZOOM_FEEDBACK_V1_START
+  let runtimeZoomFeedbackTimer = null;
+  let runtimeZoomFeedbackBusy = false;
+  const RUNTIME_ZOOM_FEEDBACK_INTERVAL_MS = 850;
+
+  function runtimeZoomFeedbackPressed() {
+    return Boolean(keyboardZoomPressedKeys && keyboardZoomPressedKeys.size > 0);
+  }
+
+  function runtimeZoomFeedbackClampSample(idx, zoomStateForCount) {
+    let out = Math.round(Number(idx));
+    if (!Number.isFinite(out) || out < 0) return null;
+
+    const counts = [
+      Number(zoomStateForCount?.zoom_sample_count),
+      Array.isArray(ptzTuneZoomSamples) ? ptzTuneZoomSamples.length : 0,
+      Number($('zoomSamples')?.value || 0) + 1
+    ];
+    const count = counts.find(v => Number.isFinite(v) && v > 0);
+
+    if (count) {
+      out = Math.max(0, Math.min(count - 1, out));
+    }
+
+    return out;
+  }
+
+  function applyRuntimeZoomFeedbackToUi(zoomStateFromRuntime, autopilotStateFromRuntime) {
+    if (runtimeZoomFeedbackPressed()) return false;
+
+    const candidates = [
+      autopilotStateFromRuntime?.active_zoom_sample_idx,
+      autopilotStateFromRuntime?.active_profile_idx,
+      zoomStateFromRuntime?.zoom_sample_idx
+    ];
+
+    let sampleIdx = null;
+    for (const candidate of candidates) {
+      const n = Number(candidate);
+      if (Number.isFinite(n) && n >= 0) {
+        sampleIdx = runtimeZoomFeedbackClampSample(n, zoomStateFromRuntime);
+        break;
+      }
+    }
+
+    if (sampleIdx === null) return false;
+
+    if (Number(ptzTuneCurrentSample) !== Number(sampleIdx)) {
+      ptzTuneCurrentSample = sampleIdx;
+    }
+
+    const zoomRatio = Number(zoomStateFromRuntime?.zoom_ratio ?? autopilotStateFromRuntime?.zoom_ratio ?? 0);
+    const focalPx = Number(zoomStateFromRuntime?.focal_px ?? autopilotStateFromRuntime?.zoom_focal_px ?? 0);
+    tuneStatusSet?.(zoomRatio, focalPx);
+    updatePtzTuneSampleButtonUi?.();
+    return true;
+  }
+
+  async function pollRuntimeZoomState() {
+    if (runtimeZoomFeedbackBusy) return false;
+    runtimeZoomFeedbackBusy = true;
+
+    try {
+      const [zoomStateFromRuntime, autopilotStateFromRuntime] = await Promise.all([
+        apiGetJson('/api/zoom/state'),
+        apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`)
+      ]);
+      return applyRuntimeZoomFeedbackToUi(zoomStateFromRuntime || {}, autopilotStateFromRuntime || {});
+    } catch (e) {
+      return false;
+    } finally {
+      runtimeZoomFeedbackBusy = false;
+    }
+  }
+
+  function scheduleRuntimeZoomFeedback() {
+    if (runtimeZoomFeedbackTimer) return runtimeZoomFeedbackTimer;
+    pollRuntimeZoomState().catch(() => {});
+    runtimeZoomFeedbackTimer = setInterval(() => {
+      pollRuntimeZoomState().catch(() => {});
+    }, RUNTIME_ZOOM_FEEDBACK_INTERVAL_MS);
+    return runtimeZoomFeedbackTimer;
+  }
+
+  window.pollRuntimeZoomState = pollRuntimeZoomState;
+  window.applyRuntimeZoomFeedbackToUi = applyRuntimeZoomFeedbackToUi;
+  window.scheduleRuntimeZoomFeedback = scheduleRuntimeZoomFeedback;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scheduleRuntimeZoomFeedback, { once: true });
+  } else {
+    scheduleRuntimeZoomFeedback();
+  }
+  // PTZ_UI_RUNTIME_ZOOM_FEEDBACK_V1_END
   // ZOOM_ANCHOR_DEFS_EARLY_START
   // zoomAnchorDefs moved earlier to avoid TDZ initialization error.
 
