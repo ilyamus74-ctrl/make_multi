@@ -1,0 +1,13 @@
+activeObjectPreset = airplane_single
+activeSearchPreset = lost_step_wait
+ptzArmed = False
+controlMode = manual
+zoom_sample_idx = 1
+zoom_ratio = 0.02
+zoom_move_busy = False
+ap.active_profile_idx = 1
+ap.active_zoom_sample_idx = 1
+ap.speed_profile_source = user
+tracker.mode = IDLE
+tracker.selected_track_id = 0
+tracker.selected_box_valid = False

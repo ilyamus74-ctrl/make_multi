@@ -1,0 +1,1 @@
+{"ok":true,"applied":true,"source":"user","point":{"profile_idx":2,"step":2,"zoom_ratio":0.035,"focal_px":2314.24,"kp":27.37,"ki":0,"kd":1.965,"deadzone":0.05245,"ptz_curve":0.6605,"ptz_lead_ms":148,"max_pan":34,"max_tilt":27,"max_accel":8,"min_pan":3,"min_tilt":3,"j_pulse_ms":49,"nudge_pan":12,"nudge_tilt":12,"manual_mode":"tap_hold","source":"user"}}

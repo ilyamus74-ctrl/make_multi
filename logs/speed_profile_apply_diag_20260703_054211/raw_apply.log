@@ -1,0 +1,1400 @@
+===== round=1 profile_idx=0 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 0,
+        "step": 0,
+        "zoom_ratio": 0,
+        "focal_px": 1515.63,
+        "kp": 28,
+        "ki": 0,
+        "kd": 2,
+        "deadzone": 0.05,
+        "ptz_curve": 0.65,
+        "ptz_lead_ms": 150,
+        "max_pan": 35,
+        "max_tilt": 28,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 50,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=1 profile_idx=1 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 1,
+        "step": 1,
+        "zoom_ratio": 0.02,
+        "focal_px": 1959.44,
+        "kp": 27.64,
+        "ki": 0,
+        "kd": 1.98,
+        "deadzone": 0.0514,
+        "ptz_curve": 0.656,
+        "ptz_lead_ms": 149,
+        "max_pan": 35,
+        "max_tilt": 28,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 49,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=1 profile_idx=2 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 2,
+        "step": 2,
+        "zoom_ratio": 0.035,
+        "focal_px": 2314.24,
+        "kp": 27.37,
+        "ki": 0,
+        "kd": 1.965,
+        "deadzone": 0.05245,
+        "ptz_curve": 0.6605,
+        "ptz_lead_ms": 148,
+        "max_pan": 34,
+        "max_tilt": 27,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 49,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=1 profile_idx=3 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 3,
+        "step": 3,
+        "zoom_ratio": 0.062,
+        "focal_px": 2929.78,
+        "kp": 26.884,
+        "ki": 0,
+        "kd": 1.938,
+        "deadzone": 0.05434,
+        "ptz_curve": 0.6686,
+        "ptz_lead_ms": 146,
+        "max_pan": 33,
+        "max_tilt": 27,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 48,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=1 profile_idx=4 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 4,
+        "step": 4,
+        "zoom_ratio": 0.116,
+        "focal_px": 4150.11,
+        "kp": 25.912,
+        "ki": 0,
+        "kd": 1.884,
+        "deadzone": 0.05812,
+        "ptz_curve": 0.6848,
+        "ptz_lead_ms": 142,
+        "max_pan": 32,
+        "max_tilt": 26,
+        "max_accel": 7,
+        "min_pan": 4,
+        "min_tilt": 4,
+        "j_pulse_ms": 47,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=1 profile_idx=5 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 5,
+        "step": 5,
+        "zoom_ratio": 0.173,
+        "focal_px": 5450.06,
+        "kp": 24.886,
+        "ki": 0,
+        "kd": 1.827,
+        "deadzone": 0.06211,
+        "ptz_curve": 0.7019,
+        "ptz_lead_ms": 138,
+        "max_pan": 31,
+        "max_tilt": 25,
+        "max_accel": 7,
+        "min_pan": 4,
+        "min_tilt": 4,
+        "j_pulse_ms": 45,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=1 profile_idx=6 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 6,
+        "step": 6,
+        "zoom_ratio": 0.313,
+        "focal_px": 8622.24,
+        "kp": 22.366,
+        "ki": 0,
+        "kd": 1.687,
+        "deadzone": 0.07191,
+        "ptz_curve": 0.7439,
+        "ptz_lead_ms": 128,
+        "max_pan": 27,
+        "max_tilt": 22,
+        "max_accel": 6,
+        "min_pan": 5,
+        "min_tilt": 5,
+        "j_pulse_ms": 41,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=1 profile_idx=7 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 7,
+        "step": 7,
+        "zoom_ratio": 0.457,
+        "focal_px": 11880.5,
+        "kp": 19.774,
+        "ki": 0,
+        "kd": 1.543,
+        "deadzone": 0.08199,
+        "ptz_curve": 0.7871,
+        "ptz_lead_ms": 118,
+        "max_pan": 24,
+        "max_tilt": 20,
+        "max_accel": 5,
+        "min_pan": 5,
+        "min_tilt": 5,
+        "j_pulse_ms": 36,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=1 profile_idx=8 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 8,
+        "step": 8,
+        "zoom_ratio": 0.744,
+        "focal_px": 18398.1,
+        "kp": 14.608,
+        "ki": 0,
+        "kd": 1.256,
+        "deadzone": 0.10208,
+        "ptz_curve": 0.8732,
+        "ptz_lead_ms": 98,
+        "max_pan": 16,
+        "max_tilt": 15,
+        "max_accel": 4,
+        "min_pan": 7,
+        "min_tilt": 7,
+        "j_pulse_ms": 28,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=1 profile_idx=9 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 9,
+        "step": 9,
+        "zoom_ratio": 1,
+        "focal_px": 24194.4,
+        "kp": 10,
+        "ki": 0,
+        "kd": 1,
+        "deadzone": 0.12,
+        "ptz_curve": 0.95,
+        "ptz_lead_ms": 80,
+        "max_pan": 12,
+        "max_tilt": 12,
+        "max_accel": 2,
+        "min_pan": 8,
+        "min_tilt": 8,
+        "j_pulse_ms": 20,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=2 profile_idx=0 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 0,
+        "step": 0,
+        "zoom_ratio": 0,
+        "focal_px": 1515.63,
+        "kp": 28,
+        "ki": 0,
+        "kd": 2,
+        "deadzone": 0.05,
+        "ptz_curve": 0.65,
+        "ptz_lead_ms": 150,
+        "max_pan": 35,
+        "max_tilt": 28,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 50,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=2 profile_idx=1 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 1,
+        "step": 1,
+        "zoom_ratio": 0.02,
+        "focal_px": 1959.44,
+        "kp": 27.64,
+        "ki": 0,
+        "kd": 1.98,
+        "deadzone": 0.0514,
+        "ptz_curve": 0.656,
+        "ptz_lead_ms": 149,
+        "max_pan": 35,
+        "max_tilt": 28,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 49,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=2 profile_idx=2 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 2,
+        "step": 2,
+        "zoom_ratio": 0.035,
+        "focal_px": 2314.24,
+        "kp": 27.37,
+        "ki": 0,
+        "kd": 1.965,
+        "deadzone": 0.05245,
+        "ptz_curve": 0.6605,
+        "ptz_lead_ms": 148,
+        "max_pan": 34,
+        "max_tilt": 27,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 49,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=2 profile_idx=3 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 3,
+        "step": 3,
+        "zoom_ratio": 0.062,
+        "focal_px": 2929.78,
+        "kp": 26.884,
+        "ki": 0,
+        "kd": 1.938,
+        "deadzone": 0.05434,
+        "ptz_curve": 0.6686,
+        "ptz_lead_ms": 146,
+        "max_pan": 33,
+        "max_tilt": 27,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 48,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=2 profile_idx=4 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 4,
+        "step": 4,
+        "zoom_ratio": 0.116,
+        "focal_px": 4150.11,
+        "kp": 25.912,
+        "ki": 0,
+        "kd": 1.884,
+        "deadzone": 0.05812,
+        "ptz_curve": 0.6848,
+        "ptz_lead_ms": 142,
+        "max_pan": 32,
+        "max_tilt": 26,
+        "max_accel": 7,
+        "min_pan": 4,
+        "min_tilt": 4,
+        "j_pulse_ms": 47,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=2 profile_idx=5 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 5,
+        "step": 5,
+        "zoom_ratio": 0.173,
+        "focal_px": 5450.06,
+        "kp": 24.886,
+        "ki": 0,
+        "kd": 1.827,
+        "deadzone": 0.06211,
+        "ptz_curve": 0.7019,
+        "ptz_lead_ms": 138,
+        "max_pan": 31,
+        "max_tilt": 25,
+        "max_accel": 7,
+        "min_pan": 4,
+        "min_tilt": 4,
+        "j_pulse_ms": 45,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=2 profile_idx=6 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 6,
+        "step": 6,
+        "zoom_ratio": 0.313,
+        "focal_px": 8622.24,
+        "kp": 22.366,
+        "ki": 0,
+        "kd": 1.687,
+        "deadzone": 0.07191,
+        "ptz_curve": 0.7439,
+        "ptz_lead_ms": 128,
+        "max_pan": 27,
+        "max_tilt": 22,
+        "max_accel": 6,
+        "min_pan": 5,
+        "min_tilt": 5,
+        "j_pulse_ms": 41,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=2 profile_idx=7 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 7,
+        "step": 7,
+        "zoom_ratio": 0.457,
+        "focal_px": 11880.5,
+        "kp": 19.774,
+        "ki": 0,
+        "kd": 1.543,
+        "deadzone": 0.08199,
+        "ptz_curve": 0.7871,
+        "ptz_lead_ms": 118,
+        "max_pan": 24,
+        "max_tilt": 20,
+        "max_accel": 5,
+        "min_pan": 5,
+        "min_tilt": 5,
+        "j_pulse_ms": 36,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=2 profile_idx=8 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 8,
+        "step": 8,
+        "zoom_ratio": 0.744,
+        "focal_px": 18398.1,
+        "kp": 14.608,
+        "ki": 0,
+        "kd": 1.256,
+        "deadzone": 0.10208,
+        "ptz_curve": 0.8732,
+        "ptz_lead_ms": 98,
+        "max_pan": 16,
+        "max_tilt": 15,
+        "max_accel": 4,
+        "min_pan": 7,
+        "min_tilt": 7,
+        "j_pulse_ms": 28,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=2 profile_idx=9 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 9,
+        "step": 9,
+        "zoom_ratio": 1,
+        "focal_px": 24194.4,
+        "kp": 10,
+        "ki": 0,
+        "kd": 1,
+        "deadzone": 0.12,
+        "ptz_curve": 0.95,
+        "ptz_lead_ms": 80,
+        "max_pan": 12,
+        "max_tilt": 12,
+        "max_accel": 2,
+        "min_pan": 8,
+        "min_tilt": 8,
+        "j_pulse_ms": 20,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=3 profile_idx=0 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 0,
+        "step": 0,
+        "zoom_ratio": 0,
+        "focal_px": 1515.63,
+        "kp": 28,
+        "ki": 0,
+        "kd": 2,
+        "deadzone": 0.05,
+        "ptz_curve": 0.65,
+        "ptz_lead_ms": 150,
+        "max_pan": 35,
+        "max_tilt": 28,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 50,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=3 profile_idx=1 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 1,
+        "step": 1,
+        "zoom_ratio": 0.02,
+        "focal_px": 1959.44,
+        "kp": 27.64,
+        "ki": 0,
+        "kd": 1.98,
+        "deadzone": 0.0514,
+        "ptz_curve": 0.656,
+        "ptz_lead_ms": 149,
+        "max_pan": 35,
+        "max_tilt": 28,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 49,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=3 profile_idx=2 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 2,
+        "step": 2,
+        "zoom_ratio": 0.035,
+        "focal_px": 2314.24,
+        "kp": 27.37,
+        "ki": 0,
+        "kd": 1.965,
+        "deadzone": 0.05245,
+        "ptz_curve": 0.6605,
+        "ptz_lead_ms": 148,
+        "max_pan": 34,
+        "max_tilt": 27,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 49,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=3 profile_idx=3 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 3,
+        "step": 3,
+        "zoom_ratio": 0.062,
+        "focal_px": 2929.78,
+        "kp": 26.884,
+        "ki": 0,
+        "kd": 1.938,
+        "deadzone": 0.05434,
+        "ptz_curve": 0.6686,
+        "ptz_lead_ms": 146,
+        "max_pan": 33,
+        "max_tilt": 27,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 48,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=3 profile_idx=4 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 4,
+        "step": 4,
+        "zoom_ratio": 0.116,
+        "focal_px": 4150.11,
+        "kp": 25.912,
+        "ki": 0,
+        "kd": 1.884,
+        "deadzone": 0.05812,
+        "ptz_curve": 0.6848,
+        "ptz_lead_ms": 142,
+        "max_pan": 32,
+        "max_tilt": 26,
+        "max_accel": 7,
+        "min_pan": 4,
+        "min_tilt": 4,
+        "j_pulse_ms": 47,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=3 profile_idx=5 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 5,
+        "step": 5,
+        "zoom_ratio": 0.173,
+        "focal_px": 5450.06,
+        "kp": 24.886,
+        "ki": 0,
+        "kd": 1.827,
+        "deadzone": 0.06211,
+        "ptz_curve": 0.7019,
+        "ptz_lead_ms": 138,
+        "max_pan": 31,
+        "max_tilt": 25,
+        "max_accel": 7,
+        "min_pan": 4,
+        "min_tilt": 4,
+        "j_pulse_ms": 45,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=3 profile_idx=6 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 6,
+        "step": 6,
+        "zoom_ratio": 0.313,
+        "focal_px": 8622.24,
+        "kp": 22.366,
+        "ki": 0,
+        "kd": 1.687,
+        "deadzone": 0.07191,
+        "ptz_curve": 0.7439,
+        "ptz_lead_ms": 128,
+        "max_pan": 27,
+        "max_tilt": 22,
+        "max_accel": 6,
+        "min_pan": 5,
+        "min_tilt": 5,
+        "j_pulse_ms": 41,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=3 profile_idx=7 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 7,
+        "step": 7,
+        "zoom_ratio": 0.457,
+        "focal_px": 11880.5,
+        "kp": 19.774,
+        "ki": 0,
+        "kd": 1.543,
+        "deadzone": 0.08199,
+        "ptz_curve": 0.7871,
+        "ptz_lead_ms": 118,
+        "max_pan": 24,
+        "max_tilt": 20,
+        "max_accel": 5,
+        "min_pan": 5,
+        "min_tilt": 5,
+        "j_pulse_ms": 36,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=3 profile_idx=8 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 8,
+        "step": 8,
+        "zoom_ratio": 0.744,
+        "focal_px": 18398.1,
+        "kp": 14.608,
+        "ki": 0,
+        "kd": 1.256,
+        "deadzone": 0.10208,
+        "ptz_curve": 0.8732,
+        "ptz_lead_ms": 98,
+        "max_pan": 16,
+        "max_tilt": 15,
+        "max_accel": 4,
+        "min_pan": 7,
+        "min_tilt": 7,
+        "j_pulse_ms": 28,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=3 profile_idx=9 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 9,
+        "step": 9,
+        "zoom_ratio": 1,
+        "focal_px": 24194.4,
+        "kp": 10,
+        "ki": 0,
+        "kd": 1,
+        "deadzone": 0.12,
+        "ptz_curve": 0.95,
+        "ptz_lead_ms": 80,
+        "max_pan": 12,
+        "max_tilt": 12,
+        "max_accel": 2,
+        "min_pan": 8,
+        "min_tilt": 8,
+        "j_pulse_ms": 20,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=4 profile_idx=0 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 0,
+        "step": 0,
+        "zoom_ratio": 0,
+        "focal_px": 1515.63,
+        "kp": 28,
+        "ki": 0,
+        "kd": 2,
+        "deadzone": 0.05,
+        "ptz_curve": 0.65,
+        "ptz_lead_ms": 150,
+        "max_pan": 35,
+        "max_tilt": 28,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 50,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=4 profile_idx=1 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 1,
+        "step": 1,
+        "zoom_ratio": 0.02,
+        "focal_px": 1959.44,
+        "kp": 27.64,
+        "ki": 0,
+        "kd": 1.98,
+        "deadzone": 0.0514,
+        "ptz_curve": 0.656,
+        "ptz_lead_ms": 149,
+        "max_pan": 35,
+        "max_tilt": 28,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 49,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=4 profile_idx=2 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 2,
+        "step": 2,
+        "zoom_ratio": 0.035,
+        "focal_px": 2314.24,
+        "kp": 27.37,
+        "ki": 0,
+        "kd": 1.965,
+        "deadzone": 0.05245,
+        "ptz_curve": 0.6605,
+        "ptz_lead_ms": 148,
+        "max_pan": 34,
+        "max_tilt": 27,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 49,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=4 profile_idx=3 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 3,
+        "step": 3,
+        "zoom_ratio": 0.062,
+        "focal_px": 2929.78,
+        "kp": 26.884,
+        "ki": 0,
+        "kd": 1.938,
+        "deadzone": 0.05434,
+        "ptz_curve": 0.6686,
+        "ptz_lead_ms": 146,
+        "max_pan": 33,
+        "max_tilt": 27,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 48,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=4 profile_idx=4 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 4,
+        "step": 4,
+        "zoom_ratio": 0.116,
+        "focal_px": 4150.11,
+        "kp": 25.912,
+        "ki": 0,
+        "kd": 1.884,
+        "deadzone": 0.05812,
+        "ptz_curve": 0.6848,
+        "ptz_lead_ms": 142,
+        "max_pan": 32,
+        "max_tilt": 26,
+        "max_accel": 7,
+        "min_pan": 4,
+        "min_tilt": 4,
+        "j_pulse_ms": 47,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=4 profile_idx=5 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 5,
+        "step": 5,
+        "zoom_ratio": 0.173,
+        "focal_px": 5450.06,
+        "kp": 24.886,
+        "ki": 0,
+        "kd": 1.827,
+        "deadzone": 0.06211,
+        "ptz_curve": 0.7019,
+        "ptz_lead_ms": 138,
+        "max_pan": 31,
+        "max_tilt": 25,
+        "max_accel": 7,
+        "min_pan": 4,
+        "min_tilt": 4,
+        "j_pulse_ms": 45,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=4 profile_idx=6 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 6,
+        "step": 6,
+        "zoom_ratio": 0.313,
+        "focal_px": 8622.24,
+        "kp": 22.366,
+        "ki": 0,
+        "kd": 1.687,
+        "deadzone": 0.07191,
+        "ptz_curve": 0.7439,
+        "ptz_lead_ms": 128,
+        "max_pan": 27,
+        "max_tilt": 22,
+        "max_accel": 6,
+        "min_pan": 5,
+        "min_tilt": 5,
+        "j_pulse_ms": 41,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=4 profile_idx=7 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 7,
+        "step": 7,
+        "zoom_ratio": 0.457,
+        "focal_px": 11880.5,
+        "kp": 19.774,
+        "ki": 0,
+        "kd": 1.543,
+        "deadzone": 0.08199,
+        "ptz_curve": 0.7871,
+        "ptz_lead_ms": 118,
+        "max_pan": 24,
+        "max_tilt": 20,
+        "max_accel": 5,
+        "min_pan": 5,
+        "min_tilt": 5,
+        "j_pulse_ms": 36,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=4 profile_idx=8 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 8,
+        "step": 8,
+        "zoom_ratio": 0.744,
+        "focal_px": 18398.1,
+        "kp": 14.608,
+        "ki": 0,
+        "kd": 1.256,
+        "deadzone": 0.10208,
+        "ptz_curve": 0.8732,
+        "ptz_lead_ms": 98,
+        "max_pan": 16,
+        "max_tilt": 15,
+        "max_accel": 4,
+        "min_pan": 7,
+        "min_tilt": 7,
+        "j_pulse_ms": 28,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=4 profile_idx=9 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 9,
+        "step": 9,
+        "zoom_ratio": 1,
+        "focal_px": 24194.4,
+        "kp": 10,
+        "ki": 0,
+        "kd": 1,
+        "deadzone": 0.12,
+        "ptz_curve": 0.95,
+        "ptz_lead_ms": 80,
+        "max_pan": 12,
+        "max_tilt": 12,
+        "max_accel": 2,
+        "min_pan": 8,
+        "min_tilt": 8,
+        "j_pulse_ms": 20,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=5 profile_idx=0 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 0,
+        "step": 0,
+        "zoom_ratio": 0,
+        "focal_px": 1515.63,
+        "kp": 28,
+        "ki": 0,
+        "kd": 2,
+        "deadzone": 0.05,
+        "ptz_curve": 0.65,
+        "ptz_lead_ms": 150,
+        "max_pan": 35,
+        "max_tilt": 28,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 50,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=5 profile_idx=1 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 1,
+        "step": 1,
+        "zoom_ratio": 0.02,
+        "focal_px": 1959.44,
+        "kp": 27.64,
+        "ki": 0,
+        "kd": 1.98,
+        "deadzone": 0.0514,
+        "ptz_curve": 0.656,
+        "ptz_lead_ms": 149,
+        "max_pan": 35,
+        "max_tilt": 28,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 49,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=5 profile_idx=2 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 2,
+        "step": 2,
+        "zoom_ratio": 0.035,
+        "focal_px": 2314.24,
+        "kp": 27.37,
+        "ki": 0,
+        "kd": 1.965,
+        "deadzone": 0.05245,
+        "ptz_curve": 0.6605,
+        "ptz_lead_ms": 148,
+        "max_pan": 34,
+        "max_tilt": 27,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 49,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=5 profile_idx=3 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 3,
+        "step": 3,
+        "zoom_ratio": 0.062,
+        "focal_px": 2929.78,
+        "kp": 26.884,
+        "ki": 0,
+        "kd": 1.938,
+        "deadzone": 0.05434,
+        "ptz_curve": 0.6686,
+        "ptz_lead_ms": 146,
+        "max_pan": 33,
+        "max_tilt": 27,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 48,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=5 profile_idx=4 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 4,
+        "step": 4,
+        "zoom_ratio": 0.116,
+        "focal_px": 4150.11,
+        "kp": 25.912,
+        "ki": 0,
+        "kd": 1.884,
+        "deadzone": 0.05812,
+        "ptz_curve": 0.6848,
+        "ptz_lead_ms": 142,
+        "max_pan": 32,
+        "max_tilt": 26,
+        "max_accel": 7,
+        "min_pan": 4,
+        "min_tilt": 4,
+        "j_pulse_ms": 47,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=5 profile_idx=5 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 5,
+        "step": 5,
+        "zoom_ratio": 0.173,
+        "focal_px": 5450.06,
+        "kp": 24.886,
+        "ki": 0,
+        "kd": 1.827,
+        "deadzone": 0.06211,
+        "ptz_curve": 0.7019,
+        "ptz_lead_ms": 138,
+        "max_pan": 31,
+        "max_tilt": 25,
+        "max_accel": 7,
+        "min_pan": 4,
+        "min_tilt": 4,
+        "j_pulse_ms": 45,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=5 profile_idx=6 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 6,
+        "step": 6,
+        "zoom_ratio": 0.313,
+        "focal_px": 8622.24,
+        "kp": 22.366,
+        "ki": 0,
+        "kd": 1.687,
+        "deadzone": 0.07191,
+        "ptz_curve": 0.7439,
+        "ptz_lead_ms": 128,
+        "max_pan": 27,
+        "max_tilt": 22,
+        "max_accel": 6,
+        "min_pan": 5,
+        "min_tilt": 5,
+        "j_pulse_ms": 41,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=5 profile_idx=7 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 7,
+        "step": 7,
+        "zoom_ratio": 0.457,
+        "focal_px": 11880.5,
+        "kp": 19.774,
+        "ki": 0,
+        "kd": 1.543,
+        "deadzone": 0.08199,
+        "ptz_curve": 0.7871,
+        "ptz_lead_ms": 118,
+        "max_pan": 24,
+        "max_tilt": 20,
+        "max_accel": 5,
+        "min_pan": 5,
+        "min_tilt": 5,
+        "j_pulse_ms": 36,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=5 profile_idx=8 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 8,
+        "step": 8,
+        "zoom_ratio": 0.744,
+        "focal_px": 18398.1,
+        "kp": 14.608,
+        "ki": 0,
+        "kd": 1.256,
+        "deadzone": 0.10208,
+        "ptz_curve": 0.8732,
+        "ptz_lead_ms": 98,
+        "max_pan": 16,
+        "max_tilt": 15,
+        "max_accel": 4,
+        "min_pan": 7,
+        "min_tilt": 7,
+        "j_pulse_ms": 28,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+===== round=5 profile_idx=9 =====
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 9,
+        "step": 9,
+        "zoom_ratio": 1,
+        "focal_px": 24194.4,
+        "kp": 10,
+        "ki": 0,
+        "kd": 1,
+        "deadzone": 0.12,
+        "ptz_curve": 0.95,
+        "ptz_lead_ms": 80,
+        "max_pan": 12,
+        "max_tilt": 12,
+        "max_accel": 2,
+        "min_pan": 8,
+        "min_tilt": 8,
+        "j_pulse_ms": 20,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}

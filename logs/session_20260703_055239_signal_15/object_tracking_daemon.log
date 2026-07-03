@@ -1,0 +1,30 @@
+{"event": "daemon_start", "pid": 254518, "ts": 1783057936.482}
+{"event": "daemon_start", "pid": 254518, "ts": 1783057936.482}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057936.483}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057936.483}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057937.484}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057937.484}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057938.484}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057938.484}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057939.486}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057939.486}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057940.487}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057940.487}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057941.488}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057941.488}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057942.489}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057942.489}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057943.49}
+{"armed": false, "event": "idle_disarmed", "preset": "airplane_single", "single_auto": true, "ts": 1783057943.49}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783057944.491}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783057944.491}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783057945.492}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783057945.492}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783057946.493}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1783057946.493}
+{"cmd": ["/usr/bin/python3", "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/apply_ptz_object_preset.py", "--preset", "car_single", "--arm", "force", "--strategy", "preset", "--watch"], "event": "child_start", "pid": 254837, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1783057947.494}
+{"cmd": ["/usr/bin/python3", "/root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/apply_ptz_object_preset.py", "--preset", "car_single", "--arm", "force", "--strategy", "preset", "--watch"], "event": "child_start", "pid": 254837, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1783057947.494}
+{"event": "armed_running", "pid": 254837, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1783057948.495}
+{"event": "armed_running", "pid": 254837, "preset": "car_single", "search_preset": "lost_step_wait", "ts": 1783057948.495}
+{"event": "child_stop", "pid": 254837, "preset": "car_single::lost_step_wait", "reason": "ptzArmed_false", "ts": 1783057959.516}
+{"event": "child_stop", "pid": 254837, "preset": "car_single::lost_step_wait", "reason": "ptzArmed_false", "ts": 1783057959.516}

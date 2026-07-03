@@ -1,5 +1,5 @@
 {
-  "ts": 1783056623,
+  "ts": 1783058052,
   "pass": 121,
   "fail": 1,
   "results": [
@@ -16,7 +16,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=7066"
+      "detail": "size=7087"
     },
     {
       "name": "file exists: launcher.sh",
@@ -306,7 +306,7 @@
     {
       "name": "Settings activeObjectPreset API/FILE match",
       "ok": true,
-      "detail": "api=bird_single file=bird_single"
+      "detail": "api=airplane_single file=airplane_single"
     },
     {
       "name": "Settings activeSearchPreset API/FILE match",
@@ -326,12 +326,12 @@
     {
       "name": "Settings active custom preset exists",
       "ok": true,
-      "detail": "active=bird_single"
+      "detail": "active=airplane_single"
     },
     {
       "name": "Settings top-level limit matches active preset",
       "ok": true,
-      "detail": "settings=10 preset=10"
+      "detail": "settings=8 preset=8"
     },
     {
       "name": "Settings top-level detect_every matches active preset",
@@ -371,7 +371,7 @@
     {
       "name": "Detector max_detections matches active preset",
       "ok": true,
-      "detail": "backend=10 preset=10"
+      "detail": "backend=8 preset=8"
     },
     {
       "name": "Detector detect_every matches active preset",
@@ -386,7 +386,7 @@
     {
       "name": "Detector classes match active preset",
       "ok": true,
-      "detail": "backend=[14] preset=[14]"
+      "detail": "backend=[4] preset=[4]"
     },
     {
       "name": "PTZ autopilot reachable",
@@ -481,17 +481,17 @@
     {
       "name": "Runtime zoom sample matches autopilot active sample",
       "ok": true,
-      "detail": "zoom=6 ap_zoom=6"
+      "detail": "zoom=1 ap_zoom=1"
     },
     {
       "name": "Runtime PTZ speed profile matches active zoom sample",
       "ok": true,
-      "detail": "ap_profile=6 ap_zoom=6 source=user"
+      "detail": "ap_profile=1 ap_zoom=1 source=user"
     },
     {
       "name": "Runtime zoom event sample/speed coherence",
       "ok": false,
-      "detail": "speed profile_idx mismatch profile=0 actual=6; speed profile_idx mismatch profile=0 actual=7; speed profile_idx mismatch profile=0 actual=6; speed profile_idx mismatch profile=0 actual=7; speed profile_idx mismatch profile=0 actual=6"
+      "detail": "speed profile_idx mismatch profile=0 actual=1; speed profile_idx mismatch profile=0 actual=1; speed profile_idx mismatch profile=0 actual=1; speed profile_idx mismatch profile=0 actual=1; speed profile_idx mismatch profile=0 actual=1"
     },
     {
       "name": "Runtime contract marker PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_START",
