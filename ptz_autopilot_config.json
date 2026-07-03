@@ -1,8 +1,8 @@
 {
-  "kp": 28,
+  "kp": 27.64,
   "ki": 0,
-  "kd": 2,
-  "deadzone": 0.05,
+  "kd": 1.98,
+  "deadzone": 0.0514,
   "max_pan": 35,
   "max_tilt": 28,
   "max_accel": 8,

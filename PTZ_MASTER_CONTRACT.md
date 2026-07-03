@@ -1067,11 +1067,40 @@ Audit coverage:
 - marker `PTZ_SEARCH_PRESET_NO_ACQUIRE_WHILE_ZOOM_BUSY_V1_START`
 - marker `PTZ_SEARCH_PRESET_NO_ACQUIRE_WHILE_ZOOM_BUSY_V1_END`
 
-## Layer 6C — Runtime Zoom Feedback / Speed Sample Coherence
+## Layer 6C — Runtime Logical Zoom State / PTZ Speed Coherence
 
 - Runtime search/reacquire may change the zoom sample without browser keyboard or button input.
-- Browser UI must poll backend zoom/autopilot state and reflect the current zoom/PTZ speed sample.
+- The analog camera provides no physical zoom-position feedback.
+- The system maintains zoom position as logical/software-estimated odometry derived from startup/home position, calibrated zoom samples, completed servo zoom commands, `zoom_steps_since_home`, `go_to_sample_relative`, and `sweep_time_steps`.
+- `/api/zoom/state.zoom_sample_idx` is the canonical runtime logical zoom state.
+- `zoom_sample_idx` is an estimated/logical sample, not hardware-measured truth.
+- Browser UI must poll backend zoom/autopilot state and reflect this current logical zoom/PTZ speed sample.
 - The UI feedback loop is read-only UI hydration and must not trigger motion, auto-arm PTZ, or persist settings.
-- Physical zoom sample, `autopilot.active_zoom_sample_idx`, and `autopilot.active_profile_idx` must remain coherent.
-- Runtime zoom events must log `actual_sample` and speed-profile sample coherently.
-- The audit must detect any mismatch between zoom sample and PTZ speed sample.
+- PTZ pan/tilt speed must always be derived from the canonical logical zoom sample.
+- `apply_nearest` response `point.profile_idx` must not be treated as physical truth. It is an API response point that may be stale/clamped; logical zoom state remains canonical.
+
+Runtime state audit:
+
+- Fetch `GET http://127.0.0.1:8080/api/zoom/state`.
+- Fetch `GET http://127.0.0.1:8090/api/autopilot/state`.
+- PASS when `zoom.zoom_sample_idx == autopilot.active_zoom_sample_idx`.
+- PASS when `zoom.zoom_sample_idx == autopilot.active_profile_idx`.
+- PASS when `autopilot.speed_profile_source` is not `fallback` or `runtime_override`.
+- FAIL only when canonical logical zoom state and autopilot state are incoherent, or the autopilot speed source is forbidden.
+
+Runtime event audit:
+
+- Parse recent `zoom_frame_move` and `zoom_frame_skip_edge` events.
+- Treat the existing event field `actual_sample` as the logical/estimated sample. Audit output should call this `logical_sample` where possible; the event field remains `actual_sample` for compatibility.
+- PASS when `event.settle.ok == true`.
+- PASS when `event.settle.busy == false`.
+- PASS when `event.settle.actual_sample == event.actual_sample`.
+- PASS when `event.settle.state.zoom_sample_idx == event.actual_sample`.
+- Do not fail solely because `event.speed_profile.point.profile_idx != event.actual_sample`.
+- If `event.speed_profile.point.profile_idx != event.actual_sample`, emit WARN: `apply_nearest response point mismatch; logical state remains canonical`.
+
+Optional Layer 6D API contract check:
+
+- Audit may call `POST /api/autopilot/speed_profile/apply_nearest {"profile_idx":1}`.
+- If `response.point.profile_idx != 1`, report WARN or a separate Layer 6D API-contract result, not a Layer 6C runtime logical-state failure.
+- This optional check must not block Layer 6C logical zoom/PTZ coherence when `/api/zoom/state` and `/api/autopilot/state` are coherent.

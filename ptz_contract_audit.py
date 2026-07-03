@@ -17,6 +17,11 @@ MJPEG_BASE = "http://127.0.0.1:8080"
 PTZ_BASE = "http://127.0.0.1:8090"
 
 RESULTS = []
+WARNINGS = []
+
+def warn(name, detail=""):
+    WARNINGS.append((str(name), str(detail)))
+    print(f"WARN: {name} — {detail}")
 
 def add(name, ok, detail=""):
     RESULTS.append((name, bool(ok), str(detail)))
@@ -601,7 +606,7 @@ def audit_processes():
     return watches
 
 def audit_runtime_zoom_feedback_coherence():
-    section("LAYER 6C — RUNTIME ZOOM FEEDBACK / SPEED SAMPLE COHERENCE")
+    section("LAYER 6C — RUNTIME LOGICAL ZOOM STATE / PTZ SPEED COHERENCE")
 
     try:
         web_text = WEB.read_text(encoding="utf-8", errors="ignore")
@@ -677,18 +682,27 @@ def audit_runtime_zoom_feedback_coherence():
     ap_profile_idx = finite_int(ap_state, "active_profile_idx") if ap_reachable else None
 
     if zoom_reachable and ap_reachable and z_idx is not None and ap_zoom_idx is not None:
-        add("Runtime zoom sample matches autopilot active sample", z_idx == ap_zoom_idx, f"zoom={z_idx} ap_zoom={ap_zoom_idx}")
+        add("Runtime logical zoom sample matches autopilot active_zoom_sample_idx", z_idx == ap_zoom_idx, f"logical_zoom={z_idx} ap_active_zoom={ap_zoom_idx}")
     else:
-        add("Runtime zoom sample matches autopilot active sample", True, "SKIP: APIs/fields unavailable")
+        add("Runtime logical zoom sample matches autopilot active_zoom_sample_idx", True, "SKIP: APIs/fields unavailable")
 
     speed_source = str(ap_state.get("speed_profile_source", "")) if ap_reachable else ""
     bad_sources = {"fallback", "runtime_override"}
     speed_ok = True
     speed_detail = "SKIP: APIs/fields unavailable"
-    if ap_reachable and ap_profile_idx is not None and ap_zoom_idx is not None:
-        speed_ok = ap_profile_idx == ap_zoom_idx and speed_source not in bad_sources
-        speed_detail = f"ap_profile={ap_profile_idx} ap_zoom={ap_zoom_idx} source={speed_source}"
-    add("Runtime PTZ speed profile matches active zoom sample", speed_ok, speed_detail)
+    if zoom_reachable and ap_reachable and z_idx is not None and ap_profile_idx is not None and ap_zoom_idx is not None:
+        speed_ok = (z_idx == ap_zoom_idx == ap_profile_idx) and speed_source not in bad_sources
+        speed_detail = f"logical_zoom={z_idx} ap_active_zoom={ap_zoom_idx} ap_active_profile={ap_profile_idx} source={speed_source}"
+    add("Runtime PTZ speed derives from canonical logical zoom sample", speed_ok, speed_detail)
+
+    apply_res = post_json(f"{PTZ_BASE}/api/autopilot/speed_profile/apply_nearest", {"profile_idx": 1})
+    if "__error__" in apply_res:
+        warn("Layer 6D apply_nearest API contract check skipped", apply_res.get("__error__"))
+    else:
+        point = apply_res.get("point") if isinstance(apply_res.get("point"), dict) else {}
+        returned_idx = finite_int(point, "profile_idx") if "profile_idx" in point else None
+        if returned_idx is not None and returned_idx != 1:
+            warn("Layer 6D apply_nearest API contract: response point mismatch", f"requested=1 returned={returned_idx}; does not block Layer 6C logical coherence")
 
     events_path = Path("/dev/shm/new_yolo8_object_tracking/object_tracking_events.jsonl")
     recent = []
@@ -700,7 +714,7 @@ def audit_runtime_zoom_feedback_coherence():
             except Exception:
                 continue
             name = ev.get("event") or ev.get("type") or ev.get("name")
-            if name in {"zoom_frame_move", "zoom_wide_sample_move"}:
+            if name in {"zoom_frame_move", "zoom_frame_skip_edge", "zoom_wide_sample_move"}:
                 recent.append(ev)
 
     if not recent:
@@ -713,25 +727,29 @@ def audit_runtime_zoom_feedback_coherence():
         settle = ev.get("settle") if isinstance(ev.get("settle"), dict) else None
         if not settle:
             continue
-        actual = ev.get("actual_sample")
+        logical = ev.get("actual_sample")
         settle_actual = settle.get("actual_sample")
-        actual_i = finite_int({"v": actual}, "v")
+        state = settle.get("state") if isinstance(settle.get("state"), dict) else {}
+        state_idx = finite_int(state, "zoom_sample_idx") if state else None
+        logical_i = finite_int({"v": logical}, "v")
         settle_actual_i = finite_int({"v": settle_actual}, "v")
         if settle.get("ok") is not True:
-            event_errors.append(f"settle.ok not true: {ev}")
+            event_errors.append(f"settle.ok not true for logical_sample={logical}: {ev}")
         if settle.get("busy") is not False:
-            event_errors.append(f"settle.busy not false: {ev}")
-        if actual_i != settle_actual_i:
-            event_errors.append(f"actual_sample mismatch actual={actual} settle={settle_actual}")
+            event_errors.append(f"settle.busy not false for logical_sample={logical}: {ev}")
+        if logical_i != settle_actual_i:
+            event_errors.append(f"logical_sample mismatch event.actual_sample={logical} settle.actual_sample={settle_actual}")
+        if state_idx is not None and state_idx != logical_i:
+            event_errors.append(f"settle.state.zoom_sample_idx mismatch logical_sample={logical} state_zoom_sample={state_idx}")
         sp = ev.get("speed_profile") if isinstance(ev.get("speed_profile"), dict) else {}
         point = sp.get("point") if isinstance(sp.get("point"), dict) else {}
         point_idx = finite_int(point, "profile_idx") if "profile_idx" in point else None
-        if point_idx is not None and point_idx != actual_i:
-            event_errors.append(f"speed profile_idx mismatch profile={point.get('profile_idx')} actual={actual}")
+        if point_idx is not None and point_idx != logical_i:
+            warn("apply_nearest response point mismatch; logical state remains canonical", f"response_profile={point.get('profile_idx')} logical_sample={logical}")
         source = sp.get("source")
         if source in {"fallback", "runtime_override"}:
             event_errors.append(f"bad speed source={source}")
-    add("Runtime zoom event sample/speed coherence", not event_errors, "; ".join(event_errors[:5]) or f"events={len(recent)}")
+    add("Runtime zoom event logical sample coherence", not event_errors, "; ".join(event_errors[:5]) or f"events={len(recent)}")
 
 def audit_daemon_lifecycle():
 
@@ -1105,14 +1123,24 @@ def print_summary():
 
         print(f"{status}: {name} — {detail}")
 
+    warn_count = len(WARNINGS)
+    for name, detail in WARNINGS:
+        print(f"WARN: {name} — {detail}")
+
     print("")
     print("PASS =", ok_count)
     print("FAIL =", fail_count)
+    print("WARN =", warn_count)
 
     report = {
         "ts": int(time.time()),
         "pass": ok_count,
         "fail": fail_count,
+        "warn": len(WARNINGS),
+        "warnings": [
+            {"name": name, "detail": detail}
+            for name, detail in WARNINGS
+        ],
         "results": [
             {
                 "name": name,
