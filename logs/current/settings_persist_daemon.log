@@ -3175,3 +3175,5 @@
 2026-07-03 08:09:06 skip persist: runtime armed ptzArmed=True controlMode=ptz
 2026-07-03 08:09:08 skip persist: runtime armed ptzArmed=True controlMode=ptz
 2026-07-03 08:09:10 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-03 08:43:23 settings persist daemon stop
+2026-07-03 08:43:42 settings persist daemon start

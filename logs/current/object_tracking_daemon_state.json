@@ -1,7 +1,7 @@
 {
-  "ts": 1783066151.188,
-  "event": "child_stop",
-  "reason": "ptzArmed_false",
-  "preset": "airplane_single::lost_step_wait",
-  "pid": 552460
+  "ts": 1783068223.482,
+  "event": "idle_disarmed",
+  "preset": "airplane_single",
+  "armed": false,
+  "single_auto": true
 }

@@ -2487,7 +2487,7 @@ static std::vector<TargetCandidateScore> score_target_candidates(const std::vect
   for (const auto& b : boxes) {
     if (b.id == 0) continue;
     live.insert(b.id);
-    TargetHistoryPoint hp;
+    TrackHistoryPoint hp;
     hp.ts=now; hp.cx=((b.left+b.right)*0.5)/std::max(1,frameW); hp.cy=((b.top+b.bottom)*0.5)/std::max(1,frameH);
     hp.w=std::max(0,b.right-b.left)/(double)std::max(1,frameW); hp.h=std::max(0,b.bottom-b.top)/(double)std::max(1,frameH);
     hp.area=hp.w*hp.h; hp.conf=clamp01(b.prop); hp.cls=b.cls_id;
