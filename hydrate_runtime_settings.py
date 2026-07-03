@@ -11,6 +11,31 @@ PTZ_BASE = 'http://127.0.0.1:8090'
 
 DEFAULT_MODEL = '/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn'
 
+
+# PTZ_TARGET_POLICY_PROFILES_V1_START
+DEFAULT_TARGET_POLICY_PROFILES = {
+    'moving_near_sticky': {
+        'min_motion_norm': 0.015, 'min_visible_frames': 3, 'lost_frames_before_switch': 8,
+        'switch_after_sec': 1.5, 'switch_score_margin': 0.35,
+        'weights': {'motion': 0.35, 'size': 0.25, 'confidence': 0.20, 'stability': 0.10, 'center': 0.10},
+        'prediction': {'enabled': True, 'velocity_ema_alpha': 0.35, 'lead_sec': 0.18, 'max_prediction_offset': 0.12, 'min_history_points': 3},
+        'auto_zoom_after_lock': {'enabled_after_lock_frames': 5, 'target_box_height': 0.30, 'deadzone': 0.08},
+    },
+    'nearest_stable': {
+        'min_motion_norm': 0.015, 'min_visible_frames': 3, 'lost_frames_before_switch': 8,
+        'switch_after_sec': 1.5, 'switch_score_margin': 0.35,
+        'weights': {'motion': 0.10, 'size': 0.45, 'confidence': 0.20, 'stability': 0.15, 'center': 0.10},
+        'prediction': {'enabled': True, 'velocity_ema_alpha': 0.35, 'lead_sec': 0.18, 'max_prediction_offset': 0.12, 'min_history_points': 3},
+    },
+    'fastest_stable': {
+        'min_motion_norm': 0.015, 'min_visible_frames': 3, 'lost_frames_before_switch': 8,
+        'switch_after_sec': 1.5, 'switch_score_margin': 0.35,
+        'weights': {'motion': 0.55, 'size': 0.15, 'confidence': 0.10, 'stability': 0.20, 'center': 0.00},
+        'prediction': {'enabled': True, 'velocity_ema_alpha': 0.35, 'lead_sec': 0.18, 'max_prediction_offset': 0.12, 'min_history_points': 3},
+    },
+}
+# PTZ_TARGET_POLICY_PROFILES_V1_END
+
 CANONICAL_PRESETS = {
     'person_single': {
         'label': 'ЧЕЛОВЕК', 'classes': [0], 'detection_mode': 'full_frame',
@@ -32,6 +57,7 @@ CANONICAL_PRESETS = {
         'label': 'МАШИНА', 'classes': [2, 3, 5, 7], 'detection_mode': 'full_frame',
         'max_detections': 8, 'max_raw_candidates': 40, 'detect_every_n_frames': 1,
         'tracking_mode': 'single_auto', 'loss_behavior': 'continuous_wide_scan_x',
+        'targetPolicyProfile': 'moving_near_sticky',
         'ptz': {'target_x': 0.5, 'target_y': 0.5, 'auto_zoom_enable': True,
                 'auto_zoom_target_h': 0.48, 'auto_zoom_deadzone': 0.10,
                 'auto_zoom_cmd': 8, 'auto_zoom_sign': 1, 'auto_zoom_period_ms': 450}
@@ -139,6 +165,8 @@ def normalize_preset(name, preset, model):
     out.setdefault('detect_every_n_frames', 1)
     out.setdefault('tracking_mode', 'single_auto')
     out.setdefault('loss_behavior', 'continuous_wide_scan_x')
+    if out.get('tracking_mode') == 'single_auto':
+        out.setdefault('targetPolicyProfile', 'moving_near_sticky')
     out.setdefault('ptz', {})
     return out
 
@@ -180,6 +208,7 @@ def apply_active_preset_to_runtime(merged, active_preset):
     merged['operatorDetectionAreaMode'] = str(active_preset.get('detection_mode') or 'full_frame')
     merged['objectPresetTrackingMode'] = active_preset.get('tracking_mode') or 'single_auto'
     merged['objectPresetLossBehavior'] = active_preset.get('loss_behavior') or 'continuous_wide_scan_x'
+    merged['targetPolicyProfile'] = active_preset.get('targetPolicyProfile') or ('moving_near_sticky' if merged['objectPresetTrackingMode'] == 'single_auto' else '')
 
 
 def post_active_preset_to_backends(active_preset):
@@ -205,6 +234,12 @@ def post_active_preset_to_backends(active_preset):
         'detection_mode': str(active_preset.get('detection_mode') or 'full_frame'),
         'rois': [],
     }, timeout=4)
+
+    profile_name = active_preset.get('targetPolicyProfile') or ('moving_near_sticky' if active_preset.get('tracking_mode') == 'single_auto' else '')
+    if profile_name:
+        profile = dict(DEFAULT_TARGET_POLICY_PROFILES.get(profile_name) or {})
+        pred = profile.pop('prediction', {}) or {}
+        post_json(f'{MJPEG_BASE}/api/tracker/target_policy', {**profile, **pred, 'targetPolicyProfile': profile_name, 'prediction_enabled': bool(pred.get('enabled', True))}, timeout=4)
 
     ptz = active_preset.get('ptz') or {}
     if ptz:
@@ -235,6 +270,7 @@ def main():
     merged = dict(file_settings)
     merged.update(runtime_settings)
     merged['objectPresetsCustom'] = custom
+    merged['targetPolicyProfiles'] = {**DEFAULT_TARGET_POLICY_PROFILES, **(merged.get('targetPolicyProfiles') or {})}
 
     active = (
         file_settings.get('activeObjectPreset')
@@ -257,6 +293,7 @@ def main():
         'label': active_preset.get('label') or active,
         'tracking_mode': active_preset.get('tracking_mode') or 'single_auto',
         'loss_behavior': active_preset.get('loss_behavior') or 'continuous_wide_scan_x',
+        'targetPolicyProfile': active_preset.get('targetPolicyProfile') or 'moving_near_sticky',
         'ts': int(time.time()),
         'source': 'hydrate_runtime_settings',
     }

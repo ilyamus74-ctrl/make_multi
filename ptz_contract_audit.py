@@ -55,6 +55,12 @@ def post_json(url, body, timeout=3):
     except Exception as e:
         return {"__error__": str(e)}
 
+def read_text(path):
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return ""
+
 def read_json_file(path):
     try:
         return json.loads(path.read_text(encoding="utf-8", errors="replace"))
@@ -1211,6 +1217,31 @@ def audit_launcher():
         print(c, "=", count)
         add(f"Launcher token {c}", count > 0, f"count={count}")
 
+def audit_layer7_target_policy():
+    section("LAYER 7 — TARGET POLICY / STICKY SELECTION / PREDICTIVE CENTERING")
+    files = {name: read_text(ROOT / name) for name in ["mjpeg_gst_http.cpp", "ptz_autopilot.cpp", "hydrate_runtime_settings.py", "ui_settings.json", "PTZ_MASTER_CONTRACT.md"]}
+    for marker in [
+        "PTZ_TARGET_POLICY_PROFILES_V1_START", "PTZ_TARGET_POLICY_PROFILES_V1_END",
+        "PTZ_SINGLE_TARGET_STICKY_SELECTION_V1_START", "PTZ_SINGLE_TARGET_STICKY_SELECTION_V1_END",
+        "PTZ_TARGET_MOVING_PRIORITY_V1_START", "PTZ_TARGET_MOVING_PRIORITY_V1_END",
+        "PTZ_PREDICTIVE_CENTERING_V1_START", "PTZ_PREDICTIVE_CENTERING_V1_END",
+    ]:
+        add(f"Layer 7 marker {marker}", any(marker in v for v in files.values()), "present" if any(marker in v for v in files.values()) else "missing")
+    settings = read_json_file(SETTINGS_FILE)
+    profiles = settings.get("targetPolicyProfiles") or {}
+    custom = settings.get("objectPresetsCustom") or {}
+    add("targetPolicyProfiles exists", all(k in profiles for k in ["moving_near_sticky", "nearest_stable", "fastest_stable"]), f"profiles={sorted(profiles.keys())}")
+    add("car_single references moving_near_sticky", (custom.get("car_single") or {}).get("targetPolicyProfile") == "moving_near_sticky", str((custom.get("car_single") or {}).get("targetPolicyProfile")))
+    code = files.get("mjpeg_gst_http.cpp", "") + files.get("ptz_autopilot.cpp", "")
+    add("Predictive fields supported in code", all(t in code for t in ["predicted_cx", "predicted_cy", "target_vx", "target_motion_norm"]), "predictive field tokens checked")
+    tr = get_json(f"{MJPEG_BASE}/api/tracker/state")
+    if "__error__" in tr:
+        warn("Layer 7 runtime tracker unavailable", tr.get("__error__"))
+    elif not tr.get("selected_box_valid") and not tr.get("selected_track_id"):
+        warn("Layer 7 runtime predictive field check skipped", "no detections/tracks currently active")
+    else:
+        add("Runtime exposes selected/predictive target fields", all(k in tr for k in ["selected_track_id", "predicted_cx", "predicted_cy", "target_policy_profile"]), f"keys={sorted(tr.keys())}")
+
 def print_summary():
     section("SUMMARY")
 
@@ -1277,6 +1308,7 @@ def main():
     audit_launcher()
     audit_runtime_zoom_feedback_coherence()
     audit_daemon_lifecycle()
+    audit_layer7_target_policy()
 
     fail_count = print_summary()
 

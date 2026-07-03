@@ -111,6 +111,20 @@ enum class TrackerMode {
   Reacquire
 };
 
+struct TargetPolicyRuntime {
+  std::string profile = "moving_near_sticky";
+  double min_motion_norm = 0.015;
+  int min_visible_frames = 3;
+  int lost_frames_before_switch = 8;
+  double switch_after_sec = 1.5;
+  double switch_score_margin = 0.35;
+  bool prediction_enabled = true;
+  double velocity_ema_alpha = 0.35;
+  double lead_sec = 0.18;
+  double max_prediction_offset = 0.12;
+  int min_history_points = 3;
+};
+
 struct TrackerRuntimeState {
   uint64_t selected_track_id = 0;
   bool has_selected_track = false;
@@ -121,6 +135,12 @@ struct TrackerRuntimeState {
   int lost_frames = 0;
   int max_lost_frames = 12;
   std::chrono::steady_clock::time_point last_seen_ts{};
+  double selected_cx = 0.0, selected_cy = 0.0, selected_w = 0.0, selected_h = 0.0, selected_area = 0.0;
+  double predicted_cx = 0.0, predicted_cy = 0.0, target_vx = 0.0, target_vy = 0.0;
+  double target_motion_norm = 0.0, target_selection_score = 0.0;
+  bool predicted_center_valid = false;
+  std::string target_policy_profile = "moving_near_sticky";
+  std::string target_switch_reason;
 };
 
 enum class DetectionMode {
@@ -148,6 +168,8 @@ static std::atomic<uint64_t> g_nextTrackId{1};
 static std::atomic<int> g_trackRetentionFrames{30};
 static std::mutex g_trackerStateMtx;
 static TrackerRuntimeState g_trackerState;
+static std::mutex g_targetPolicyMtx;
+static TargetPolicyRuntime g_targetPolicy;
 static std::mutex g_roiMtx;
 static DetectionMode g_detectionMode = DetectionMode::FullFrame;
 static std::vector<DetectionRoi> g_detectionRois;
@@ -2437,29 +2459,105 @@ static void load_detection_throttle() {
   g_detectEveryNFrames = std::max(1, std::min(30, detectEvery));
 }
 
+
+// PTZ_SINGLE_TARGET_STICKY_SELECTION_V1_START
+// PTZ_TARGET_MOVING_PRIORITY_V1_START
+// PTZ_PREDICTIVE_CENTERING_V1_START
+struct TargetCandidateScore {
+  DetectionBox box{};
+  double cx=0, cy=0, w=0, h=0, area=0, vx=0, vy=0, motion_norm=0, score=0;
+  int visible_frames=0;
+  bool moving=false;
+};
+struct TrackHistoryPoint { double ts=0,cx=0,cy=0,w=0,h=0,area=0,conf=0; int cls=-1; };
+static std::mutex g_trackHistoryMtx;
+static std::unordered_map<uint64_t, std::deque<TrackHistoryPoint>> g_trackHistory;
+static std::unordered_map<uint64_t, std::pair<double,double>> g_trackVelocityEma;
+static std::unordered_map<uint64_t, std::chrono::steady_clock::time_point> g_switchBetterSince;
+
+static double steady_sec_now() { return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count(); }
+static double clamp01(double v) { return std::max(0.0, std::min(1.0, v)); }
+
+static std::vector<TargetCandidateScore> score_target_candidates(const std::vector<DetectionBox>& boxes, int frameW, int frameH, const TargetPolicyRuntime& policy) {
+  std::vector<TargetCandidateScore> out;
+  const double now = steady_sec_now();
+  const double alpha = std::max(0.0, std::min(1.0, policy.velocity_ema_alpha));
+  std::lock_guard<std::mutex> lk(g_trackHistoryMtx);
+  std::set<uint64_t> live;
+  for (const auto& b : boxes) {
+    if (b.id == 0) continue;
+    live.insert(b.id);
+    TargetHistoryPoint hp;
+    hp.ts=now; hp.cx=((b.left+b.right)*0.5)/std::max(1,frameW); hp.cy=((b.top+b.bottom)*0.5)/std::max(1,frameH);
+    hp.w=std::max(0,b.right-b.left)/(double)std::max(1,frameW); hp.h=std::max(0,b.bottom-b.top)/(double)std::max(1,frameH);
+    hp.area=hp.w*hp.h; hp.conf=clamp01(b.prop); hp.cls=b.cls_id;
+    auto& hist=g_trackHistory[b.id]; hist.push_back(hp); while(hist.size()>12) hist.pop_front();
+    double vx=0, vy=0;
+    if (hist.size()>=2) { const auto& a=hist[hist.size()-2]; double dt=std::max(0.001,hp.ts-a.ts); vx=(hp.cx-a.cx)/dt; vy=(hp.cy-a.cy)/dt; }
+    auto &ema=g_trackVelocityEma[b.id]; ema.first=ema.first*(1-alpha)+vx*alpha; ema.second=ema.second*(1-alpha)+vy*alpha;
+    TargetCandidateScore c; c.box=b; c.cx=hp.cx; c.cy=hp.cy; c.w=hp.w; c.h=hp.h; c.area=hp.area; c.vx=ema.first; c.vy=ema.second;
+    c.motion_norm=std::sqrt(c.vx*c.vx+c.vy*c.vy); c.visible_frames=(int)hist.size(); c.moving=c.motion_norm>=policy.min_motion_norm;
+    double motionScore=clamp01(c.motion_norm/std::max(0.001, policy.min_motion_norm*4.0));
+    double sizeScore=clamp01(std::sqrt(std::max(0.0,c.area))*4.0);
+    double confScore=clamp01(hp.conf);
+    double stabilityScore=clamp01(c.visible_frames/(double)std::max(1, policy.min_visible_frames));
+    double centerScore=1.0-clamp01(std::sqrt((c.cx-0.5)*(c.cx-0.5)+(c.cy-0.5)*(c.cy-0.5))/0.7071);
+    c.score=0.35*motionScore+0.25*sizeScore+0.20*confScore+0.10*stabilityScore+0.10*centerScore;
+    if (policy.profile=="moving_near_sticky") c.score += c.moving ? 0.15 : -0.20;
+    else if (policy.profile=="nearest_stable") c.score = 0.45*sizeScore+0.25*stabilityScore+0.20*confScore+0.10*centerScore;
+    else if (policy.profile=="fastest_stable") c.score = 0.55*motionScore+0.20*stabilityScore+0.15*sizeScore+0.10*confScore;
+    if (c.visible_frames < policy.min_visible_frames && c.area < 0.0025) c.score -= 0.25;
+    out.push_back(c);
+  }
+  for (auto it=g_trackHistory.begin(); it!=g_trackHistory.end();) { if(!live.count(it->first) && it->second.size()>24) it=g_trackHistory.erase(it); else ++it; }
+  return out;
+}
+// PTZ_TARGET_MOVING_PRIORITY_V1_END
+// PTZ_PREDICTIVE_CENTERING_V1_END
+
 static void update_tracker_runtime_state(const std::vector<DetectionBox>& boxes, uint64_t frameId) {
+  TargetPolicyRuntime policy; { std::lock_guard<std::mutex> plk(g_targetPolicyMtx); policy = g_targetPolicy; }
+  const int frameW = std::max(1, g_lastFrameWidth.load());
+  const int frameH = std::max(1, g_lastFrameHeight.load());
+  auto candidates = score_target_candidates(boxes, frameW, frameH, policy);
+  std::sort(candidates.begin(), candidates.end(), [](const auto& a, const auto& b){ return a.score > b.score; });
+
   std::lock_guard<std::mutex> lk(g_trackerStateMtx);
   g_trackerState.last_frame_id = frameId;
-  if (g_trackerState.selected_track_id == 0 || !g_trackerState.has_selected_track) {
-    g_trackerState.mode = TrackerMode::Idle;
-    g_trackerState.selected_box_valid = false;
-    return;
-  }
-  for (const auto& box : boxes) {
-    if (box.id == g_trackerState.selected_track_id) {
-      g_trackerState.mode = TrackerMode::Tracking;
-      g_trackerState.selected_box = box;
-      g_trackerState.selected_box_valid = true;
-      g_trackerState.lost_frames = 0;
-      g_trackerState.last_seen_ts = std::chrono::steady_clock::now();
-      return;
+  g_trackerState.target_policy_profile = policy.profile;
+  const auto now = std::chrono::steady_clock::now();
+  auto findCand=[&](uint64_t id)->TargetCandidateScore*{ for(auto& c:candidates) if(c.box.id==id) return &c; return nullptr; };
+  TargetCandidateScore* cur = (g_trackerState.selected_track_id>0) ? findCand(g_trackerState.selected_track_id) : nullptr;
+  std::string reason;
+  if (!cur) {
+    g_trackerState.lost_frames++;
+    if (g_trackerState.lost_frames == 1 && g_trackerState.selected_track_id) append_ops_event("target_lost", "{\"selected_track_id\":"+std::to_string(g_trackerState.selected_track_id)+"}");
+    if (!candidates.empty() && (!g_trackerState.has_selected_track || g_trackerState.lost_frames >= policy.lost_frames_before_switch)) {
+      g_trackerState.selected_track_id = candidates.front().box.id; g_trackerState.has_selected_track = true; cur = &candidates.front(); reason = g_trackerState.lost_frames>0 ? "lost_reacquire" : "initial_lock"; g_trackerState.lost_frames = 0;
+      append_ops_event(reason=="initial_lock"?"target_selection":"target_reacquired", "{\"selected_track_id\":"+std::to_string(g_trackerState.selected_track_id)+",\"policy\":\""+policy.profile+"\"}");
     }
+  } else if (!candidates.empty() && candidates.front().box.id != g_trackerState.selected_track_id && candidates.front().score >= cur->score + policy.switch_score_margin) {
+    auto& since = g_switchBetterSince[candidates.front().box.id]; if (since.time_since_epoch().count()==0) since=now;
+    if (std::chrono::duration<double>(now-since).count() >= policy.switch_after_sec) {
+      uint64_t oldId = g_trackerState.selected_track_id; g_trackerState.selected_track_id = candidates.front().box.id; cur=&candidates.front(); reason="better_candidate_margin"; g_switchBetterSince.clear();
+      append_ops_event("target_switch", "{\"selected_track_id\":"+std::to_string(g_trackerState.selected_track_id)+",\"old_track_id\":"+std::to_string(oldId)+",\"switch_reason\":\""+reason+"\",\"policy\":\""+policy.profile+"\"}");
+    }
+  } else { g_switchBetterSince.clear(); }
+
+  if (!cur) { g_trackerState.mode = g_trackerState.has_selected_track ? TrackerMode::Lost : TrackerMode::Idle; g_trackerState.selected_box_valid=false; g_trackerState.predicted_center_valid=false; return; }
+  g_trackerState.mode=TrackerMode::Tracking; g_trackerState.selected_box=cur->box; g_trackerState.selected_box_valid=true; g_trackerState.has_selected_track=true; g_trackerState.last_seen_ts=now;
+  g_trackerState.selected_cx=cur->cx; g_trackerState.selected_cy=cur->cy; g_trackerState.selected_w=cur->w; g_trackerState.selected_h=cur->h; g_trackerState.selected_area=cur->area;
+  g_trackerState.target_vx=cur->vx; g_trackerState.target_vy=cur->vy; g_trackerState.target_motion_norm=cur->motion_norm; g_trackerState.target_selection_score=cur->score; g_trackerState.target_switch_reason=reason;
+  g_trackerState.predicted_center_valid=false; g_trackerState.predicted_cx=cur->cx; g_trackerState.predicted_cy=cur->cy;
+  if (policy.prediction_enabled && cur->visible_frames >= policy.min_history_points) {
+    double pcx=cur->cx+cur->vx*policy.lead_sec, pcy=cur->cy+cur->vy*policy.lead_sec;
+    double dx=std::max(-policy.max_prediction_offset,std::min(policy.max_prediction_offset,pcx-cur->cx));
+    double dy=std::max(-policy.max_prediction_offset,std::min(policy.max_prediction_offset,pcy-cur->cy));
+    g_trackerState.predicted_cx=clamp01(cur->cx+dx); g_trackerState.predicted_cy=clamp01(cur->cy+dy); g_trackerState.predicted_center_valid=true;
   }
-  g_trackerState.lost_frames++;
-  g_trackerState.selected_box_valid = false;
-  g_trackerState.mode = (g_trackerState.lost_frames <= g_trackerState.max_lost_frames)
-      ? TrackerMode::Lost : TrackerMode::Reacquire;
+  append_ops_event("target_selection", "{\"selected_track_id\":"+std::to_string(g_trackerState.selected_track_id)+",\"candidate_count\":"+std::to_string(candidates.size())+",\"class_id\":"+std::to_string(cur->box.cls_id)+",\"conf\":"+std::to_string(cur->box.prop)+",\"cx\":"+std::to_string(cur->cx)+",\"cy\":"+std::to_string(cur->cy)+",\"w\":"+std::to_string(cur->w)+",\"h\":"+std::to_string(cur->h)+",\"area\":"+std::to_string(cur->area)+",\"predicted_cx\":"+std::to_string(g_trackerState.predicted_cx)+",\"predicted_cy\":"+std::to_string(g_trackerState.predicted_cy)+",\"vx\":"+std::to_string(cur->vx)+",\"vy\":"+std::to_string(cur->vy)+",\"motion_norm\":"+std::to_string(cur->motion_norm)+",\"score\":"+std::to_string(cur->score)+",\"switch_reason\":\""+reason+"\",\"policy\":\""+policy.profile+"\"}");
 }
+// PTZ_SINGLE_TARGET_STICKY_SELECTION_V1_END
 
 static std::vector<DetectionBox> nms_detection_boxes(const std::vector<DetectionBox>& boxes, float iou_threshold) {
   std::vector<DetectionBox> sorted = boxes, out;
@@ -2511,7 +2609,17 @@ static std::string detections_json() {
      << ",\"tracker\":{\"mode\":\"" << tracker_mode_str(tr.mode) << "\""
      << ",\"selected_track_id\":" << tr.selected_track_id
      << ",\"selected_box_valid\":" << (tr.selected_box_valid ? "true" : "false")
-     << ",\"lost_frames\":" << tr.lost_frames << "}"
+     << ",\"lost_frames\":" << tr.lost_frames
+     << ",\"selected_cx\":" << tr.selected_cx
+     << ",\"selected_cy\":" << tr.selected_cy
+     << ",\"predicted_cx\":" << tr.predicted_cx
+     << ",\"predicted_cy\":" << tr.predicted_cy
+     << ",\"target_vx\":" << tr.target_vx
+     << ",\"target_vy\":" << tr.target_vy
+     << ",\"target_motion_norm\":" << tr.target_motion_norm
+     << ",\"target_selection_score\":" << tr.target_selection_score
+     << ",\"target_policy_profile\":\"" << tr.target_policy_profile << "\""
+     << ",\"target_switch_reason\":\"" << tr.target_switch_reason << "\"}"
      << ",\"confidence\":{\"frameId\":" << confFrameId
      << ",\"hasTrack\":" << (hasTrack ? "true" : "false")
      << ",\"l0_detector\":" << l0
@@ -3408,6 +3516,17 @@ static void handle_client(int cfd, const Opts& o) {
        << ",\"lost_frames\":" << tr.lost_frames
        << ",\"max_lost_frames\":" << tr.max_lost_frames
        << ",\"frameId\":" << tr.last_frame_id
+       << ",\"selected_cx\":" << tr.selected_cx
+       << ",\"selected_cy\":" << tr.selected_cy
+       << ",\"predicted_cx\":" << tr.predicted_cx
+       << ",\"predicted_cy\":" << tr.predicted_cy
+       << ",\"target_vx\":" << tr.target_vx
+       << ",\"target_vy\":" << tr.target_vy
+       << ",\"target_motion_norm\":" << tr.target_motion_norm
+       << ",\"target_selection_score\":" << tr.target_selection_score
+       << ",\"target_policy_profile\":\"" << tr.target_policy_profile << "\""
+       << ",\"target_switch_reason\":\"" << tr.target_switch_reason << "\""
+       << ",\"candidate_scores\":[]"
        << ",\"box\":";
     if (tr.selected_box_valid) {
       os << "{\"id\":" << tr.selected_box.id << ",\"cls\":" << tr.selected_box.cls_id
@@ -4021,6 +4140,28 @@ static void handle_client(int cfd, const Opts& o) {
     std::string hdr = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
     send_all(cfd, hdr.data(), hdr.size()); send_all(cfd, body.data(), body.size()); ::close(cfd); return;
   }
+
+  if (path == "/api/tracker/target_policy" && method == "POST") {
+    const std::string payload = trim(bodyReq);
+    TargetPolicyRuntime np; { std::lock_guard<std::mutex> lk(g_targetPolicyMtx); np = g_targetPolicy; }
+    std::string prof = extract_json_string_field(payload, "targetPolicyProfile"); if (prof.empty()) prof = extract_json_string_field(payload, "profile");
+    if (!prof.empty()) np.profile = prof;
+    extract_json_double_field(payload, "min_motion_norm", &np.min_motion_norm);
+    extract_json_int_field(payload, "min_visible_frames", &np.min_visible_frames);
+    extract_json_int_field(payload, "lost_frames_before_switch", &np.lost_frames_before_switch);
+    extract_json_double_field(payload, "switch_after_sec", &np.switch_after_sec);
+    extract_json_double_field(payload, "switch_score_margin", &np.switch_score_margin);
+    extract_json_double_field(payload, "velocity_ema_alpha", &np.velocity_ema_alpha);
+    extract_json_double_field(payload, "lead_sec", &np.lead_sec);
+    extract_json_double_field(payload, "max_prediction_offset", &np.max_prediction_offset);
+    extract_json_int_field(payload, "min_history_points", &np.min_history_points);
+    bool pb=false; if (extract_json_bool_field(payload, "prediction_enabled", &pb) || extract_json_bool_field(payload, "enabled", &pb)) np.prediction_enabled = pb;
+    { std::lock_guard<std::mutex> lk(g_targetPolicyMtx); g_targetPolicy = np; }
+    std::string body = std::string("{\"ok\":true,\"target_policy_profile\":\"") + json_escape(np.profile) + "\"}";
+    std::string hdr = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\nConnection: close\r\nContent-Length: " + std::to_string(body.size()) + "\r\n\r\n";
+    send_all(cfd, hdr.data(), hdr.size()); send_all(cfd, body.data(), body.size()); ::close(cfd); return;
+  }
+
   if (path == "/api/tracker/config" && method == "POST") {
     int maxLost = 12;
     extract_json_int_field(trim(bodyReq), "max_lost_frames", &maxLost);

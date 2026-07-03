@@ -1122,3 +1122,15 @@ Audit coverage:
 - marker `PTZ_AUDIT_NON_DESTRUCTIVE_PRESET_RESTORE_V1_START`
 - marker `PTZ_AUDIT_NON_DESTRUCTIVE_PRESET_RESTORE_V1_END`
 - PASS `Audit restored active detector preset after lifecycle`
+
+## Layer 7 — Single Target Selection and Predictive Centering
+
+Target selection is not an autopilot preset. It belongs to the detector/tracker layer and is configured by target policy profiles stored in settings as `targetPolicyProfiles`.
+
+Object presets may reference a target policy profile using `targetPolicyProfile`. The default for `car_single` is `moving_near_sticky`; legacy single-object presets with no explicit policy use `moving_near_sticky` for `single_auto` tracking.
+
+For `single_auto`, the runtime selects exactly one target. The current target is sticky and is retained until it is lost for `lost_frames_before_switch`, or until a better candidate exceeds `switch_score_margin` continuously for `switch_after_sec`.
+
+The `moving_near_sticky` profile prefers moving, near/large, stable tracks. Confidence contributes to the score, but movement and size must dominate confidence. If no moving object is available, selection falls back to size/center/stability/confidence.
+
+PTZ centering should use the predicted target center when the tracker exposes a valid prediction. The raw bbox center remains the fallback.

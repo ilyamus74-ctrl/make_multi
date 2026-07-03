@@ -115,6 +115,23 @@ def http_json(method, url, payload=None, timeout=3):
     return json.loads(raw)
 
 
+
+
+def apply_target_policy_profile(settings, preset):
+    # PTZ_TARGET_POLICY_PROFILES_V1_START
+    name = preset.get("targetPolicyProfile") or ("moving_near_sticky" if preset.get("tracking_mode") == "single_auto" else "")
+    profiles = settings.get("targetPolicyProfiles") or {}
+    profile = dict(profiles.get(name) or {})
+    prediction = dict(profile.pop("prediction", {}) or {})
+    if not name:
+        return
+    payload = {**profile, **prediction, "targetPolicyProfile": name, "prediction_enabled": bool(prediction.get("enabled", True))}
+    try:
+        post_json(f"{MJPEG_BASE}/api/tracker/target_policy", payload, timeout=3)
+        event_log("target_policy_applied", targetPolicyProfile=name)
+    except Exception as e:
+        event_log("target_policy_apply_warn", targetPolicyProfile=name, error=str(e))
+    # PTZ_TARGET_POLICY_PROFILES_V1_END
 def get_json(url, timeout=3):
     return http_json("GET", url, None, timeout)
 
@@ -1564,6 +1581,7 @@ def merge_settings(settings, preset_name, preset, ptz_armed=None):
 
     out["objectPresetTrackingMode"] = str(preset.get("tracking_mode") or "manual_select")
     out["objectPresetLossBehavior"] = str(preset.get("loss_behavior") or "once_fail_stop")
+    out["targetPolicyProfile"] = str(preset.get("targetPolicyProfile") or ("moving_near_sticky" if out["objectPresetTrackingMode"] == "single_auto" else ""))
 
     if ptz_armed is not None:
         out["ptzArmed"] = bool(ptz_armed)
@@ -1582,6 +1600,7 @@ def merge_settings(settings, preset_name, preset, ptz_armed=None):
         "label": preset.get("label") or preset_name,
         "tracking_mode": preset.get("tracking_mode") or "manual_select",
         "loss_behavior": preset.get("loss_behavior") or "once_fail_stop",
+        "targetPolicyProfile": preset.get("targetPolicyProfile") or ("moving_near_sticky" if (preset.get("tracking_mode") or "") == "single_auto" else ""),
         "ts": int(time.time())
     }
 
@@ -1849,6 +1868,7 @@ def main_inner():
         set_active=not args.no_set_active,
         ptz_armed=should_arm if args.arm == "force" else None
     )
+    apply_target_policy_profile(settings, preset)
 
     arm_result = None
 
