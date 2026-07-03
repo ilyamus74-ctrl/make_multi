@@ -1,8 +1,8 @@
 {
-  "ts": 1783061865,
-  "pass": 88,
-  "fail": 37,
-  "warn": 45,
+  "ts": 1783062732,
+  "pass": 124,
+  "fail": 0,
+  "warn": 37,
   "warnings": [
     {
       "name": "Layer 6D apply_nearest API contract: response point mismatch",
@@ -18,6 +18,10 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
+      "detail": "response_profile=0 logical_sample=1"
+    },
+    {
+      "name": "apply_nearest response point mismatch; logical state remains canonical",
       "detail": "response_profile=0 logical_sample=2"
     },
     {
@@ -30,7 +34,7 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -38,11 +42,7 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
-    },
-    {
-      "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -50,7 +50,7 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -58,7 +58,7 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -66,7 +66,7 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -74,7 +74,7 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -82,7 +82,7 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -90,7 +90,7 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -98,7 +98,7 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -106,7 +106,7 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -114,7 +114,7 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -122,7 +122,7 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -130,11 +130,7 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
-    },
-    {
-      "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
@@ -142,47 +138,19 @@
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=1"
     },
     {
       "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
-    },
-    {
-      "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
-    },
-    {
-      "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
-    },
-    {
-      "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
-    },
-    {
-      "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
-    },
-    {
-      "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
-    },
-    {
-      "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=3"
-    },
-    {
-      "name": "apply_nearest response point mismatch; logical state remains canonical",
-      "detail": "response_profile=0 logical_sample=2"
+      "detail": "response_profile=0 logical_sample=1"
     }
   ],
   "results": [
@@ -199,7 +167,7 @@
     {
       "name": "file exists: ui_settings.json",
       "ok": true,
-      "detail": "size=7053"
+      "detail": "size=6360"
     },
     {
       "name": "file exists: launcher.sh",
@@ -297,179 +265,174 @@
       "detail": "count=12"
     },
     {
-      "name": "UI JS contract web/index.html readable",
-      "ok": false,
-      "detail": "[Errno 2] No such file or directory: 'web/index.html'"
-    },
-    {
       "name": "UI detection JS marker PTZ_CLEAN_DETECTION_UI_HYDRATE_F5_START",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=1"
     },
     {
       "name": "UI detection JS marker PTZ_CLEAN_DETECTION_ACTIVE_PRESET_PERSIST_START",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=1"
     },
     {
       "name": "UI detection JS marker hydrateDetectionControlsFromSettings",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=5"
     },
     {
       "name": "UI detection JS marker scheduleDetectionUiHydrate",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=2"
     },
     {
       "name": "UI detection JS marker persistActiveDetectionControlsToPreset",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=4"
     },
     {
       "name": "UI detection JS marker schedulePersistActiveDetectionControlsToPreset",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=3"
     },
     {
       "name": "UI saveSettings preserves objectPresetsCustom fallback",
-      "ok": false,
+      "ok": true,
       "detail": "requires OBJECT_PRESETS fallback when before.objectPresetsCustom is empty"
     },
     {
       "name": "UI detection controls persist to active object preset",
-      "ok": false,
-      "detail": "missing=['max_detections', 'detect_every_n_frames', 'detection_mode', 'activeObjectPreset', 'objectPresetsCustom']"
+      "ok": true,
+      "detail": "missing=[]"
     },
     {
       "name": "Keyboard Q/A sweep marker PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_START",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=1"
     },
     {
       "name": "Keyboard Q/A sweep marker PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_END",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=1"
     },
     {
       "name": "Keyboard Q/A sweep marker ptzQaSweepProfileIdxStep",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=5"
     },
     {
       "name": "Keyboard Q/A sweep marker keyboard_Q_profile_idx_sweep",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=1"
     },
     {
       "name": "Keyboard Q/A sweep marker keyboard_A_profile_idx_sweep",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=1"
     },
     {
       "name": "Keyboard Q/A sweep moves real backend zoom sample",
-      "ok": false,
-      "detail": "go_to_sample=False profile_idx_target=False"
+      "ok": true,
+      "detail": "go_to_sample=True profile_idx_target=True"
     },
     {
       "name": "Keyboard Q/A sweep does not rely on sample_idx target",
-      "ok": false,
+      "ok": true,
       "detail": "canonical request key must be profile_idx"
     },
     {
       "name": "Keyboard Q/A sweep applies PTZ speed profile by profile_idx",
-      "ok": false,
-      "detail": "apply_nearest=False profile_idx_final=False"
+      "ok": true,
+      "detail": "apply_nearest=True profile_idx_final=True"
     },
     {
       "name": "Keyboard Q/A sweep owns event before older handlers",
-      "ok": false,
-      "detail": "capture_stop=False"
+      "ok": true,
+      "detail": "capture_stop=True"
     },
     {
       "name": "Keyboard Q/A sample step respects ZOOM CALIB Movement",
-      "ok": false,
-      "detail": "movement_marker=False owns_both_modes=False"
+      "ok": true,
+      "detail": "movement_marker=True owns_both_modes=True"
     },
     {
       "name": "Keyboard arrow marker ptzKeyboardCaptureDirection",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=3"
     },
     {
       "name": "Keyboard arrow marker ptzKeyboardCaptureEnabled",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=3"
     },
     {
       "name": "Keyboard arrow marker window.__ptzKeyCaptureInstalled",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=1"
     },
     {
       "name": "Keyboard arrow marker ArrowLeft",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=4"
     },
     {
       "name": "Keyboard arrow marker ArrowRight",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=4"
     },
     {
       "name": "Keyboard arrow marker ArrowUp",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=4"
     },
     {
       "name": "Keyboard arrow marker ArrowDown",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=4"
     },
     {
       "name": "Keyboard arrow marker keyboard_left",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=5"
     },
     {
       "name": "Keyboard arrow marker keyboard_right",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=5"
     },
     {
       "name": "Keyboard arrow marker keyboard_up",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=3"
     },
     {
       "name": "Keyboard arrow marker keyboard_down",
-      "ok": false,
-      "detail": "count=0"
+      "ok": true,
+      "detail": "count=3"
     },
     {
       "name": "Keyboard arrows own PTZ pan/tilt directions",
-      "ok": false,
-      "detail": "block=False all_directions=False"
+      "ok": true,
+      "detail": "block=True all_directions=True"
     },
     {
       "name": "Keyboard arrows are gated to PTZ mode",
-      "ok": false,
-      "detail": "ptz_mode_guard=False"
+      "ok": true,
+      "detail": "ptz_mode_guard=True"
     },
     {
       "name": "Keyboard arrows capture keydown before browser/page handlers",
-      "ok": false,
-      "detail": "capture_keydown=False"
+      "ok": true,
+      "detail": "capture_keydown=True"
     },
     {
       "name": "Keyboard arrows capture keyup and release movement",
-      "ok": false,
-      "detail": "capture_keyup=False release_stop=False"
+      "ok": true,
+      "detail": "capture_keyup=True release_stop=True"
     },
     {
       "name": "Keyboard arrows have backend/manual motion path",
-      "ok": false,
-      "detail": "motion_path=False"
+      "ok": true,
+      "detail": "motion_path=True"
     },
     {
       "name": "Settings API reachable",
@@ -503,13 +466,13 @@
     },
     {
       "name": "Settings FILE ptzArmed false",
-      "ok": false,
-      "detail": "file=True"
+      "ok": true,
+      "detail": "file=False"
     },
     {
       "name": "Settings FILE controlMode manual",
-      "ok": false,
-      "detail": "file=ptz"
+      "ok": true,
+      "detail": "file=manual"
     },
     {
       "name": "Settings active custom preset exists",
@@ -669,17 +632,17 @@
     {
       "name": "Runtime logical zoom sample matches autopilot active_zoom_sample_idx",
       "ok": true,
-      "detail": "logical_zoom=2 ap_active_zoom=2"
+      "detail": "logical_zoom=0 ap_active_zoom=0"
     },
     {
       "name": "Runtime PTZ speed derives from canonical logical zoom sample",
       "ok": true,
-      "detail": "logical_zoom=2 ap_active_zoom=2 ap_active_profile=2 source=user"
+      "detail": "logical_zoom=0 ap_active_zoom=0 ap_active_profile=0 source=user"
     },
     {
       "name": "Runtime zoom event logical sample coherence",
       "ok": true,
-      "detail": "events=50"
+      "detail": "events=49"
     },
     {
       "name": "Runtime contract marker PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_START",

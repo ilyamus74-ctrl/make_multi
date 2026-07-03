@@ -1,0 +1,530 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import json
+import subprocess
+import time
+import urllib.request
+import os
+import signal
+
+ROOT = Path("/root/new_yolo8")
+WEB = ROOT / "web/index.html"
+SETTINGS_FILE = ROOT / "ui_settings.json"
+
+MJPEG_BASE = "http://127.0.0.1:8080"
+PTZ_BASE = "http://127.0.0.1:8090"
+
+RESULTS = []
+
+def add(name, ok, detail=""):
+    RESULTS.append((name, bool(ok), str(detail)))
+
+def section(name):
+    print("")
+    print("=" * 100)
+    print(name)
+    print("=" * 100)
+
+def get_json(url, timeout=3):
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            raw = r.read().decode("utf-8", errors="replace")
+        return json.loads(raw) if raw.strip() else {}
+    except Exception as e:
+        return {"__error__": str(e)}
+
+def post_json(url, body, timeout=3):
+    try:
+        data = json.dumps(body).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            raw = r.read().decode("utf-8", errors="replace")
+        return json.loads(raw) if raw.strip() else {}
+    except Exception as e:
+        return {"__error__": str(e)}
+
+def read_json_file(path):
+    try:
+        return json.loads(path.read_text(encoding="utf-8", errors="replace"))
+    except Exception as e:
+        return {"__error__": str(e)}
+
+def ps_lines():
+    out = subprocess.run(
+        ["ps", "ax", "-o", "pid=,args="],
+        text=True,
+        capture_output=True
+    ).stdout
+
+    return [line.strip() for line in out.splitlines() if line.strip()]
+
+def find_processes(pattern):
+    out = []
+
+    for line in ps_lines():
+        parts = line.split(None, 1)
+
+        if len(parts) != 2:
+            continue
+
+        try:
+            pid = int(parts[0])
+        except Exception:
+            continue
+
+        args = parts[1]
+
+        if pid == os.getpid():
+            continue
+
+        if pattern in args:
+            out.append((pid, args))
+
+    return out
+
+def active_custom_preset(settings):
+    active = settings.get("activeObjectPreset")
+    custom = settings.get("objectPresetsCustom") or {}
+
+    if not active:
+        return active, {}
+
+    return active, custom.get(active) or {}
+
+def normalize_list_numbers(x):
+    out = []
+
+    for item in x or []:
+        try:
+            out.append(int(item))
+        except Exception:
+            pass
+
+    return sorted(out)
+
+def audit_files():
+    section("FILES")
+
+    files = [
+        "PTZ_MASTER_CONTRACT.md",
+        "web/index.html",
+        "ui_settings.json",
+        "launcher.sh",
+        "hydrate_runtime_settings.py",
+        "settings_persist_daemon.py",
+        "object_tracking_daemon.py",
+        "apply_ptz_object_preset.py",
+        "mjpeg_gst_http.cpp",
+        "ptz_autopilot.cpp"
+    ]
+
+    for f in files:
+        p = ROOT / f
+        exists = p.exists()
+        size = p.stat().st_size if exists else 0
+        print(f"{f}: exists={exists} size={size}")
+        add(f"file exists: {f}", exists, f"size={size}")
+
+def audit_ui():
+    section("LAYER 1 — BROWSER UI")
+
+    if not WEB.exists():
+        add("UI web/index.html exists", False, "missing")
+        return
+
+    s = WEB.read_text(encoding="utf-8", errors="ignore")
+
+    required = {
+        "PTZ_CLEAN_LAYER_CONTROLLER_START": 1,
+        "PTZ_CLEAN_SAVESETTINGS_GUARD_START": 1
+    }
+
+    forbidden = [
+        "SINGLE_PRESET_AUTO_ARM",
+        "OBJECT_PRESET_MANAGER_START",
+        "OBJECT_PRESET_BUTTONS_ACTIVE_FIX_START",
+        "OBJECT_PRESET_AUTO_LEARN_OPERATOR_CONTROLS_START",
+        "OPERATOR_CONTROLS_HARD_PERSIST_APPLY_START",
+        "OBJECT_PRESET_NO_AUTO_ARM_DURABLE_SAVE_START",
+        "PTZ_START_STOP_ACTIVE_STATE_FIX_START",
+        "SEARCH_PRESET_SELECTOR_START"
+    ]
+
+    for token, expected in required.items():
+        count = s.count(token)
+        print(token, "=", count)
+        add(f"UI required marker {token}", count == expected, f"count={count} expected={expected}")
+
+    for token in forbidden:
+        count = s.count(token)
+        print(token, "=", count)
+        add(f"UI forbidden marker {token}", count == 0, f"count={count}")
+
+    old_btn_count = s.count("data-object-preset")
+    clean_btn_count = s.count("data-clean-object-preset")
+
+    print("data-object-preset =", old_btn_count)
+    print("data-clean-object-preset =", clean_btn_count)
+
+    add("UI old object preset buttons removed", old_btn_count == 0, f"count={old_btn_count}")
+    add("UI clean object preset buttons exist", clean_btn_count >= 8, f"count={clean_btn_count}")
+
+def audit_settings(api, file_data):
+    section("LAYER 2 — SETTINGS / PRESETS")
+
+    print("API activeObjectPreset =", api.get("activeObjectPreset"))
+    print("API activeSearchPreset =", api.get("activeSearchPreset"))
+    print("API ptzArmed =", api.get("ptzArmed"))
+    print("API controlMode =", api.get("controlMode"))
+    print("API custom keys =", sorted((api.get("objectPresetsCustom") or {}).keys()))
+    print("API limit/every =", api.get("operatorDetectionLimit"), api.get("operatorDetectEvery"))
+    print("")
+
+    print("FILE activeObjectPreset =", file_data.get("activeObjectPreset"))
+    print("FILE activeSearchPreset =", file_data.get("activeSearchPreset"))
+    print("FILE ptzArmed =", file_data.get("ptzArmed"))
+    print("FILE controlMode =", file_data.get("controlMode"))
+    print("FILE custom keys =", sorted((file_data.get("objectPresetsCustom") or {}).keys()))
+    print("FILE limit/every =", file_data.get("operatorDetectionLimit"), file_data.get("operatorDetectEvery"))
+
+    api_custom = api.get("objectPresetsCustom") or {}
+    file_custom = file_data.get("objectPresetsCustom") or {}
+
+    add("Settings API reachable", "__error__" not in api, api.get("__error__", "ok"))
+    add("Settings file readable", "__error__" not in file_data, file_data.get("__error__", "ok"))
+
+    add("Settings API custom presets non-empty", bool(api_custom), f"keys={sorted(api_custom.keys())}")
+    add("Settings FILE custom presets non-empty", bool(file_custom), f"keys={sorted(file_custom.keys())}")
+
+    add(
+        "Settings activeObjectPreset API/FILE match",
+        api.get("activeObjectPreset") == file_data.get("activeObjectPreset"),
+        f"api={api.get('activeObjectPreset')} file={file_data.get('activeObjectPreset')}"
+    )
+
+    add(
+        "Settings activeSearchPreset API/FILE match",
+        api.get("activeSearchPreset") == file_data.get("activeSearchPreset"),
+        f"api={api.get('activeSearchPreset')} file={file_data.get('activeSearchPreset')}"
+    )
+
+    add("Settings FILE ptzArmed false", file_data.get("ptzArmed") is False, f"file={file_data.get('ptzArmed')}")
+    add("Settings FILE controlMode manual", file_data.get("controlMode") == "manual", f"file={file_data.get('controlMode')}")
+
+    active, preset = active_custom_preset(api)
+
+    print("")
+    print("API active custom preset =", json.dumps(preset, indent=2, ensure_ascii=False))
+
+    add("Settings active custom preset exists", bool(preset), f"active={active}")
+
+    if preset:
+        add(
+            "Settings top-level limit matches active preset",
+            int(api.get("operatorDetectionLimit") or -1) == int(preset.get("max_detections") or -2),
+            f"settings={api.get('operatorDetectionLimit')} preset={preset.get('max_detections')}"
+        )
+
+        add(
+            "Settings top-level detect_every matches active preset",
+            int(api.get("operatorDetectEvery") or -1) == int(preset.get("detect_every_n_frames") or -2),
+            f"settings={api.get('operatorDetectEvery')} preset={preset.get('detect_every_n_frames')}"
+        )
+
+        add(
+            "Settings top-level area matches active preset",
+            str(api.get("operatorDetectionAreaMode") or "") == str(preset.get("detection_mode") or ""),
+            f"settings={api.get('operatorDetectionAreaMode')} preset={preset.get('detection_mode')}"
+        )
+
+        bad_ptz_keys = []
+
+        for k in (preset.get("ptz") or {}).keys():
+            if k in [
+                "kp",
+                "ki",
+                "kd",
+                "deadzone",
+                "max_pan",
+                "max_tilt",
+                "max_accel",
+                "min_pan",
+                "min_tilt",
+                "hz",
+                "ptz_curve",
+                "ptz_lead_ms",
+                "manual_mode",
+                "j_pulse_ms"
+            ]:
+                bad_ptz_keys.append(k)
+
+        add("Settings active object preset has no PTZ speed keys", not bad_ptz_keys, f"bad={bad_ptz_keys}")
+
+def audit_detector(api):
+    section("LAYER 3 — DETECTOR BACKEND")
+
+    limits = get_json(f"{MJPEG_BASE}/api/detection/limits")
+    throttle = get_json(f"{MJPEG_BASE}/api/detection/throttle")
+    roi = get_json(f"{MJPEG_BASE}/api/detection/roi_config")
+    det = get_json(f"{MJPEG_BASE}/api/detector/config")
+
+    print("limits =", json.dumps(limits, indent=2, ensure_ascii=False))
+    print("throttle =", json.dumps(throttle, indent=2, ensure_ascii=False))
+    print("roi =", json.dumps(roi, indent=2, ensure_ascii=False))
+    print("detector classes =", det.get("selected_classes"))
+
+    add("Detector limits reachable", "__error__" not in limits, limits.get("__error__", "ok"))
+    add("Detector throttle reachable", "__error__" not in throttle, throttle.get("__error__", "ok"))
+    add("Detector roi reachable", "__error__" not in roi, roi.get("__error__", "ok"))
+    add("Detector config reachable", "__error__" not in det, det.get("__error__", "ok"))
+
+    active, preset = active_custom_preset(api)
+
+    if preset:
+        add(
+            "Detector max_detections matches active preset",
+            int(limits.get("max_detections") or -1) == int(preset.get("max_detections") or -2),
+            f"backend={limits.get('max_detections')} preset={preset.get('max_detections')}"
+        )
+
+        add(
+            "Detector detect_every matches active preset",
+            int(throttle.get("detect_every_n_frames") or -1) == int(preset.get("detect_every_n_frames") or -2),
+            f"backend={throttle.get('detect_every_n_frames')} preset={preset.get('detect_every_n_frames')}"
+        )
+
+        add(
+            "Detector area matches active preset",
+            str(roi.get("detection_mode") or "") == str(preset.get("detection_mode") or ""),
+            f"backend={roi.get('detection_mode')} preset={preset.get('detection_mode')}"
+        )
+
+        add(
+            "Detector classes match active preset",
+            normalize_list_numbers(det.get("selected_classes")) == normalize_list_numbers(preset.get("classes")),
+            f"backend={normalize_list_numbers(det.get('selected_classes'))} preset={normalize_list_numbers(preset.get('classes'))}"
+        )
+
+def audit_ptz():
+    section("LAYER 4 — PTZ AUTOPILOT")
+
+    ap = get_json(f"{PTZ_BASE}/api/autopilot/state")
+
+    print(json.dumps(ap, indent=2, ensure_ascii=False))
+
+    add("PTZ autopilot reachable", "__error__" not in ap, ap.get("__error__", "ok"))
+
+    if "__error__" not in ap:
+        add("PTZ autopilot not auto-running", ap.get("enabled") is False, f"enabled={ap.get('enabled')} mode={ap.get('mode')}")
+        src = ap.get("speed_profile_source")
+        add(
+            "PTZ speed profile source not runtime override",
+            src not in [None, "", "fallback", "runtime_override"],
+            f"source={src}"
+        )
+
+def audit_processes():
+    section("PROCESSES")
+
+    procs = {
+        "mjpeg_rknn_http": find_processes("mjpeg_rknn_http"),
+        "ptz_autopilot": find_processes("ptz_autopilot"),
+        "settings_persist_daemon.py": find_processes("settings_persist_daemon.py"),
+        "object_tracking_daemon.py": find_processes("object_tracking_daemon.py")
+    }
+
+    watches = [
+        x
+        for x in find_processes("apply_ptz_object_preset.py")
+        if "--watch" in x[1]
+    ]
+
+    for name, items in procs.items():
+        print("")
+        print(name, "count =", len(items))
+
+        for pid, args in items:
+            print(" ", pid, args)
+
+    print("")
+    print("apply_ptz_object_preset.py --watch count =", len(watches))
+
+    for pid, args in watches:
+        print(" ", pid, args)
+
+    add("Process mjpeg_rknn_http count 1", len(procs["mjpeg_rknn_http"]) == 1, f"count={len(procs['mjpeg_rknn_http'])}")
+    add("Process ptz_autopilot count 1", len(procs["ptz_autopilot"]) == 1, f"count={len(procs['ptz_autopilot'])}")
+    add("Process settings_persist_daemon count 1", len(procs["settings_persist_daemon.py"]) == 1, f"count={len(procs['settings_persist_daemon.py'])}")
+    add("Process object_tracking_daemon count 1", len(procs["object_tracking_daemon.py"]) == 1, f"count={len(procs['object_tracking_daemon.py'])}")
+
+    return watches
+
+def audit_daemon_lifecycle():
+    section("LAYER 5/6 — DAEMON AND RUNTIME LIFECYCLE")
+
+    settings = get_json(f"{MJPEG_BASE}/api/settings")
+
+    if "__error__" in settings:
+        add("Lifecycle skipped settings reachable", False, settings["__error__"])
+        return
+
+    original = dict(settings)
+
+    def watch_count():
+        return len([
+            x
+            for x in find_processes("apply_ptz_object_preset.py")
+            if "--watch" in x[1]
+        ])
+
+    def set_armed(value):
+        s = get_json(f"{MJPEG_BASE}/api/settings")
+        s["activeObjectPreset"] = "car_single"
+        s["activeSearchPreset"] = s.get("activeSearchPreset") or "lost_step_wait"
+        s["objectPresetTrackingMode"] = "single_auto"
+        s["objectPresetLossBehavior"] = "continuous_wide_scan_x"
+        s["ptzArmed"] = bool(value)
+        s["controlMode"] = "ptz" if value else "manual"
+        post_json(f"{MJPEG_BASE}/api/settings", s)
+
+    print("Step A: disarm")
+    set_armed(False)
+    post_json(f"{PTZ_BASE}/api/autopilot/stop", {})
+    time.sleep(3)
+    wc0 = watch_count()
+    print("watch_count after disarm =", wc0)
+
+    print("Step B: arm")
+    set_armed(True)
+
+    samples = []
+
+    for i in range(8):
+        time.sleep(1)
+        wc = watch_count()
+        samples.append(wc)
+        print("watch_count arm sample", i + 1, "=", wc)
+
+    wc1_max = max(samples) if samples else 0
+    wc1_final = samples[-1] if samples else 0
+
+    print("watch_count max during arm =", wc1_max)
+    print("watch_count final during arm =", wc1_final)
+
+    print("Step C: final disarm")
+    set_armed(False)
+    post_json(f"{PTZ_BASE}/api/autopilot/stop", {})
+    time.sleep(4)
+    wc2 = watch_count()
+    print("watch_count after final disarm =", wc2)
+
+    restored = dict(original)
+    restored["ptzArmed"] = False
+    restored["controlMode"] = "manual"
+    post_json(f"{MJPEG_BASE}/api/settings", restored)
+    post_json(f"{PTZ_BASE}/api/autopilot/stop", {})
+
+    add("Daemon lifecycle disarm watch_count=0", wc0 == 0, f"watch_count={wc0}")
+    add(
+        "Daemon lifecycle arm child observed",
+        wc1_max >= 1,
+        f"max_watch_count={wc1_max} final_watch_count={wc1_final} samples={samples}"
+    )
+    add("Daemon lifecycle final disarm watch_count=0", wc2 == 0, f"watch_count={wc2}")
+
+
+def audit_launcher():
+    section("LAUNCHER CONTRACT")
+
+    p = ROOT / "launcher.sh"
+
+    if not p.exists():
+        add("Launcher exists", False, "missing")
+        return
+
+    s = p.read_text(encoding="utf-8", errors="ignore")
+
+    checks = [
+        "HYDRATE_RUNTIME_SETTINGS",
+        "hydrate_runtime_settings()",
+        "hydrate_runtime_settings",
+        "SETTINGS_PERSIST_DAEMON",
+        "start_settings_persist_daemon()",
+        "start_settings_persist_daemon",
+        "OBJECT_TRACKING_DAEMON",
+        "start_object_tracking_daemon()",
+        "start_object_tracking_daemon"
+    ]
+
+    for c in checks:
+        count = s.count(c)
+        print(c, "=", count)
+        add(f"Launcher token {c}", count > 0, f"count={count}")
+
+def print_summary():
+    section("SUMMARY")
+
+    ok_count = 0
+    fail_count = 0
+
+    for name, ok, detail in RESULTS:
+        status = "PASS" if ok else "FAIL"
+
+        if ok:
+            ok_count += 1
+        else:
+            fail_count += 1
+
+        print(f"{status}: {name} — {detail}")
+
+    print("")
+    print("PASS =", ok_count)
+    print("FAIL =", fail_count)
+
+    report = {
+        "ts": int(time.time()),
+        "pass": ok_count,
+        "fail": fail_count,
+        "results": [
+            {
+                "name": name,
+                "ok": ok,
+                "detail": detail
+            }
+            for name, ok, detail in RESULTS
+        ]
+    }
+
+    out = ROOT / "ptz_contract_audit_last.json"
+    out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    print("")
+    print("Wrote", out)
+
+    return fail_count
+
+def main():
+    audit_files()
+    audit_ui()
+
+    api = get_json(f"{MJPEG_BASE}/api/settings")
+    file_data = read_json_file(SETTINGS_FILE)
+
+    audit_settings(api, file_data)
+    audit_detector(api)
+    audit_ptz()
+    audit_processes()
+    audit_launcher()
+    audit_daemon_lifecycle()
+
+    fail_count = print_summary()
+
+    return 0 if fail_count == 0 else 2
+
+if __name__ == "__main__":
+    raise SystemExit(main())
