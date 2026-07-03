@@ -1,0 +1,553 @@
+====================================================================================================
+MOVE TX sample=0
+====================================================================================================
+wait_zoom_idle: before_0 timeout=25
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 0.313,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 8622.24,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 6,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 856,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783016810054
+}
+POST go_to_sample 0
+{
+    "ok": true,
+    "from_sample": 6,
+    "to_sample": 0,
+    "delta": -6,
+    "mode": "sweep_time_steps",
+    "zoom_ratio": 0,
+    "focal_px": 1515.63,
+    "steps_since_home": 862
+}
+poll until target or idle...
+poll=01 target=0 sample=0 ratio=0 busy=False ok=True
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 0,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 1515.63,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 0,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 862,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783016987597
+}
+apply speed profile 0
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 0,
+        "step": 0,
+        "zoom_ratio": 0,
+        "focal_px": 1515.63,
+        "kp": 28,
+        "ki": 0,
+        "kd": 2,
+        "deadzone": 0.05,
+        "ptz_curve": 0.65,
+        "ptz_lead_ms": 150,
+        "max_pan": 35,
+        "max_tilt": 28,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 50,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+====================================================================================================
+MOVE TX sample=3
+====================================================================================================
+wait_zoom_idle: before_3 timeout=25
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 0,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 1515.63,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 0,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 862,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783016987597
+}
+POST go_to_sample 3
+{
+    "ok": true,
+    "from_sample": 0,
+    "to_sample": 3,
+    "delta": 3,
+    "mode": "sweep_time_steps",
+    "zoom_ratio": 0.062,
+    "focal_px": 2929.78,
+    "steps_since_home": 865
+}
+poll until target or idle...
+poll=01 target=3 sample=3 ratio=0.062 busy=False ok=True
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 0.062,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 2929.78,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 3,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 865,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783016990240
+}
+apply speed profile 3
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 3,
+        "step": 3,
+        "zoom_ratio": 0.062,
+        "focal_px": 2929.78,
+        "kp": 26.884,
+        "ki": 0,
+        "kd": 1.938,
+        "deadzone": 0.05434,
+        "ptz_curve": 0.6686,
+        "ptz_lead_ms": 146,
+        "max_pan": 33,
+        "max_tilt": 27,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 48,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+====================================================================================================
+MOVE TX sample=6
+====================================================================================================
+wait_zoom_idle: before_6 timeout=25
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 0.062,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 2929.78,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 3,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 865,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783016990240
+}
+POST go_to_sample 6
+{
+    "ok": true,
+    "from_sample": 3,
+    "to_sample": 6,
+    "delta": 3,
+    "mode": "sweep_time_steps",
+    "zoom_ratio": 0.313,
+    "focal_px": 8622.24,
+    "steps_since_home": 868
+}
+poll until target or idle...
+poll=01 target=6 sample=6 ratio=0.313 busy=False ok=True
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 0.313,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 8622.24,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 6,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 868,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783016992900
+}
+apply speed profile 6
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 6,
+        "step": 6,
+        "zoom_ratio": 0.313,
+        "focal_px": 8622.24,
+        "kp": 22.366,
+        "ki": 0,
+        "kd": 1.687,
+        "deadzone": 0.07191,
+        "ptz_curve": 0.7439,
+        "ptz_lead_ms": 128,
+        "max_pan": 27,
+        "max_tilt": 22,
+        "max_accel": 6,
+        "min_pan": 5,
+        "min_tilt": 5,
+        "j_pulse_ms": 41,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+====================================================================================================
+MOVE TX sample=9
+====================================================================================================
+wait_zoom_idle: before_9 timeout=25
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 0.313,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 8622.24,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 6,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 868,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783016992900
+}
+POST go_to_sample 9
+{
+    "ok": true,
+    "from_sample": 6,
+    "to_sample": 9,
+    "delta": 3,
+    "mode": "sweep_time_steps",
+    "zoom_ratio": 1,
+    "focal_px": 24194.4,
+    "steps_since_home": 871
+}
+poll until target or idle...
+poll=01 target=9 sample=9 ratio=1 busy=False ok=True
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 1,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 24194.4,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 9,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 871,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783016995524
+}
+apply speed profile 9
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 9,
+        "step": 9,
+        "zoom_ratio": 1,
+        "focal_px": 24194.4,
+        "kp": 10,
+        "ki": 0,
+        "kd": 1,
+        "deadzone": 0.12,
+        "ptz_curve": 0.95,
+        "ptz_lead_ms": 80,
+        "max_pan": 12,
+        "max_tilt": 12,
+        "max_accel": 2,
+        "min_pan": 8,
+        "min_tilt": 8,
+        "j_pulse_ms": 20,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+====================================================================================================
+MOVE TX sample=6
+====================================================================================================
+wait_zoom_idle: before_6 timeout=25
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 1,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 24194.4,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 9,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 871,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783016995524
+}
+POST go_to_sample 6
+{
+    "ok": true,
+    "from_sample": 9,
+    "to_sample": 6,
+    "delta": -3,
+    "mode": "sweep_time_steps",
+    "zoom_ratio": 0.313,
+    "focal_px": 8622.24,
+    "steps_since_home": 874
+}
+poll until target or idle...
+poll=01 target=6 sample=6 ratio=0.313 busy=False ok=True
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 0.313,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 8622.24,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 6,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 874,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783016998140
+}
+apply speed profile 6
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 6,
+        "step": 6,
+        "zoom_ratio": 0.313,
+        "focal_px": 8622.24,
+        "kp": 22.366,
+        "ki": 0,
+        "kd": 1.687,
+        "deadzone": 0.07191,
+        "ptz_curve": 0.7439,
+        "ptz_lead_ms": 128,
+        "max_pan": 27,
+        "max_tilt": 22,
+        "max_accel": 6,
+        "min_pan": 5,
+        "min_tilt": 5,
+        "j_pulse_ms": 41,
+        "nudge_pan": 11,
+        "nudge_tilt": 11,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+====================================================================================================
+MOVE TX sample=3
+====================================================================================================
+wait_zoom_idle: before_3 timeout=25
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 0.313,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 8622.24,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 6,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 874,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783016998140
+}
+POST go_to_sample 3
+{
+    "ok": true,
+    "from_sample": 6,
+    "to_sample": 3,
+    "delta": -3,
+    "mode": "sweep_time_steps",
+    "zoom_ratio": 0.062,
+    "focal_px": 2929.78,
+    "steps_since_home": 877
+}
+poll until target or idle...
+poll=01 target=3 sample=3 ratio=0.062 busy=False ok=True
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 0.062,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 2929.78,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 3,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 877,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783017000865
+}
+apply speed profile 3
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 3,
+        "step": 3,
+        "zoom_ratio": 0.062,
+        "focal_px": 2929.78,
+        "kp": 26.884,
+        "ki": 0,
+        "kd": 1.938,
+        "deadzone": 0.05434,
+        "ptz_curve": 0.6686,
+        "ptz_lead_ms": 146,
+        "max_pan": 33,
+        "max_tilt": 27,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 48,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}
+====================================================================================================
+MOVE TX sample=0
+====================================================================================================
+wait_zoom_idle: before_0 timeout=25
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 0.062,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 2929.78,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 3,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 877,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783017000865
+}
+POST go_to_sample 0
+{
+    "ok": true,
+    "from_sample": 3,
+    "to_sample": 0,
+    "delta": -3,
+    "mode": "sweep_time_steps",
+    "zoom_ratio": 0,
+    "focal_px": 1515.63,
+    "steps_since_home": 880
+}
+poll until target or idle...
+poll=01 target=0 sample=0 ratio=0 busy=False ok=True
+{
+    "ok": true,
+    "profile_loaded": true,
+    "profile_status": "ok",
+    "zoom_ratio": 0,
+    "zoom_confidence": 1,
+    "zoom_source": "go_to_sample_relative",
+    "focal_px": 1515.63,
+    "focal_min_px": 1515.63,
+    "focal_max_px": 24194.4,
+    "zoom_sample_idx": 0,
+    "zoom_sample_count": 10,
+    "zoom_steps_since_home": 880,
+    "zoom_move_busy": false,
+    "zoom_last_home_ms": 1783008898655,
+    "zoom_last_move_ms": 1783017003461
+}
+apply speed profile 0
+{
+    "ok": true,
+    "applied": true,
+    "source": "user",
+    "point": {
+        "profile_idx": 0,
+        "step": 0,
+        "zoom_ratio": 0,
+        "focal_px": 1515.63,
+        "kp": 28,
+        "ki": 0,
+        "kd": 2,
+        "deadzone": 0.05,
+        "ptz_curve": 0.65,
+        "ptz_lead_ms": 150,
+        "max_pan": 35,
+        "max_tilt": 28,
+        "max_accel": 8,
+        "min_pan": 3,
+        "min_tilt": 3,
+        "j_pulse_ms": 50,
+        "nudge_pan": 12,
+        "nudge_tilt": 12,
+        "manual_mode": "tap_hold",
+        "source": "user"
+    }
+}

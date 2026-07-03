@@ -446,43 +446,59 @@ def zoom_wide_pulse(reason="search", hold_ms=220, cooldown_sec=8.0, skip_ratio=0
         }
 
     try:
+        wait_before = wait_zoom_idle(context=f"{reason}_before", timeout_sec=20)
         st = zoom_frame_state()
         cur = int(st.get("sample") or 0)
         count = max(1, int(st.get("count") or 10))
         target = 0
 
-        res = post_json(f"{MJPEG_BASE}/api/zoom/go_to_sample", {
-            "profile_idx": target,
-            "mode": "sample",
-            "source": f"auto_arm_{reason}"
-        }, timeout=25)
+        try:
+            res = post_json(f"{MJPEG_BASE}/api/zoom/go_to_sample", {
+                "profile_idx": target,
+                "mode": "sample",
+                "source": f"auto_arm_{reason}"
+            }, timeout=25)
+        except Exception as e:
+            res = {"ok": False, "error": str(e)}
 
-        st2 = zoom_frame_state()
-        sample2 = int(st2.get("sample") or target)
-        ratio2 = float(st2.get("ratio") or 0.0)
-        speed = apply_ptz_speed_profile_for_zoom(sample2, ratio2)
+        settle = wait_zoom_sample_settled(target, context=f"{reason}_wide_settle", timeout_sec=25)
+        final_sample = settle.get("actual_sample")
+        if final_sample is None:
+            st2 = zoom_frame_state()
+            final_sample = int(st2.get("sample") or target)
+            ratio2 = float(st2.get("ratio") or 0.0)
+        else:
+            ratio2 = float(settle.get("ratio") or 0.0)
+        speed = apply_ptz_speed_profile_for_zoom(final_sample, ratio2)
 
         zoom_wide_pulse._last_ts = now
+        ok = bool(settle.get("ok")) and bool(speed.get("ok", True))
         event_log(
             "zoom_wide_sample_move",
             reason=reason,
-            ok=True,
+            ok=ok,
             current_sample=cur,
             target_sample=target,
-            final_sample=sample2,
+            final_sample=final_sample,
             sample_count=count,
             zoom_ratio=ratio2,
             go_to_sample=res,
+            wait_before=wait_before,
+            settle=settle,
             speed_profile=speed
         )
         return {
-            "ok": True,
+            "ok": ok,
+            "settled": bool(settle.get("ok")),
+            "reason": None if settle.get("ok") else "zoom_not_settled",
             "current_sample": cur,
             "target_sample": target,
-            "final_sample": sample2,
+            "final_sample": final_sample,
             "sample_count": count,
             "zoom_ratio": ratio2,
             "go_to_sample": res,
+            "wait_before": wait_before,
+            "settle": settle,
             "speed_profile": speed
         }
 
@@ -718,6 +734,99 @@ def zoom_frame_state():
         }
 
 
+# PTZ_ZOOM_SAMPLE_TRANSACTION_V1_START
+def wait_zoom_idle(context="zoom", timeout_sec=20.0, poll_sec=0.25):
+    start = time.time()
+    deadline = start + float(timeout_sec or 20.0)
+    last = None
+
+    while True:
+        try:
+            st = zoom_frame_state()
+            last = st
+            raw = st.get("raw") or {}
+            busy = bool(raw.get("zoom_move_busy") is True)
+            waited = round(time.time() - start, 3)
+
+            if not busy:
+                return {
+                    "ok": bool(st.get("ok", False)),
+                    "context": context,
+                    "sample": st.get("sample"),
+                    "ratio": st.get("ratio"),
+                    "busy": busy,
+                    "state": raw,
+                    "waited_sec": waited,
+                    "reason": "idle" if st.get("ok") else "state_error"
+                }
+        except Exception as e:
+            waited = round(time.time() - start, 3)
+            last = {"ok": False, "error": str(e)}
+
+        if time.time() >= deadline:
+            raw = (last or {}).get("raw") if isinstance(last, dict) else {}
+            return {
+                "ok": False,
+                "context": context,
+                "sample": (last or {}).get("sample") if isinstance(last, dict) else None,
+                "ratio": (last or {}).get("ratio") if isinstance(last, dict) else None,
+                "busy": bool((raw or {}).get("zoom_move_busy") is True),
+                "state": raw or last,
+                "waited_sec": round(time.time() - start, 3),
+                "reason": "timeout",
+                "error": (last or {}).get("error") if isinstance(last, dict) else None
+            }
+
+        time.sleep(max(0.05, float(poll_sec or 0.25)))
+
+
+def wait_zoom_sample_settled(target_sample, context="zoom", timeout_sec=25.0, poll_sec=0.25):
+    start = time.time()
+    deadline = start + float(timeout_sec or 25.0)
+    target = int(target_sample)
+    last = None
+
+    while True:
+        try:
+            st = zoom_frame_state()
+            last = st
+            raw = st.get("raw") or {}
+            busy = bool(raw.get("zoom_move_busy") is True)
+            sample = int(st.get("sample") or 0)
+            waited = round(time.time() - start, 3)
+
+            if not busy and sample == target:
+                return {
+                    "ok": True,
+                    "target_sample": target,
+                    "actual_sample": sample,
+                    "ratio": st.get("ratio"),
+                    "busy": busy,
+                    "waited_sec": waited,
+                    "state": raw,
+                    "reason": "settled"
+                }
+        except Exception as e:
+            last = {"ok": False, "error": str(e), "raw": {}}
+
+        if time.time() >= deadline:
+            raw = (last or {}).get("raw") if isinstance(last, dict) else {}
+            return {
+                "ok": False,
+                "target_sample": target,
+                "actual_sample": (last or {}).get("sample") if isinstance(last, dict) else None,
+                "ratio": (last or {}).get("ratio") if isinstance(last, dict) else None,
+                "busy": bool((raw or {}).get("zoom_move_busy") is True),
+                "waited_sec": round(time.time() - start, 3),
+                "state": raw or last,
+                "reason": "timeout",
+                "error": (last or {}).get("error") if isinstance(last, dict) else None
+            }
+
+        time.sleep(max(0.05, float(poll_sec or 0.25)))
+# PTZ_ZOOM_SAMPLE_TRANSACTION_V1_END
+
+
 # PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_START
 def detector_runtime_enabled_state():
     """
@@ -782,6 +891,7 @@ def zoom_move_frames(delta_frames, reason="search_preset"):
     Frame-based zoom only.
     Uses /api/zoom/go_to_sample so zoom state and PTZ SPEED TUNE sample stay synchronized.
     """
+    wait_before = wait_zoom_idle(context=f"{reason}_before", timeout_sec=20)
     st = zoom_frame_state()
     cur = int(st.get("sample") or 0)
     count = int(st.get("count") or 10)
@@ -799,15 +909,19 @@ def zoom_move_frames(delta_frames, reason="search_preset"):
             target_sample=target,
             delta_frames=delta,
             sample_count=count,
+            wait_before=wait_before,
             speed_profile=speed
         )
         return {
-            "ok": True,
+            "ok": bool(speed.get("ok", True)) and bool(wait_before.get("ok", False)),
             "skipped": True,
             "reason": "edge_or_zero_delta",
             "current_sample": cur,
             "target_sample": target,
-            "sample_count": count
+            "sample_count": count,
+            "wait_before": wait_before,
+            "speed_profile": speed,
+            "settled": bool(wait_before.get("ok", False))
         }
 
     try:
@@ -816,46 +930,64 @@ def zoom_move_frames(delta_frames, reason="search_preset"):
             "mode": "sample",
             "source": reason
         }, timeout=25)
+    except Exception as e:
+        res = {"ok": False, "error": str(e)}
 
-        st2 = zoom_frame_state()
-        sample2 = int(st2.get("sample") or target)
-        ratio2 = float(st2.get("ratio") or 0.0)
+    settle = wait_zoom_sample_settled(target, context=f"{reason}_settle", timeout_sec=25)
+    actual_sample = settle.get("actual_sample")
+    if actual_sample is None:
+        st_actual = zoom_frame_state()
+        actual_sample = int(st_actual.get("sample") or 0)
+        ratio = float(st_actual.get("ratio") or 0.0)
+    else:
+        ratio = float(settle.get("ratio") or 0.0)
 
-        speed = apply_ptz_speed_profile_for_zoom(sample2, ratio2)
+    speed = apply_ptz_speed_profile_for_zoom(actual_sample, ratio)
+    speed_ok = bool(speed.get("ok", True))
 
-        event_log(
-            "zoom_frame_move",
-            reason=reason,
-            from_sample=cur,
-            to_sample=target,
-            actual_sample=sample2,
-            delta_frames=delta,
-            zoom_ratio=ratio2,
-            response=res,
-            speed_profile=speed
-        )
+    payload = dict(
+        reason=reason,
+        from_sample=cur,
+        to_sample=target,
+        actual_sample=actual_sample,
+        requested_target=target,
+        delta_frames=delta,
+        zoom_ratio=ratio,
+        response=res,
+        wait_before=wait_before,
+        settle=settle,
+        speed_profile=speed
+    )
 
+    if not settle.get("ok"):
+        event_log("zoom_frame_move_not_settled", **payload)
         return {
-            "ok": bool(res.get("ok", True)),
+            "ok": False,
+            "reason": "zoom_not_settled",
+            "settled": False,
             "from_sample": cur,
             "to_sample": target,
-            "actual_sample": sample2,
-            "zoom_ratio": ratio2,
+            "actual_sample": actual_sample,
+            "zoom_ratio": ratio,
             "response": res,
+            "wait_before": wait_before,
+            "settle": settle,
             "speed_profile": speed
         }
 
-    except Exception as e:
-        event_log(
-            "zoom_frame_move_failed",
-            reason=reason,
-            current_sample=cur,
-            target_sample=target,
-            delta_frames=delta,
-            error=str(e)
-        )
-        return {"ok": False, "error": str(e), "current_sample": cur, "target_sample": target}
-
+    event_log("zoom_frame_move", **payload)
+    return {
+        "ok": bool(settle.get("ok")) and speed_ok,
+        "settled": bool(settle.get("ok")),
+        "from_sample": cur,
+        "to_sample": target,
+        "actual_sample": actual_sample,
+        "zoom_ratio": ratio,
+        "response": res,
+        "wait_before": wait_before,
+        "settle": settle,
+        "speed_profile": speed
+    }
 
 def target_direction_from_last(last_target, default=1):
     """
@@ -980,8 +1112,9 @@ def run_named_search_preset_once(name, classes, object_preset_name, last_target=
                 raw=step
             )
 
+            zoom_step_result = None
             if typ == "zoom":
-                zoom_move_frames(
+                zoom_step_result = zoom_move_frames(
                     int(step.get("delta_frames") or 0),
                     reason=f"search_preset_{name}_{step_name}"
                 )
@@ -1034,6 +1167,17 @@ def run_named_search_preset_once(name, classes, object_preset_name, last_target=
                 )
                 if res.get("ok"):
                     return res
+
+            # PTZ_SEARCH_PRESET_NO_ACQUIRE_WHILE_ZOOM_BUSY_V1_START
+            if try_after_each and typ == "zoom" and (not (zoom_step_result or {}).get("ok") or not (zoom_step_result or {}).get("settled", True)):
+                event_log(
+                    "search_preset_skip_acquire_zoom_not_settled",
+                    search_preset=name,
+                    step=step_name,
+                    zoom_step=zoom_step_result
+                )
+                continue
+            # PTZ_SEARCH_PRESET_NO_ACQUIRE_WHILE_ZOOM_BUSY_V1_END
 
             if try_after_each and typ not in {"pause", "acquire"}:
                 res = acquire_with_attempts(classes, attempts=2, delay_sec=0.15)

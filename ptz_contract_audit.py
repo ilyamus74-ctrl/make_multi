@@ -8,6 +8,8 @@ import os
 import signal
 
 ROOT = Path("/root/new_yolo8")
+if not ROOT.exists():
+    ROOT = Path(__file__).resolve().parent
 WEB = ROOT / "web/index.html"
 SETTINGS_FILE = ROOT / "ui_settings.json"
 
@@ -637,6 +639,30 @@ def audit_daemon_lifecycle():
         cnt = runtime_text.count(token)
         print(token, "=", cnt)
         add(f"Runtime contract marker {token}", cnt >= 1, f"count={cnt}")
+    exact_runtime_markers = [
+        "PTZ_ZOOM_SAMPLE_TRANSACTION_V1_START",
+        "PTZ_SEARCH_PRESET_NO_ACQUIRE_WHILE_ZOOM_BUSY_V1_START",
+    ]
+
+    for token in exact_runtime_markers:
+        cnt = runtime_text.count(token)
+        print(token, "=", cnt)
+        add(f"Runtime exact marker {token}", cnt == 1, f"count={cnt} expected=1")
+
+    has_wait_zoom_sample_settled = "def wait_zoom_sample_settled" in runtime_text
+    has_zoom_move_busy_check = "zoom_move_busy" in runtime_text and "wait_zoom_idle" in runtime_text
+    runtime_has_go_to_sample = "/api/zoom/go_to_sample" in runtime_text
+    runtime_has_apply_nearest = "/api/autopilot/speed_profile/apply_nearest" in runtime_text
+
+    print("wait_zoom_sample_settled exists =", has_wait_zoom_sample_settled)
+    print("zoom_move_busy checks exist =", has_zoom_move_busy_check)
+    print("runtime /api/zoom/go_to_sample =", runtime_has_go_to_sample)
+    print("runtime /api/autopilot/speed_profile/apply_nearest =", runtime_has_apply_nearest)
+
+    add("Runtime zoom transaction waits for target settlement", has_wait_zoom_sample_settled, "requires wait_zoom_sample_settled")
+    add("Runtime zoom transaction checks zoom_move_busy", has_zoom_move_busy_check, "requires zoom_move_busy checks")
+    add("Runtime zoom code uses go_to_sample", runtime_has_go_to_sample, "requires /api/zoom/go_to_sample")
+    add("Runtime zoom code applies nearest speed profile", runtime_has_apply_nearest, "requires /api/autopilot/speed_profile/apply_nearest")
 
     zoom_wide_block = _block_between(runtime_text, "def zoom_wide_pulse(", "def manual_search_pulse(")
     zoom_move_block = _block_between(runtime_text, "def zoom_move_frames(", "def target_direction_from_last(")
@@ -714,6 +740,11 @@ def audit_daemon_lifecycle():
         "Runtime search zoom step avoids raw zoom state/jog writes",
         bool(zoom_move_block) and move_raw_state_write == 0 and move_raw_jog == 0,
         f"zoom_state={move_raw_state_write} zoom_jog={move_raw_jog}"
+    )
+    add(
+        "Runtime wide/search zoom functions do not raw jog",
+        bool(zoom_wide_block) and bool(zoom_move_block) and wide_raw_jog == 0 and move_raw_jog == 0,
+        f"wide_raw_jog={wide_raw_jog} move_raw_jog={move_raw_jog}"
     )
 
     section("LAYER 5/6 — DAEMON AND RUNTIME LIFECYCLE")

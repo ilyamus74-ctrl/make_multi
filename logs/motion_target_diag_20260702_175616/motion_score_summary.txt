@@ -1,0 +1,5 @@
+diag = /root/new_yolo8/logs/motion_target_diag_20260702_175616
+samples = 100
+track_count = 2
+
+

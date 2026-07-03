@@ -1,0 +1,420 @@
+
+====================================================================================================
+FILES
+====================================================================================================
+PTZ_MASTER_CONTRACT.md: exists=True size=31079
+web/index.html: exists=True size=299927
+ui_settings.json: exists=True size=6922
+launcher.sh: exists=True size=13869
+hydrate_runtime_settings.py: exists=True size=11759
+settings_persist_daemon.py: exists=True size=6353
+object_tracking_daemon.py: exists=True size=7937
+apply_ptz_object_preset.py: exists=True size=53798
+mjpeg_gst_http.cpp: exists=True size=216959
+ptz_autopilot.cpp: exists=True size=50524
+
+====================================================================================================
+LAYER 1 — BROWSER UI
+====================================================================================================
+PTZ_CLEAN_LAYER_CONTROLLER_START = 1
+PTZ_CLEAN_SAVESETTINGS_GUARD_START = 1
+SINGLE_PRESET_AUTO_ARM = 0
+OBJECT_PRESET_MANAGER_START = 0
+OBJECT_PRESET_BUTTONS_ACTIVE_FIX_START = 0
+OBJECT_PRESET_AUTO_LEARN_OPERATOR_CONTROLS_START = 0
+OPERATOR_CONTROLS_HARD_PERSIST_APPLY_START = 0
+OBJECT_PRESET_NO_AUTO_ARM_DURABLE_SAVE_START = 0
+PTZ_START_STOP_ACTIVE_STATE_FIX_START = 0
+SEARCH_PRESET_SELECTOR_START = 0
+data-object-preset = 0
+data-clean-object-preset = 12
+
+====================================================================================================
+LAYER 1B — UI DETECTION CONTROLS JS CONTRACT
+====================================================================================================
+PTZ_CLEAN_DETECTION_UI_HYDRATE_F5_START = 1
+PTZ_CLEAN_DETECTION_ACTIVE_PRESET_PERSIST_START = 1
+hydrateDetectionControlsFromSettings = 5
+scheduleDetectionUiHydrate = 2
+persistActiveDetectionControlsToPreset = 4
+schedulePersistActiveDetectionControlsToPreset = 3
+objectPresetsCustom fallback guard = True
+active preset detection persist missing parts = []
+
+
+====================================================================================================
+LAYER 1C — KEYBOARD Q/A SWEEP JS CONTRACT
+====================================================================================================
+PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_START = 1
+PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_END = 1
+ptzQaSweepProfileIdxStep = 5
+keyboard_Q_profile_idx_sweep = 1
+keyboard_A_profile_idx_sweep = 1
+Q/A scoped block length = 5850
+Q/A go_to_sample backend call = True
+Q/A go_to_sample uses profile_idx target = True
+Q/A avoids canonical sample_idx target = True
+Q/A apply_nearest backend call = True
+Q/A apply_nearest uses profile_idx finalIdx = True
+Q/A capture stop = True
+Q/A movement mode v2 marker = True
+Q/A owns both ZOOM CALIB movement modes = True
+
+
+====================================================================================================
+LAYER 1D — KEYBOARD ARROW PTZ JS CONTRACT
+====================================================================================================
+ptzKeyboardCaptureDirection = 3
+ptzKeyboardCaptureEnabled = 3
+window.__ptzKeyCaptureInstalled = 1
+ArrowLeft = 4
+ArrowRight = 4
+ArrowUp = 4
+ArrowDown = 4
+keyboard_left = 5
+keyboard_right = 5
+keyboard_up = 3
+keyboard_down = 3
+Arrow scoped block length = 9000
+Arrow owns all directions = True
+Arrow PTZ mode guard = True
+Arrow capture keydown = True
+Arrow capture keyup = True
+Arrow backend/manual motion path = True
+Arrow key release stop path = True
+
+====================================================================================================
+LAYER 2 — SETTINGS / PRESETS
+====================================================================================================
+API activeObjectPreset = car_single
+API activeSearchPreset = lost_step_wait
+API ptzArmed = False
+API controlMode = manual
+API custom keys = ['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+API limit/every = 5 1
+
+FILE activeObjectPreset = car_single
+FILE activeSearchPreset = lost_step_wait
+FILE ptzArmed = False
+FILE controlMode = manual
+FILE custom keys = ['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+FILE limit/every = 5 1
+
+API active custom preset = {
+  "label": "МАШИНА",
+  "classes": [
+    2,
+    3,
+    5,
+    7
+  ],
+  "detection_mode": "full_frame",
+  "max_detections": 5,
+  "max_raw_candidates": 40,
+  "detect_every_n_frames": 1,
+  "tracking_mode": "single_auto",
+  "loss_behavior": "continuous_wide_scan_x",
+  "ptz": {
+    "target_x": 0.5,
+    "target_y": 0.5,
+    "auto_zoom_enable": true,
+    "auto_zoom_target_h": 0.48,
+    "auto_zoom_deadzone": 0.1,
+    "auto_zoom_cmd": 8,
+    "auto_zoom_sign": 1,
+    "auto_zoom_period_ms": 450
+  },
+  "model": "/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn",
+  "operatorModel": "/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"
+}
+
+====================================================================================================
+LAYER 3 — DETECTOR BACKEND
+====================================================================================================
+limits = {
+  "ok": true,
+  "max_detections": 5,
+  "max_raw_candidates": 40
+}
+throttle = {
+  "ok": true,
+  "detect_every_n_frames": 1
+}
+roi = {
+  "ok": true,
+  "detection_mode": "full_frame",
+  "rois": []
+}
+detector classes = [2, 3, 5, 7]
+
+====================================================================================================
+LAYER 4 — PTZ AUTOPILOT
+====================================================================================================
+{
+  "ok": true,
+  "enabled": false,
+  "mode": "IDLE",
+  "last_tracker_mode": "TRACKING",
+  "last_track_id": 76,
+  "err_x": 0,
+  "err_y": 0,
+  "pred_err_x": 0,
+  "pred_err_y": 0,
+  "cmd_pan": 0,
+  "cmd_tilt": 0,
+  "invert_pan": false,
+  "invert_tilt": false,
+  "kp": 28,
+  "ki": 0,
+  "kd": 2,
+  "deadzone": 0.05,
+  "max_pan": 35,
+  "max_tilt": 28,
+  "max_accel": 8,
+  "target_x": 0.5,
+  "target_y": 0.5,
+  "min_pan": 3,
+  "min_tilt": 3,
+  "seq": 888,
+  "last_error": "",
+  "zoom_ratio": 1,
+  "zoom_focal_px": 24194.4,
+  "zoom_focal_min_px": 1515.63,
+  "zoom_focal_max_px": 24194.4,
+  "zoom_speed_scale": 1,
+  "zoom_source": "go_to_sample_relative",
+  "zoom_error": "",
+  "base_cmd_pan": 0,
+  "base_cmd_tilt": 0,
+  "scaled_cmd_pan": 0,
+  "scaled_cmd_tilt": 0,
+  "effective_max_pan": 12,
+  "effective_max_tilt": 12,
+  "effective_max_accel": 2,
+  "manual_active": false,
+  "manual_last_source": "keyboard_right",
+  "manual_cmd_pan": 0,
+  "manual_cmd_tilt": 0,
+  "manual_profile_idx": 9,
+  "manual_zoom_ratio": 1,
+  "manual_expires_ms": 0,
+  "active_profile_idx": 9,
+  "active_zoom_sample_idx": 9,
+  "profile_max_pan": 12,
+  "profile_max_tilt": 12,
+  "profile_max_accel": 2,
+  "ptz_curve": 0.95,
+  "ptz_lead_ms": 80,
+  "speed_profile_source": "user",
+  "speed_profile_left_idx": -1,
+  "speed_profile_right_idx": -1,
+  "speed_profile_t": 0,
+  "auto_zoom_enable": true,
+  "auto_zoom_cmd": 0,
+  "auto_zoom_box_h": 0,
+  "auto_zoom_target_h": 0.48,
+  "auto_zoom_deadzone": 0.1,
+  "auto_zoom_sign": 1
+}
+
+====================================================================================================
+PROCESSES
+====================================================================================================
+
+mjpeg_rknn_http count = 1
+  294739 /root/new_yolo8/.build/mjpeg_rknn_http --dev /dev/video0 --port 8080 --width 1920 --height 1080 --fps 15 --jpeg 25 --labels /root/new_yolo8/models/coco_80_labels_list.txt --model-dir /root/new_yolo8/models --cmd-max-pan 20 --cmd-max-tilt 20 --cmd-max-zoom 34 --max-detections 5 --max-raw-candidates 10 --detect-every-n-frames 5 --zoom-calib-enable --zoom-calib-uart /dev/ttyUSB0 --zoom-calib-baud 115200
+
+ptz_autopilot count = 1
+  294768 /root/new_yolo8/.build/ptz_autopilot --mjpeg-url http://127.0.0.1:8080 --bridge-host 127.0.0.1 --bridge-port 8765 --control-port 8090 --width 1920 --height 1080 --hz 10 --kp 18 --ki 0 --kd 1.5 --deadzone 0.05 --max-pan 20 --max-tilt 20 --max-accel 4 --invert-pan 0 --invert-tilt 1 --target-x 0.5 --target-y 0.5 --min-pan 4 --min-tilt 3 --zoom-scale-enable 1 --zoom-scale-min 0.12 --zoom-scale-max 1.0 --zoom-scale-smoothing 0.25 --enable 0
+
+settings_persist_daemon.py count = 1
+  295012 python3 /root/new_yolo8/settings_persist_daemon.py
+
+object_tracking_daemon.py count = 1
+  295020 python3 /root/new_yolo8/object_tracking_daemon.py
+
+apply_ptz_object_preset.py --watch count = 0
+
+====================================================================================================
+LAUNCHER CONTRACT
+====================================================================================================
+HYDRATE_RUNTIME_SETTINGS = 4
+hydrate_runtime_settings() = 1
+hydrate_runtime_settings = 3
+SETTINGS_PERSIST_DAEMON = 6
+start_settings_persist_daemon() = 1
+start_settings_persist_daemon = 2
+OBJECT_TRACKING_DAEMON = 14
+start_object_tracking_daemon() = 1
+start_object_tracking_daemon = 2
+
+
+====================================================================================================
+LAYER 6B — RUNTIME DETECTION OFF / ZOOM SAMPLE SYNC
+====================================================================================================
+PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_START = 1
+PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_END = 1
+PTZ_RUNTIME_ZOOM_SAMPLE_SPEED_SYNC_V1 = 1
+PTZ_RUNTIME_ZOOM_WIDE_DOCSTRING_NO_RAW_JOG_V2 = 1
+runtime_detection_disabled_pause = 1
+runtime_pause_if_detection_disabled("search_preset" = 1
+runtime_pause_if_detection_disabled("continuous_wide_scan_x" = 1
+runtime_pause_if_detection_disabled("custom_plan" = 1
+zoom_wide_sample_move = 2
+zoom_wide_pulse scoped /api/zoom/jog = 0
+zoom_wide_pulse scoped /api/zoom/go_to_sample = 2
+zoom_wide_pulse scoped apply_ptz_speed_profile_for_zoom = 1
+zoom_move_frames scoped /api/zoom/go_to_sample = 2
+zoom_move_frames scoped profile_idx = 1
+zoom_move_frames scoped apply_ptz_speed_profile_for_zoom = 2
+zoom_move_frames scoped /api/zoom/state = 0
+zoom_move_frames scoped /api/zoom/jog = 0
+search pause guard = True
+continuous pause guard = True
+custom plan function scoped block length = 4193
+custom plan pause guard = True
+
+====================================================================================================
+LAYER 5/6 — DAEMON AND RUNTIME LIFECYCLE
+====================================================================================================
+Step A: disarm
+watch_count after disarm = 0
+Step B: arm
+watch_count arm sample 1 = 1
+watch_count arm sample 2 = 1
+watch_count arm sample 3 = 1
+watch_count arm sample 4 = 1
+watch_count arm sample 5 = 1
+watch_count arm sample 6 = 1
+watch_count arm sample 7 = 1
+watch_count arm sample 8 = 1
+watch_count arm sample 9 = 1
+watch_count arm sample 10 = 1
+watch_count arm sample 11 = 1
+watch_count arm sample 12 = 1
+watch_count max during arm = 1
+watch_count final during arm = 1
+runtime start events during arm = 2
+runtime_event {'event': 'child_start', 'path': '/dev/shm/new_yolo8_object_tracking/object_tracking_daemon.log', 'ts': 1783011146.754, 'preset': 'car_single', 'search_preset': 'lost_step_wait', 'pid': 401817}
+runtime_event {'event': 'armed_running', 'path': '/dev/shm/new_yolo8_object_tracking/object_tracking_daemon.log', 'ts': 1783011147.757, 'preset': 'car_single', 'search_preset': 'lost_step_wait', 'pid': 401817}
+Step C: final disarm
+watch_count after final disarm = 0
+
+====================================================================================================
+SUMMARY
+====================================================================================================
+PASS: file exists: PTZ_MASTER_CONTRACT.md — size=31079
+PASS: file exists: web/index.html — size=299927
+PASS: file exists: ui_settings.json — size=6922
+PASS: file exists: launcher.sh — size=13869
+PASS: file exists: hydrate_runtime_settings.py — size=11759
+PASS: file exists: settings_persist_daemon.py — size=6353
+PASS: file exists: object_tracking_daemon.py — size=7937
+PASS: file exists: apply_ptz_object_preset.py — size=53798
+PASS: file exists: mjpeg_gst_http.cpp — size=216959
+PASS: file exists: ptz_autopilot.cpp — size=50524
+PASS: UI required marker PTZ_CLEAN_LAYER_CONTROLLER_START — count=1 expected=1
+PASS: UI required marker PTZ_CLEAN_SAVESETTINGS_GUARD_START — count=1 expected=1
+PASS: UI forbidden marker SINGLE_PRESET_AUTO_ARM — count=0
+PASS: UI forbidden marker OBJECT_PRESET_MANAGER_START — count=0
+PASS: UI forbidden marker OBJECT_PRESET_BUTTONS_ACTIVE_FIX_START — count=0
+PASS: UI forbidden marker OBJECT_PRESET_AUTO_LEARN_OPERATOR_CONTROLS_START — count=0
+PASS: UI forbidden marker OPERATOR_CONTROLS_HARD_PERSIST_APPLY_START — count=0
+PASS: UI forbidden marker OBJECT_PRESET_NO_AUTO_ARM_DURABLE_SAVE_START — count=0
+PASS: UI forbidden marker PTZ_START_STOP_ACTIVE_STATE_FIX_START — count=0
+PASS: UI forbidden marker SEARCH_PRESET_SELECTOR_START — count=0
+PASS: UI old object preset buttons removed — count=0
+PASS: UI clean object preset buttons exist — count=12
+PASS: UI detection JS marker PTZ_CLEAN_DETECTION_UI_HYDRATE_F5_START — count=1
+PASS: UI detection JS marker PTZ_CLEAN_DETECTION_ACTIVE_PRESET_PERSIST_START — count=1
+PASS: UI detection JS marker hydrateDetectionControlsFromSettings — count=5
+PASS: UI detection JS marker scheduleDetectionUiHydrate — count=2
+PASS: UI detection JS marker persistActiveDetectionControlsToPreset — count=4
+PASS: UI detection JS marker schedulePersistActiveDetectionControlsToPreset — count=3
+PASS: UI saveSettings preserves objectPresetsCustom fallback — requires OBJECT_PRESETS fallback when before.objectPresetsCustom is empty
+PASS: UI detection controls persist to active object preset — missing=[]
+PASS: Keyboard Q/A sweep marker PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_START — count=1
+PASS: Keyboard Q/A sweep marker PTZ_QA_SWEEP_PROFILE_IDX_BACKEND_END — count=1
+PASS: Keyboard Q/A sweep marker ptzQaSweepProfileIdxStep — count=5
+PASS: Keyboard Q/A sweep marker keyboard_Q_profile_idx_sweep — count=1
+PASS: Keyboard Q/A sweep marker keyboard_A_profile_idx_sweep — count=1
+PASS: Keyboard Q/A sweep moves real backend zoom sample — go_to_sample=True profile_idx_target=True
+PASS: Keyboard Q/A sweep does not rely on sample_idx target — canonical request key must be profile_idx
+PASS: Keyboard Q/A sweep applies PTZ speed profile by profile_idx — apply_nearest=True profile_idx_final=True
+PASS: Keyboard Q/A sweep owns event before older handlers — capture_stop=True
+PASS: Keyboard Q/A sample step respects ZOOM CALIB Movement — movement_marker=True owns_both_modes=True
+PASS: Keyboard arrow marker ptzKeyboardCaptureDirection — count=3
+PASS: Keyboard arrow marker ptzKeyboardCaptureEnabled — count=3
+PASS: Keyboard arrow marker window.__ptzKeyCaptureInstalled — count=1
+PASS: Keyboard arrow marker ArrowLeft — count=4
+PASS: Keyboard arrow marker ArrowRight — count=4
+PASS: Keyboard arrow marker ArrowUp — count=4
+PASS: Keyboard arrow marker ArrowDown — count=4
+PASS: Keyboard arrow marker keyboard_left — count=5
+PASS: Keyboard arrow marker keyboard_right — count=5
+PASS: Keyboard arrow marker keyboard_up — count=3
+PASS: Keyboard arrow marker keyboard_down — count=3
+PASS: Keyboard arrows own PTZ pan/tilt directions — block=True all_directions=True
+PASS: Keyboard arrows are gated to PTZ mode — ptz_mode_guard=True
+PASS: Keyboard arrows capture keydown before browser/page handlers — capture_keydown=True
+PASS: Keyboard arrows capture keyup and release movement — capture_keyup=True release_stop=True
+PASS: Keyboard arrows have backend/manual motion path — motion_path=True
+PASS: Settings API reachable — ok
+PASS: Settings file readable — ok
+PASS: Settings API custom presets non-empty — keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+PASS: Settings FILE custom presets non-empty — keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+PASS: Settings activeObjectPreset API/FILE match — api=car_single file=car_single
+PASS: Settings activeSearchPreset API/FILE match — api=lost_step_wait file=lost_step_wait
+PASS: Settings FILE ptzArmed false — file=False
+PASS: Settings FILE controlMode manual — file=manual
+PASS: Settings active custom preset exists — active=car_single
+PASS: Settings top-level limit matches active preset — settings=5 preset=5
+PASS: Settings top-level detect_every matches active preset — settings=1 preset=1
+PASS: Settings top-level area matches active preset — settings=full_frame preset=full_frame
+PASS: Settings active object preset has no PTZ speed keys — bad=[]
+PASS: Detector limits reachable — ok
+PASS: Detector throttle reachable — ok
+PASS: Detector roi reachable — ok
+PASS: Detector config reachable — ok
+PASS: Detector max_detections matches active preset — backend=5 preset=5
+PASS: Detector detect_every matches active preset — backend=1 preset=1
+PASS: Detector area matches active preset — backend=full_frame preset=full_frame
+PASS: Detector classes match active preset — backend=[2, 3, 5, 7] preset=[2, 3, 5, 7]
+PASS: PTZ autopilot reachable — ok
+PASS: PTZ autopilot not auto-running — enabled=False mode=IDLE
+PASS: PTZ speed profile source not runtime override — source=user
+PASS: Process mjpeg_rknn_http count 1 — count=1
+PASS: Process ptz_autopilot count 1 — count=1
+PASS: Process settings_persist_daemon count 1 — count=1
+PASS: Process object_tracking_daemon count 1 — count=1
+PASS: Launcher token HYDRATE_RUNTIME_SETTINGS — count=4
+PASS: Launcher token hydrate_runtime_settings() — count=1
+PASS: Launcher token hydrate_runtime_settings — count=3
+PASS: Launcher token SETTINGS_PERSIST_DAEMON — count=6
+PASS: Launcher token start_settings_persist_daemon() — count=1
+PASS: Launcher token start_settings_persist_daemon — count=2
+PASS: Launcher token OBJECT_TRACKING_DAEMON — count=14
+PASS: Launcher token start_object_tracking_daemon() — count=1
+PASS: Launcher token start_object_tracking_daemon — count=2
+PASS: Runtime contract marker PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_START — count=1
+PASS: Runtime contract marker PTZ_RUNTIME_DETECTION_OFF_PAUSE_GUARD_V1_END — count=1
+PASS: Runtime contract marker PTZ_RUNTIME_ZOOM_SAMPLE_SPEED_SYNC_V1 — count=1
+PASS: Runtime contract marker PTZ_RUNTIME_ZOOM_WIDE_DOCSTRING_NO_RAW_JOG_V2 — count=1
+PASS: Runtime contract marker runtime_detection_disabled_pause — count=1
+PASS: Runtime contract marker runtime_pause_if_detection_disabled("search_preset" — count=1
+PASS: Runtime contract marker runtime_pause_if_detection_disabled("continuous_wide_scan_x" — count=1
+PASS: Runtime contract marker runtime_pause_if_detection_disabled("custom_plan" — count=1
+PASS: Runtime contract marker zoom_wide_sample_move — count=2
+PASS: Runtime Detection OFF pauses search/reacquire — search=True continuous=True custom_plan=True
+PASS: Runtime wide zoom uses sample-speed contract — raw_jog=0 go_to_sample=2 apply_speed=1
+PASS: Runtime search zoom step uses profile_idx sample contract — go_to_sample=2 profile_idx=1 apply_speed=2
+PASS: Runtime search zoom step avoids raw zoom state/jog writes — zoom_state=0 zoom_jog=0
+PASS: Lifecycle persistent custom presets available — api_keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single'] file_keys=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+PASS: Daemon lifecycle disarm watch_count=0 — watch_count=0
+PASS: Daemon lifecycle arm runtime start observed — runtime_events=2 max_watch_count=1 final_watch_count=1 samples=[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+PASS: Daemon lifecycle final disarm watch_count=0 — watch_count=0
+
+PASS = 110
+FAIL = 0
+
+Wrote /root/new_yolo8/ptz_contract_audit_last.json

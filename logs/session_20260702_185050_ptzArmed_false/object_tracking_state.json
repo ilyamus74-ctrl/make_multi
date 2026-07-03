@@ -1,0 +1,11 @@
+{
+  "ts": 1783018249.678,
+  "mode": "tracking",
+  "preset": "person_single",
+  "track_id": 831,
+  "ptz": "ACTIVE",
+  "cmd_pan": -5,
+  "cmd_tilt": -5,
+  "zoom_sample": 6,
+  "zoom_ratio": 0.313
+}

@@ -1,0 +1,25 @@
+diag = /root/new_yolo8/logs/zoom_samples_diag_20260702_181527
+
+FORWARD
+idx=0 before_sample= 1 before_ratio= 0.02 resp_ok= False resp= {'ok': False, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': None, 'error': 'zoom_move_busy'} after_sample= 0 after_ratio= 0 ap_sample= 0 ap_ratio= 0 speed_source= user
+idx=1 before_sample= 0 before_ratio= 0 resp_ok= False resp= {'ok': False, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': None, 'error': 'zoom_move_busy'} after_sample= 1 after_ratio= 0.02 ap_sample= 1 ap_ratio= 0.02 speed_source= user
+idx=2 before_sample= 1 before_ratio= 0.02 resp_ok= False resp= {'ok': False, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': None, 'error': 'zoom_move_busy'} after_sample= 0 after_ratio= 0 ap_sample= 0 ap_ratio= 0 speed_source= user
+idx=3 before_sample= 0 before_ratio= 0 resp_ok= False resp= {'ok': False, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': None, 'error': 'zoom_move_busy'} after_sample= 1 after_ratio= 0.02 ap_sample= 1 ap_ratio= 0.02 speed_source= user
+idx=4 before_sample= 1 before_ratio= 0.02 resp_ok= True resp= {'ok': True, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': 0.116, 'error': None} after_sample= 4 after_ratio= 0.116 ap_sample= 4 ap_ratio= 0.116 speed_source= user
+idx=5 before_sample= 4 before_ratio= 0.116 resp_ok= False resp= {'ok': False, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': None, 'error': 'zoom_move_busy'} after_sample= 5 after_ratio= 0.173 ap_sample= 5 ap_ratio= 0.173 speed_source= user
+idx=6 before_sample= 5 before_ratio= 0.173 resp_ok= True resp= {'ok': True, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': 0.313, 'error': None} after_sample= 6 after_ratio= 0.313 ap_sample= 6 ap_ratio= 0.313 speed_source= user
+idx=7 before_sample= 7 before_ratio= 0.457 resp_ok= True resp= {'ok': True, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': 0.457, 'error': None} after_sample= 7 after_ratio= 0.457 ap_sample= 7 ap_ratio= 0.457 speed_source= user
+idx=8 before_sample= 7 before_ratio= 0.457 resp_ok= False resp= {'ok': False, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': None, 'error': 'zoom_move_busy'} after_sample= 6 after_ratio= 0.313 ap_sample= 6 ap_ratio= 0.313 speed_source= user
+idx=9 before_sample= 6 before_ratio= 0.313 resp_ok= False resp= {'ok': False, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': None, 'error': 'zoom_move_busy'} after_sample= 7 after_ratio= 0.457 ap_sample= 7 ap_ratio= 0.457 speed_source= user
+
+BACK
+idx=9 resp_ok= True resp= {'ok': True, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': 1, 'error': None} after_sample= 9 after_ratio= 1
+idx=8 resp_ok= True resp= {'ok': True, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': 0.744, 'error': None} after_sample= 8 after_ratio= 0.744
+idx=7 resp_ok= True resp= {'ok': True, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': 0.457, 'error': None} after_sample= 7 after_ratio= 0.457
+idx=6 resp_ok= True resp= {'ok': True, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': 0.313, 'error': None} after_sample= 6 after_ratio= 0.313
+idx=5 resp_ok= False resp= {'ok': False, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': None, 'error': 'zoom_move_busy'} after_sample= 5 after_ratio= 0.173
+idx=4 resp_ok= False resp= {'ok': False, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': None, 'error': 'zoom_move_busy'} after_sample= 6 after_ratio= 0.313
+idx=3 resp_ok= True resp= {'ok': True, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': 0.062, 'error': None} after_sample= 3 after_ratio= 0.062
+idx=2 resp_ok= True resp= {'ok': True, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': 0.035, 'error': None} after_sample= 2 after_ratio= 0.035
+idx=1 resp_ok= True resp= {'ok': True, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': 0.02, 'error': None} after_sample= 1 after_ratio= 0.02
+idx=0 resp_ok= False resp= {'ok': False, 'profile_idx': None, 'zoom_sample_idx': None, 'zoom_ratio': None, 'error': 'zoom_move_busy'} after_sample= 2 after_ratio= 0.035

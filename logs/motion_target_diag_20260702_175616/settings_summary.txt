@@ -1,0 +1,38 @@
+activeObjectPreset = car_single
+activeSearchPreset = lost_step_wait
+ptzArmed = True
+controlMode = ptz
+operatorModel = /root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn
+operatorDetectionLimit = 5
+operatorDetectEvery = 1
+operatorDetectionAreaMode = full_frame
+detectorSelectedClasses = [2, 3, 5, 7]
+
+active preset body:
+{
+  "label": "МАШИНА",
+  "classes": [
+    2,
+    3,
+    5,
+    7
+  ],
+  "detection_mode": "full_frame",
+  "max_detections": 5,
+  "max_raw_candidates": 40,
+  "detect_every_n_frames": 1,
+  "tracking_mode": "single_auto",
+  "loss_behavior": "continuous_wide_scan_x",
+  "ptz": {
+    "target_x": 0.5,
+    "target_y": 0.5,
+    "auto_zoom_enable": true,
+    "auto_zoom_target_h": 0.48,
+    "auto_zoom_deadzone": 0.1,
+    "auto_zoom_cmd": 8,
+    "auto_zoom_sign": 1,
+    "auto_zoom_period_ms": 450
+  },
+  "model": "/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn",
+  "operatorModel": "/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn"
+}

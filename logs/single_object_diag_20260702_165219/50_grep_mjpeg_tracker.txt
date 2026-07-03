@@ -1,0 +1,81 @@
+107:enum class TrackerMode {
+115:  uint64_t selected_track_id = 0;
+119:  bool selected_box_valid = false;
+121:  int lost_frames = 0;
+122:  int max_lost_frames = 12;
+162:static float track_box_iou(const DetectionBox& a, const DetectionBox& b) {
+202:    int bestIdx = -1;
+203:    float bestScore = -999.f;
+214:      const float iou = track_box_iou(box, tr.box);
+217:      const bool acceptable = (iou >= 0.18f) || (dist <= 0.08f);
+220:      const float score = iou * 2.0f - dist;
+222:      if (score > bestScore) {
+223:        bestScore = score;
+224:        bestIdx = static_cast<int>(i);
+228:    if (bestIdx >= 0) {
+229:      auto& tr = g_tracks[bestIdx];
+233:      trackUsed[bestIdx] = true;
+288:  DetectionBox prev_best{};
+2194:    case TrackerMode::Tracking: return "TRACKING";
+2195:    case TrackerMode::Lost: return "LOST";
+2196:    case TrackerMode::Reacquire: return "REACQUIRE";
+2443:  if (g_trackerState.selected_track_id == 0 || !g_trackerState.has_selected_track) {
+2445:    g_trackerState.selected_box_valid = false;
+2449:    if (box.id == g_trackerState.selected_track_id) {
+2452:      g_trackerState.selected_box_valid = true;
+2453:      g_trackerState.lost_frames = 0;
+2458:  g_trackerState.lost_frames++;
+2459:  g_trackerState.selected_box_valid = false;
+2460:  g_trackerState.mode = (g_trackerState.lost_frames <= g_trackerState.max_lost_frames)
+2464:static std::vector<DetectionBox> nms_detection_boxes(const std::vector<DetectionBox>& boxes, float iou_threshold) {
+2473:      if (track_box_iou(sorted[i], sorted[j]) > iou_threshold) sup[j] = true;
+2512:     << ",\"selected_track_id\":" << tr.selected_track_id
+2513:     << ",\"selected_box_valid\":" << (tr.selected_box_valid ? "true" : "false")
+2514:     << ",\"lost_frames\":" << tr.lost_frames << "}"
+2552:  DetectionBox best{};
+2564:        best = b;
+2569:      const bool bestPreferred = preferredCls >= 0 && best.cls_id == preferredCls;
+2570:      if (curPreferred && !bestPreferred) {
+2571:        best = b;
+2574:      if (b.prop > best.prop) best = b;
+2581:  const int boxHpx = std::max(1, best.bottom - best.top);
+2591:    if (best.cls_id >= 0 && best.cls_id < static_cast<int>(g_labels.size())) {
+2592:      className = g_labels[best.cls_id];
+2626:    if (g_recentRangeClassId != best.cls_id) {
+2628:      g_recentRangeClassId = best.cls_id;
+2637:  const float confidence = clamp01(0.7f * best.prop + 0.3f * std::min(1.0f, bboxHeightNorm * 4.0f));
+2658:     << ",\"class_id\":" << best.cls_id
+2660:     << ",\"score\":" << best.prop
+2747:static float box_iou(const DetectionBox& a, const DetectionBox& b) {
+2787:  const DetectionBox* best = &boxes.front();
+2789:    if (b.prop > best->prop) best = &b;
+2793:  const float l0 = clamp01(best->prop);
+2799:    const float iou = box_iou(*best, g_confState.prev_best);
+2802:    const float clsBonus = (best->cls_id == g_confState.prev_best.cls_id) ? 1.f : 0.7f;
+2803:    l1 = clamp01(iou * clsBonus * std::exp(-0.15f * dt));
+2805:    const float cx = 0.5f * static_cast<float>(best->left + best->right);
+2806:    const float cy = 0.5f * static_cast<float>(best->top + best->bottom);
+2807:    const float px = 0.5f * static_cast<float>(g_confState.prev_best.left + g_confState.prev_best.right);
+2808:    const float py = 0.5f * static_cast<float>(g_confState.prev_best.top + g_confState.prev_best.bottom);
+2820:      if (&b == best) continue;
+2824:      const float iou2 = box_iou(*best, *second);
+2825:      const float clsAgreement = (best->cls_id == second->cls_id) ? 1.0f : 0.35f;
+2826:      const float scoreAgreement = clamp01(1.0f - std::fabs(best->prop - second->prop));
+2827:      l3 = clamp01(0.55f * clsAgreement + 0.30f * iou2 + 0.15f * scoreAgreement);
+2859:  g_confState.prev_best = *best;
+3397:  if (path == "/api/tracker/state") {
+3405:       << ",\"selected_track_id\":" << tr.selected_track_id
+3407:       << ",\"selected_box_valid\":" << (tr.selected_box_valid ? "true" : "false")
+3408:       << ",\"lost_frames\":" << tr.lost_frames
+3409:       << ",\"max_lost_frames\":" << tr.max_lost_frames
+3412:    if (tr.selected_box_valid) {
+4004:    if (!extract_json_int_field(payload, "track_id", &tid)) extract_json_int_field(payload, "selected_track_id", &tid);
+4007:      g_trackerState.selected_track_id = tid > 0 ? static_cast<uint64_t>(tid) : 0;
+4008:      g_trackerState.has_selected_track = g_trackerState.selected_track_id > 0;
+4009:      g_trackerState.lost_frames = 0;
+4010:      g_trackerState.selected_box_valid = false;
+4013:    std::string body = std::string("{\"ok\":true,\"selected_track_id\":") + std::to_string(std::max(0, tid)) + "}";
+4019:    g_trackerState.selected_track_id = 0; g_trackerState.has_selected_track = false; g_trackerState.selected_box_valid = false; g_trackerState.lost_frames = 0; g_trackerState.mode = TrackerMode::Idle;
+4026:    extract_json_int_field(trim(bodyReq), "max_lost_frames", &maxLost);
+4030:      g_trackerState.max_lost_frames = maxLost;
+4032:    std::string body = std::string("{\"ok\":true,\"max_lost_frames\":") + std::to_string(maxLost) + "}";

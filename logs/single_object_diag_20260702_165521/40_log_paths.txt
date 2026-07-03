@@ -1,0 +1,5 @@
+--- find object tracking logs ---
+/dev/shm/new_yolo8_object_tracking/object_tracking_daemon.log
+/dev/shm/new_yolo8_object_tracking/object_tracking_daemon.log.1
+/dev/shm/new_yolo8_object_tracking/object_tracking_events.jsonl
+/dev/shm/new_yolo8_object_tracking/object_tracking_log_server.log

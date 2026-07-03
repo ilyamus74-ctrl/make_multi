@@ -1,0 +1,25 @@
+DIAG: /root/new_yolo8/logs/single_object_diag_20260702_165219
+
+ACTIVE
+  activeObjectPreset: car_single
+  activeSearchPreset: lost_step_wait
+  classes: [2, 3, 5, 7]
+  tracking_mode: single_auto
+  loss_behavior: continuous_wide_scan_x
+  max_detections: 5
+  detect_every_n_frames: 1
+  detection_mode: full_frame
+
+SAMPLES
+sample=01 det_count= 0 tracker_mode= TRACKING selected_track_id= 76 selected_box_valid= True tracking_ok= None lost= None autopilot_enabled= False autopilot_mode= IDLE last_tracker_mode= TRACKING last_track_id= 76
+sample=02 det_count= 0 tracker_mode= TRACKING selected_track_id= 76 selected_box_valid= True tracking_ok= None lost= None autopilot_enabled= False autopilot_mode= IDLE last_tracker_mode= TRACKING last_track_id= 76
+sample=03 det_count= 0 tracker_mode= TRACKING selected_track_id= 76 selected_box_valid= True tracking_ok= None lost= None autopilot_enabled= False autopilot_mode= IDLE last_tracker_mode= TRACKING last_track_id= 76
+sample=04 det_count= 0 tracker_mode= TRACKING selected_track_id= 76 selected_box_valid= True tracking_ok= None lost= None autopilot_enabled= False autopilot_mode= IDLE last_tracker_mode= TRACKING last_track_id= 76
+sample=05 det_count= 0 tracker_mode= TRACKING selected_track_id= 76 selected_box_valid= True tracking_ok= None lost= None autopilot_enabled= False autopilot_mode= IDLE last_tracker_mode= TRACKING last_track_id= 76
+sample=06 det_count= 0 tracker_mode= TRACKING selected_track_id= 76 selected_box_valid= True tracking_ok= None lost= None autopilot_enabled= False autopilot_mode= IDLE last_tracker_mode= TRACKING last_track_id= 76
+sample=07 det_count= 0 tracker_mode= TRACKING selected_track_id= 76 selected_box_valid= True tracking_ok= None lost= None autopilot_enabled= False autopilot_mode= IDLE last_tracker_mode= TRACKING last_track_id= 76
+sample=08 det_count= 0 tracker_mode= TRACKING selected_track_id= 76 selected_box_valid= True tracking_ok= None lost= None autopilot_enabled= False autopilot_mode= IDLE last_tracker_mode= TRACKING last_track_id= 76
+sample=09 det_count= 0 tracker_mode= TRACKING selected_track_id= 76 selected_box_valid= True tracking_ok= None lost= None autopilot_enabled= False autopilot_mode= IDLE last_tracker_mode= TRACKING last_track_id= 76
+sample=10 det_count= 0 tracker_mode= TRACKING selected_track_id= 76 selected_box_valid= True tracking_ok= None lost= None autopilot_enabled= False autopilot_mode= IDLE last_tracker_mode= TRACKING last_track_id= 76
+sample=11 det_count= 0 tracker_mode= TRACKING selected_track_id= 76 selected_box_valid= True tracking_ok= None lost= None autopilot_enabled= False autopilot_mode= IDLE last_tracker_mode= TRACKING last_track_id= 76
+sample=12 det_count= 0 tracker_mode= TRACKING selected_track_id= 76 selected_box_valid= True tracking_ok= None lost= None autopilot_enabled= False autopilot_mode= IDLE last_tracker_mode= TRACKING last_track_id= 76

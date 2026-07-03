@@ -1,0 +1,10 @@
+OK hydrated runtime settings with self-heal
+custom source = file
+activeObjectPreset = car_single
+activeSearchPreset = lost_step_wait
+ptzArmed = False
+controlMode = manual
+custom presets = ['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']
+limit/every = 5 1
+area = full_frame
+api = {'ok': True}

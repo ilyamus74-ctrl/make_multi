@@ -1,0 +1,11 @@
+{
+  "ts": 1783015103.086,
+  "mode": "searching",
+  "preset": "person_single",
+  "active_search_preset": "lost_step_wait",
+  "result": {
+    "ok": false,
+    "preset": "lost_step_wait",
+    "reason": "target_not_acquired"
+  }
+}

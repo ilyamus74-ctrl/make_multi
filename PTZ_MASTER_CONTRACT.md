@@ -1047,3 +1047,22 @@ Audit coverage:
 - marker `PTZ_RUNTIME_ZOOM_SAMPLE_SPEED_SYNC_V1`
 - marker `PTZ_RUNTIME_ZOOM_WIDE_DOCSTRING_NO_RAW_JOG_V2`
 
+## Layer 8 — Zoom Sample Transaction
+
+Runtime search/reacquire zoom movement is a transactional sample operation, not a raw motor jog.
+
+Required behavior:
+
+- Runtime search/reacquire zoom movement must use `POST /api/zoom/go_to_sample` with `profile_idx`.
+- Runtime zoom movement must wait for `zoom_move_busy=false` before issuing the next sample command.
+- Runtime zoom movement must verify that `zoom_sample_idx` reaches the requested target sample, or report the movement as `not_settled` / `zoom_not_settled`.
+- Runtime must apply the PTZ speed profile only after zoom settles, using the actual settled sample through `POST /api/autopilot/speed_profile/apply_nearest`.
+- Search presets must not run acquire immediately while zoom is still busy or the requested zoom sample is unsettled.
+- Raw `/api/zoom/jog` remains forbidden for runtime wide/search/reacquire zoom movement.
+
+Audit coverage:
+
+- marker `PTZ_ZOOM_SAMPLE_TRANSACTION_V1_START`
+- marker `PTZ_ZOOM_SAMPLE_TRANSACTION_V1_END`
+- marker `PTZ_SEARCH_PRESET_NO_ACQUIRE_WHILE_ZOOM_BUSY_V1_START`
+- marker `PTZ_SEARCH_PRESET_NO_ACQUIRE_WHILE_ZOOM_BUSY_V1_END`

@@ -1,0 +1,28 @@
+333:def choose_best_detection_once(classes):
+524:            selected = tr.get("selected_track_id")
+591:def try_acquire_once(classes, tracker_wait_sec=4.5):
+592:    found = choose_best_detection_once(classes)
+923:        last = try_acquire_once(classes, tracker_wait_sec=4.5)
+1058:def run_active_search_preset_once(classes, object_preset_name, last_target=None, reason="lost"):
+1077:        res = try_acquire_once(classes, tracker_wait_sec=4.5)
+1101:def run_continuous_wide_scan_x(classes, preset_name, plan, max_seconds=0):
+1108:    lost_grace_sec = float(plan.get("lost_grace_sec") or 1.8)
+1109:    lost_grace_poll_sec = float(plan.get("lost_grace_poll_sec") or 0.25)
+1140:            tracking_ok = (
+1146:            if tracking_ok:
+1155:                    "track_id": tr.get("selected_track_id"),
+1177:                        "lost_grace_start",
+1189:                if lost_age < lost_grace_sec:
+1191:                        mode="lost_grace",
+1194:                        track_id=tr.get("selected_track_id")
+1196:                    time.sleep(lost_grace_poll_sec)
+1211:                search_res = run_active_search_preset_once(
+1222:            acquire = try_acquire_once(classes, tracker_wait_sec=float(plan.get("tracker_wait_sec") or 4.5))
+1228:            search_res = run_active_search_preset_once(
+1270:        return run_continuous_wide_scan_x(classes, preset_name, plan, max_seconds=max_seconds)
+1300:            tracking_ok = (
+1306:            if tracking_ok:
+1310:                    track_id=tr.get("selected_track_id"),
+1321:            acquire = try_acquire_once(classes, tracker_wait_sec=float(plan.get("tracker_wait_sec") or 4.5))
+1355:                    acquire = try_acquire_once(classes, tracker_wait_sec=float(plan.get("tracker_wait_sec") or 4.5))
+1574:        return run_continuous_wide_scan_x(classes, preset_name, plan, max_seconds=max_seconds)
