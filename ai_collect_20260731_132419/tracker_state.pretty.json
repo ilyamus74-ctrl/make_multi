@@ -1,0 +1,30 @@
+{
+    "ok": true,
+    "mode": "TRACKING",
+    "selected_track_id": 6,
+    "has_selected_track": true,
+    "selected_box_valid": true,
+    "lost_frames": 0,
+    "max_lost_frames": 12,
+    "frameId": 4114,
+    "selected_cx": 0.477344,
+    "selected_cy": 0.559722,
+    "predicted_cx": 0.477459,
+    "predicted_cy": 0.559426,
+    "target_vx": 0.000638928,
+    "target_vy": -0.00164449,
+    "target_motion_norm": 0.00176425,
+    "target_selection_score": 0.16897,
+    "target_policy_profile": "moving_near_sticky",
+    "target_switch_reason": "",
+    "candidate_scores": [],
+    "box": {
+        "id": 6,
+        "cls": 2,
+        "prop": 0.675293,
+        "left": 883,
+        "top": 588,
+        "right": 950,
+        "bottom": 621
+    }
+}

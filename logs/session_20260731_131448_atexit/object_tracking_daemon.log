@@ -1,0 +1,10 @@
+{"event": "daemon_start", "pid": 1907, "ts": 1785503685.468}
+{"event": "daemon_start", "pid": 1907, "ts": 1785503685.468}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1785503685.473}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1785503685.473}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1785503686.474}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1785503686.474}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1785503687.475}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1785503687.475}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1785503688.476}
+{"armed": false, "event": "idle_disarmed", "preset": "car_single", "single_auto": true, "ts": 1785503688.476}

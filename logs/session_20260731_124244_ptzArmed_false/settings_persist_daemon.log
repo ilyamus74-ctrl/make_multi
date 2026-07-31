@@ -1,0 +1,26 @@
+2026-07-31 12:39:52 settings persist daemon start
+2026-07-31 12:41:55 skip persist: runtime armed ptzArmed=False controlMode=ptz
+2026-07-31 12:41:57 skip persist: runtime armed ptzArmed=False controlMode=ptz
+2026-07-31 12:41:59 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:01 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:03 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:05 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:07 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:09 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:11 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:13 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:15 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:17 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:19 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:21 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:23 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:25 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:27 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:29 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:31 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:33 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:35 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:37 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:39 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:41 skip persist: runtime armed ptzArmed=True controlMode=ptz
+2026-07-31 12:42:43 skip persist: objectPresetsCustom missing or empty

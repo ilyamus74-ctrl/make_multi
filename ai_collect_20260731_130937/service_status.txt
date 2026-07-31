@@ -1,0 +1,30 @@
+### systemctl status maklertour-ptz.service --no-pager
+● maklertour-ptz.service - MaklerTour PTZ/YOLO stack
+     Loaded: loaded (/etc/systemd/system/maklertour-ptz.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2026-07-31 13:05:51 UTC; 3min 46s ago
+   Main PID: 1354 (bash)
+      Tasks: 26 (limit: 9182)
+     Memory: 270.6M
+        CPU: 2min 34.594s
+     CGroup: /system.slice/maklertour-ptz.service
+             ├─1354 bash /root/new_yolo8/launcher.sh
+             ├─1438 /root/new_yolo8/.build/mjpeg_rknn_http --dev /dev/video0 --port 8080 --width 1920 --height 1080 --fps 15 --jpeg 25 --labels /root/new_yolo8/models/coco_80_labels_list.txt --model-dir /root/new_yolo8/models --cmd-max-pan 20 --cmd-max-tilt 20 --cmd-max-zoom 34 --max-detections 5 --max-raw-candidates 10 --detect-every-n-frames 5 --zoom-calib-enable --zoom-calib-uart /dev/ttyUSB0 --zoom-calib-baud 115200
+             ├─1657 bash /root/new_yolo8/launcher.sh
+             ├─1671 /root/new_yolo8/web/ws_uart_bridge /dev/ttyUSB0 115200 8765
+             ├─1679 /root/new_yolo8/.build/ptz_autopilot --mjpeg-url http://127.0.0.1:8080 --bridge-host 127.0.0.1 --bridge-port 8765 --control-port 8090 --width 1920 --height 1080 --hz 10 --kp 18 --ki 0 --kd 1.5 --deadzone 0.05 --max-pan 20 --max-tilt 20 --max-accel 4 --invert-pan 0 --invert-tilt 1 --target-x 0.5 --target-y 0.5 --min-pan 4 --min-tilt 3 --zoom-scale-enable 1 --zoom-scale-min 0.12 --zoom-scale-max 1.0 --zoom-scale-smoothing 0.25 --enable 0
+             ├─1864 python3 /root/new_yolo8/settings_persist_daemon.py
+             ├─1869 python3 /root/new_yolo8/object_tracking_log_server.py --port 8091
+             ├─1872 python3 /root/new_yolo8/object_tracking_daemon.py
+             ├─7061 sleep 1
+             └─7094 sleep 1
+
+Jul 31 13:08:28 rock-5b-plus bash[1864]: 2026-07-31 13:08:28 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:30 rock-5b-plus bash[1864]: 2026-07-31 13:08:30 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:32 rock-5b-plus bash[1864]: 2026-07-31 13:08:32 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:34 rock-5b-plus bash[1864]: 2026-07-31 13:08:34 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:36 rock-5b-plus bash[1864]: 2026-07-31 13:08:36 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:38 rock-5b-plus bash[1864]: 2026-07-31 13:08:38 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:40 rock-5b-plus bash[1864]: 2026-07-31 13:08:40 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:42 rock-5b-plus bash[1864]: 2026-07-31 13:08:42 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:44 rock-5b-plus bash[1864]: 2026-07-31 13:08:44 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:46 rock-5b-plus bash[1864]: 2026-07-31 13:08:46 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']

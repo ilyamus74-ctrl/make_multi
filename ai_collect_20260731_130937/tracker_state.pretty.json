@@ -1,0 +1,22 @@
+{
+    "ok": true,
+    "mode": "IDLE",
+    "selected_track_id": 0,
+    "has_selected_track": false,
+    "selected_box_valid": false,
+    "lost_frames": 500,
+    "max_lost_frames": 12,
+    "frameId": 2495,
+    "selected_cx": 0,
+    "selected_cy": 0,
+    "predicted_cx": 0,
+    "predicted_cy": 0,
+    "target_vx": 0,
+    "target_vy": 0,
+    "target_motion_norm": 0,
+    "target_selection_score": 0,
+    "target_policy_profile": "moving_near_sticky",
+    "target_switch_reason": "",
+    "candidate_scores": [],
+    "box": null
+}

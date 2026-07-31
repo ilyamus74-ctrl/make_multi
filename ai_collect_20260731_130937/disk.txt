@@ -1,0 +1,10 @@
+### df -h
+Filesystem      Size  Used Avail Use% Mounted on
+udev            3.8G     0  3.8G   0% /dev
+tmpfs           794M  1.8M  792M   1% /run
+/dev/mmcblk1p3   57G   34G   21G  63% /
+tmpfs           3.9G   52K  3.9G   1% /dev/shm
+tmpfs           5.0M   24K  5.0M   1% /run/lock
+/dev/mmcblk1p2  300M     0  300M   0% /boot/efi
+/dev/mmcblk1p1   16M  402K   16M   3% /config
+tmpfs           794M   36K  794M   1% /run/user/0

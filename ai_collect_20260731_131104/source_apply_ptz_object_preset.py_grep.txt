@@ -1,0 +1,56 @@
+121:    # PTZ_TARGET_POLICY_PROFILES_V1_START
+122:    name = preset.get("targetPolicyProfile") or ("moving_near_sticky" if preset.get("tracking_mode") == "single_auto" else "")
+134:    # PTZ_TARGET_POLICY_PROFILES_V1_END
+201:def sky_roi(w, h):
+214:def center_roi(w, h):
+229:def full_roi(w, h):
+242:def roi_payload(mode):
+247:        return {"detection_mode": "full_frame", "rois": []}
+250:        return {"detection_mode": "tiled", "rois": []}
+252:    if mode == "roi":
+253:        return {"detection_mode": "roi", "rois": [sky_roi(w, h)]}
+255:    if mode == "multi_roi":
+256:        return {"detection_mode": "multi_roi", "rois": [sky_roi(w, h), center_roi(w, h)]}
+259:        return {"detection_mode": "hybrid", "rois": [full_roi(w, h), sky_roi(w, h)]}
+261:    return {"detection_mode": "full_frame", "rois": []}
+406:    for key in ["active_zoom_sample_idx", "sample", "sample_idx", "step"]:
+427:      /api/zoom/go_to_sample {profile_idx}
+428:      /api/autopilot/speed_profile/apply_nearest {profile_idx}
+473:            res = post_json(f"{MJPEG_BASE}/api/zoom/go_to_sample", {
+481:        settle = wait_zoom_sample_settled(target, context=f"{reason}_wide_settle", timeout_sec=25)
+489:        speed = apply_ptz_speed_profile_for_zoom(final_sample, ratio2)
+502:            go_to_sample=res,
+505:            speed_profile=speed
+516:            "go_to_sample": res,
+519:            "speed_profile": speed
+731:        sample = int(st.get("zoom_sample_idx") or 0)
+732:        count = int(st.get("zoom_sample_count") or 10)
+800:def wait_zoom_sample_settled(target_sample, context="zoom", timeout_sec=25.0, poll_sec=0.25):
+895:def apply_ptz_speed_profile_for_zoom(sample_idx, zoom_ratio=None):
+899:    Do not send zoom_ratio to apply_nearest here: ratio-based nearest/clamp can return
+904:        res = post_json(f"{AUTOPILOT_BASE}/api/autopilot/speed_profile/apply_nearest", {
+913:            "ptz_speed_profile_apply_for_zoom",
+925:        event_log("ptz_speed_profile_apply_for_zoom_failed", error=str(e), sample_idx=sample_idx, zoom_ratio=zoom_ratio)
+932:    Uses /api/zoom/go_to_sample so zoom state and PTZ SPEED TUNE sample stay synchronized.
+944:        speed = apply_ptz_speed_profile_for_zoom(cur, st.get("ratio") or 0.0)
+953:            speed_profile=speed
+963:            "speed_profile": speed,
+968:        res = post_json(f"{MJPEG_BASE}/api/zoom/go_to_sample", {
+976:    settle = wait_zoom_sample_settled(target, context=f"{reason}_settle", timeout_sec=25)
+985:    speed = apply_ptz_speed_profile_for_zoom(actual_sample, ratio)
+999:        speed_profile=speed
+1015:            "speed_profile": speed
+1029:        "speed_profile": speed
+1343:                    "zoom_sample": ap.get("active_zoom_sample_idx"),
+1584:    out["targetPolicyProfile"] = str(preset.get("targetPolicyProfile") or ("moving_near_sticky" if out["objectPresetTrackingMode"] == "single_auto" else ""))
+1603:        "targetPolicyProfile": preset.get("targetPolicyProfile") or ("moving_near_sticky" if (preset.get("tracking_mode") or "") == "single_auto" else ""),
+1622:        "auto_zoom_enable",
+1623:        "auto_zoom_target_h",
+1624:        "auto_zoom_deadzone",
+1625:        "auto_zoom_cmd",
+1626:        "auto_zoom_sign",
+1627:        "auto_zoom_period_ms",
+1680:    roi_res = post_json(f"{MJPEG_BASE}/api/detection/roi_config", roi_payload(mode))
+1691:        post_json(f"{AUTOPILOT_BASE}/api/autopilot/speed_profile/apply_nearest", {}, timeout=2)
+1693:        event_log("speed_profile_apply_nearest_failed", error=str(e))
+1725:        "roi": roi_res,

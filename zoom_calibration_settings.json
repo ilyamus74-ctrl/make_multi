@@ -3,7 +3,7 @@
   "anchor_tag_id": 7,
   "anchor_distance_mm": 6600,
   "samples": 10,
-  "impulse_ms": 170,
+  "impulse_ms": 190,
   "settle_ms": 190,
   "cmd_abs": 34,
   "wide_cmd_sign": 1,

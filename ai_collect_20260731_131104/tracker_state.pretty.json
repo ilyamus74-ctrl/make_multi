@@ -1,0 +1,22 @@
+{
+    "ok": true,
+    "mode": "LOST",
+    "selected_track_id": 5,
+    "has_selected_track": true,
+    "selected_box_valid": false,
+    "lost_frames": 1088,
+    "max_lost_frames": 12,
+    "frameId": 4332,
+    "selected_cx": 0.383594,
+    "selected_cy": 0.539815,
+    "predicted_cx": 0.383624,
+    "predicted_cy": 0.53992,
+    "target_vx": 0.000168069,
+    "target_vy": 0.000584112,
+    "target_motion_norm": 0.000607811,
+    "target_selection_score": 0.136835,
+    "target_policy_profile": "moving_near_sticky",
+    "target_switch_reason": "",
+    "candidate_scores": [],
+    "box": null
+}

@@ -1,0 +1,44 @@
+15:# PTZ_TARGET_POLICY_PROFILES_V1_START
+16:DEFAULT_TARGET_POLICY_PROFILES = {
+17:    'moving_near_sticky': {
+22:        'auto_zoom_after_lock': {'enabled_after_lock_frames': 5, 'target_box_height': 0.30, 'deadzone': 0.08},
+37:# PTZ_TARGET_POLICY_PROFILES_V1_END
+44:        'ptz': {'target_x': 0.5, 'target_y': 0.46, 'auto_zoom_enable': True,
+45:                'auto_zoom_target_h': 0.68, 'auto_zoom_deadzone': 0.08,
+46:                'auto_zoom_cmd': 10, 'auto_zoom_sign': 1, 'auto_zoom_period_ms': 350}
+52:        'ptz': {'target_x': 0.5, 'target_y': 0.47, 'auto_zoom_enable': True,
+53:                'auto_zoom_target_h': 0.58, 'auto_zoom_deadzone': 0.10,
+54:                'auto_zoom_cmd': 8, 'auto_zoom_sign': 1, 'auto_zoom_period_ms': 450}
+60:        'targetPolicyProfile': 'moving_near_sticky',
+61:        'ptz': {'target_x': 0.5, 'target_y': 0.5, 'auto_zoom_enable': True,
+62:                'auto_zoom_target_h': 0.48, 'auto_zoom_deadzone': 0.10,
+63:                'auto_zoom_cmd': 8, 'auto_zoom_sign': 1, 'auto_zoom_period_ms': 450}
+69:        'ptz': {'target_x': 0.5, 'target_y': 0.5, 'auto_zoom_enable': True,
+70:                'auto_zoom_target_h': 0.42, 'auto_zoom_deadzone': 0.12,
+71:                'auto_zoom_cmd': 8, 'auto_zoom_sign': 1, 'auto_zoom_period_ms': 500}
+77:        'ptz': {'target_x': 0.5, 'target_y': 0.45, 'auto_zoom_enable': True,
+78:                'auto_zoom_target_h': 0.30, 'auto_zoom_deadzone': 0.08,
+79:                'auto_zoom_cmd': 10, 'auto_zoom_sign': 1, 'auto_zoom_period_ms': 350}
+85:        'ptz': {'target_x': 0.5, 'target_y': 0.45, 'auto_zoom_enable': True,
+86:                'auto_zoom_target_h': 0.25, 'auto_zoom_deadzone': 0.10,
+87:                'auto_zoom_cmd': 10, 'auto_zoom_sign': 1, 'auto_zoom_period_ms': 400}
+93:        'ptz': {'target_x': 0.5, 'target_y': 0.45, 'auto_zoom_enable': True,
+94:                'auto_zoom_target_h': 0.24, 'auto_zoom_deadzone': 0.07,
+95:                'auto_zoom_cmd': 12, 'auto_zoom_sign': 1, 'auto_zoom_period_ms': 300}
+101:        'ptz': {'target_x': 0.5, 'target_y': 0.45, 'auto_zoom_enable': True,
+102:                'auto_zoom_target_h': 0.20, 'auto_zoom_deadzone': 0.08,
+103:                'auto_zoom_cmd': 12, 'auto_zoom_sign': 1, 'auto_zoom_period_ms': 300}
+169:        out.setdefault('targetPolicyProfile', 'moving_near_sticky')
+211:    merged['targetPolicyProfile'] = active_preset.get('targetPolicyProfile') or ('moving_near_sticky' if merged['objectPresetTrackingMode'] == 'single_auto' else '')
+233:    post_json(f'{MJPEG_BASE}/api/detection/roi_config', {
+235:        'rois': [],
+238:    profile_name = active_preset.get('targetPolicyProfile') or ('moving_near_sticky' if active_preset.get('tracking_mode') == 'single_auto' else '')
+240:        profile = dict(DEFAULT_TARGET_POLICY_PROFILES.get(profile_name) or {})
+249:            'auto_zoom_enable': bool(ptz.get('auto_zoom_enable', True)),
+250:            'auto_zoom_target_h': float(ptz.get('auto_zoom_target_h', 0.48)),
+251:            'auto_zoom_deadzone': float(ptz.get('auto_zoom_deadzone', 0.10)),
+252:            'auto_zoom_cmd': int(ptz.get('auto_zoom_cmd', 8)),
+253:            'auto_zoom_sign': int(ptz.get('auto_zoom_sign', 1)),
+254:            'auto_zoom_period_ms': int(ptz.get('auto_zoom_period_ms', 450)),
+273:    merged['targetPolicyProfiles'] = {**DEFAULT_TARGET_POLICY_PROFILES, **(merged.get('targetPolicyProfiles') or {})}
+296:        'targetPolicyProfile': active_preset.get('targetPolicyProfile') or 'moving_near_sticky',

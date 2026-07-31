@@ -1,0 +1,146 @@
+361:            <option value="roi">ROI SKY</option>
+362:            <option value="multi_roi">MULTI ROI</option>
+364:            <option value="hybrid">HYBRID FULL+ROI</option>
+381:          <span style="opacity:.8">Detection ON/OFF runs YOLO. Objects choose classes. AREA controls full frame / ROI / tiled / hybrid search.</span>
+1423:    const roi = await apiGetJson('/api/detection/roi_config');
+1434:      roi_mode: roi.detection_mode,
+1438:    return { det, tr, ap, roi };
+1928:    const data = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile`);
+1937:    const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/apply_nearest`, { zoom_ratio: ratio });
+1952:    const profile = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile`);
+1998:  async function ptzTuneLoadSpeedForSample(sampleIdx){ const res=await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/apply_nearest`, {profile_idx:Number(sampleIdx)}); if(res&&res.ok){ const point=res.point||res.applied_point||res.config||res; fillPtzTuneFieldsFromConfig(point); if(point && point.j_pulse_ms != null) syncJPulseInputs(point.j_pulse_ms); const st=await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/state`); fillPtzTuneFieldsFromConfig(st); fillPtzTuneFieldsFromConfig(point);} return res;}
+2026:    const res = await apiPostJson('/api/zoom/go_to_sample', {
+2032:      throw new Error(res?.error || 'backend_go_to_sample_failed');
+2040:      const idx = Number(zs.zoom_sample_idx);
+2121:      const idx = Number(zs.zoom_sample_idx);
+2140:    const sampleIdxRaw = Number(zs.zoom_sample_idx ?? ptzTuneCurrentSample ?? 0);
+2155:    const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/save_point`, {
+2186:    const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/build`, {}); await refreshPtzTuneSpeedProfile(); ptzLog('PTZ TUNE BUILD PROFILE', res);
+2225:    const existing = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile`).catch(() => ({ points: [] }));
+2232:    const clearRes = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/clear`, {
+2250:      const res = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/save_point`, defaultSpeedPointForZoomMasterPoint(p));
+2266:      const data = await apiGetJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile`);
+2344:        count = Number(zs.zoom_sample_count || 0) || count;
+2363:      const idx = Number(zs.zoom_sample_idx);
+2407:      const idx = Number(zs.zoom_sample_idx);
+2430:      Number(zoomStateForCount?.zoom_sample_count),
+2447:      autopilotStateFromRuntime?.active_zoom_sample_idx,
+2448:      autopilotStateFromRuntime?.active_profile_idx,
+2449:      zoomStateFromRuntime?.zoom_sample_idx
+3229:    await apiPostJson('/api/detection/roi_config', { detection_mode: 'full_frame', rois: [] }).catch(() => {});
+3238:    await apiPostJson('/api/detection/roi_config', { detection_mode: 'full_frame', rois: [] }).catch(() => {});
+3247:    await apiPostJson('/api/detection/roi_config', { detection_mode: 'full_frame', rois: [] }).catch(() => {});
+4428:      const cur = Number(zs.zoom_sample_idx || 0);
+4429:      const count = Number(zs.zoom_sample_count || 0);
+4438:      const res = await apiPostJson('/api/zoom/go_to_sample', {
+4736:  // Backend /api/zoom/go_to_sample remains the source of real zoom/frame movement.
+4767:    let idx = Number(z?.zoom_sample_idx);
+4771:    let count = Number(z?.zoom_sample_count);
+4795:      const moveRes = await apiPostJson('/api/zoom/go_to_sample', {
+4804:        throw new Error(moveRes?.error || 'zoom_go_to_sample_failed');
+4811:      const speedRes = await apiPostJson(`${autopilotBaseUrl()}/api/autopilot/speed_profile/apply_nearest`, {
+5040:      return { detection_mode: 'full_frame', rois: [] };
+5044:      return { detection_mode: 'tiled', rois: [] };
+5047:    if (mode === 'roi') {
+5049:        detection_mode: 'roi',
+5050:        rois: [makeSkyRoi(w, h)]
+5054:    if (mode === 'multi_roi') {
+5056:        detection_mode: 'multi_roi',
+5057:        rois: [
+5067:        rois: [
+5074:    return { detection_mode: 'full_frame', rois: [] };
+5079:    const res = await postJson('/api/detection/roi_config', payload);
+5085:      const rois = Array.isArray(res.rois) ? res.rois.length : 0;
+5086:      state.textContent = 'area: ' + (res.detection_mode || mode) + ' rois=' + rois;
+5095:      const cfg = await getJson('/api/detection/roi_config');
+5103:        const rois = Array.isArray(cfg.rois) ? cfg.rois.length : 0;
+5104:        $('operatorDetectionAreaState').textContent = 'area: ' + mode + ' rois=' + rois;
+6312:  function renderArea(roi) {
+6313:    const mode = String(roi?.detection_mode || roi?.mode || 'full_frame');
+6319:    const count = Array.isArray(roi?.rois) ? roi.rois.length : 0;
+6322:      $('operatorDetectionAreaState').textContent = `area: ${mode} rois=${count}`;
+6346:    let roi = {};
+6351:    try { roi = await getJson('/api/detection/roi_config'); } catch (e) { console.warn('[det-hardfix] roi failed', e); }
+6362:    renderArea(roi);
+6372:      operatorDetectionAreaMode: String(roi.detection_mode || 'full_frame')
+6375:    return { det, lim, th, roi };
+6439:      return { detection_mode: 'full_frame', rois: [] };
+6443:      return { detection_mode: 'tiled', rois: [] };
+6446:    if (mode === 'roi') {
+6447:      return { detection_mode: 'roi', rois: [skyRoi(w, h)] };
+6450:    if (mode === 'multi_roi') {
+6451:      return { detection_mode: 'multi_roi', rois: [skyRoi(w, h), centerRoi(w, h)] };
+6455:      return { detection_mode: 'hybrid', rois: [fullRoi(w, h), skyRoi(w, h)] };
+6458:    return { detection_mode: 'full_frame', rois: [] };
+6499:    const res = await postJson('/api/detection/roi_config', payload);
+6857:      return { detection_mode: 'full_frame', rois: [] };
+6861:      return { detection_mode: 'tiled', rois: [] };
+6864:    if (mode === 'roi') {
+6865:      return { detection_mode: 'roi', rois: [skyRoi(w, h)] };
+6868:    if (mode === 'multi_roi') {
+6869:      return { detection_mode: 'multi_roi', rois: [skyRoi(w, h), centerRoi(w, h)] };
+6873:      return { detection_mode: 'hybrid', rois: [fullRoi(w, h), skyRoi(w, h)] };
+6876:    return { detection_mode: 'full_frame', rois: [] };
+6886:    const res = await postJson('/api/detection/roi_config', payload);
+6998:        auto_zoom_enable: true,
+6999:        auto_zoom_target_h: 0.68,
+7000:        auto_zoom_deadzone: 0.08,
+7001:        auto_zoom_cmd: 10,
+7002:        auto_zoom_sign: 1,
+7003:        auto_zoom_period_ms: 350
+7018:        auto_zoom_enable: true,
+7019:        auto_zoom_target_h: 0.58,
+7020:        auto_zoom_deadzone: 0.10,
+7021:        auto_zoom_cmd: 8,
+7022:        auto_zoom_sign: 1,
+7023:        auto_zoom_period_ms: 450
+7038:        auto_zoom_enable: true,
+7039:        auto_zoom_target_h: 0.48,
+7040:        auto_zoom_deadzone: 0.10,
+7041:        auto_zoom_cmd: 8,
+7042:        auto_zoom_sign: 1,
+7043:        auto_zoom_period_ms: 450
+7058:        auto_zoom_enable: true,
+7059:        auto_zoom_target_h: 0.42,
+7060:        auto_zoom_deadzone: 0.12,
+7061:        auto_zoom_cmd: 8,
+7062:        auto_zoom_sign: 1,
+7063:        auto_zoom_period_ms: 500
+7078:        auto_zoom_enable: true,
+7079:        auto_zoom_target_h: 0.30,
+7080:        auto_zoom_deadzone: 0.08,
+7081:        auto_zoom_cmd: 10,
+7082:        auto_zoom_sign: 1,
+7083:        auto_zoom_period_ms: 350
+7098:        auto_zoom_enable: true,
+7099:        auto_zoom_target_h: 0.25,
+7100:        auto_zoom_deadzone: 0.10,
+7101:        auto_zoom_cmd: 10,
+7102:        auto_zoom_sign: 1,
+7103:        auto_zoom_period_ms: 400
+7118:        auto_zoom_enable: true,
+7119:        auto_zoom_target_h: 0.24,
+7120:        auto_zoom_deadzone: 0.07,
+7121:        auto_zoom_cmd: 12,
+7122:        auto_zoom_sign: 1,
+7123:        auto_zoom_period_ms: 300
+7138:        auto_zoom_enable: true,
+7139:        auto_zoom_target_h: 0.20,
+7140:        auto_zoom_deadzone: 0.08,
+7141:        auto_zoom_cmd: 12,
+7142:        auto_zoom_sign: 1,
+7143:        auto_zoom_period_ms: 300
+7157:    'auto_zoom_enable',
+7158:    'auto_zoom_target_h',
+7159:    'auto_zoom_deadzone',
+7160:    'auto_zoom_cmd',
+7161:    'auto_zoom_sign',
+7162:    'auto_zoom_period_ms',
+7286:  async function roiPayload(mode) {
+7291:    if (mode === 'tiled') return { detection_mode: 'tiled', rois: [] };
+7292:    if (mode === 'roi') return { detection_mode: 'roi', rois: [skyRoi(w, h)] };
+7293:    if (mode === 'multi_roi') return { detection_mode: 'multi_roi', rois: [skyRoi(w, h), centerRoi(w, h)] };
+7294:    if (mode === 'hybrid') return { detection_mode: 'hybrid', rois: [fullRoi(w, h), skyRoi(w, h)] };
+7296:    return { detection_mode: 'full_frame', rois: [] };
+7386:    const roi = await postJson('/api/detection/roi_config', await roiPayload(mode));
+7388:    return { detector, limits, throttle, roi };

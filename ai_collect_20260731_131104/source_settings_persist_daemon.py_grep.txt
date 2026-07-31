@@ -1,0 +1,6 @@
+19:    "auto_zoom_enable",
+20:    "auto_zoom_target_h",
+21:    "auto_zoom_deadzone",
+22:    "auto_zoom_cmd",
+23:    "auto_zoom_sign",
+24:    "auto_zoom_period_ms",

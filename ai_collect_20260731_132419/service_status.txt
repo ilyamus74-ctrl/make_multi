@@ -1,0 +1,31 @@
+### systemctl status maklertour-ptz.service --no-pager
+● maklertour-ptz.service - MaklerTour PTZ/YOLO stack
+     Loaded: loaded (/etc/systemd/system/maklertour-ptz.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2026-07-31 13:13:43 UTC; 10min ago
+   Main PID: 1346 (bash)
+      Tasks: 30 (limit: 9182)
+     Memory: 292.2M
+        CPU: 11min 46.571s
+     CGroup: /system.slice/maklertour-ptz.service
+             ├─ 1346 bash /root/new_yolo8/launcher.sh
+             ├─ 1398 /root/new_yolo8/.build/mjpeg_rknn_http --dev /dev/video0 --port 8080 --width 1920 --height 1080 --fps 15 --jpeg 25 --labels /root/new_yolo8/models/coco_80_labels_list.txt --model-dir /root/new_yolo8/models --cmd-max-pan 20 --cmd-max-tilt 20 --cmd-max-zoom 34 --max-detections 5 --max-raw-candidates 10 --detect-every-n-frames 5 --zoom-calib-enable --zoom-calib-uart /dev/ttyUSB0 --zoom-calib-baud 115200
+             ├─ 1652 bash /root/new_yolo8/launcher.sh
+             ├─ 1666 /root/new_yolo8/web/ws_uart_bridge /dev/ttyUSB0 115200 8765
+             ├─ 1673 /root/new_yolo8/.build/ptz_autopilot --mjpeg-url http://127.0.0.1:8080 --bridge-host 127.0.0.1 --bridge-port 8765 --control-port 8090 --width 1920 --height 1080 --hz 10 --kp 18 --ki 0 --kd 1.5 --deadzone 0.05 --max-pan 20 --max-tilt 20 --max-accel 4 --invert-pan 0 --invert-tilt 1 --target-x 0.5 --target-y 0.5 --min-pan 4 --min-tilt 3 --zoom-scale-enable 1 --zoom-scale-min 0.12 --zoom-scale-max 1.0 --zoom-scale-smoothing 0.25 --enable 0
+             ├─ 1898 python3 /root/new_yolo8/settings_persist_daemon.py
+             ├─ 1904 python3 /root/new_yolo8/object_tracking_log_server.py --port 8091
+             ├─ 1907 python3 /root/new_yolo8/object_tracking_daemon.py
+             ├─27774 /usr/bin/python3 /root/rknpu2/examples/rknn_yolov8_demo_opencv_2_work_2/new_yolo8/apply_ptz_object_preset.py --preset car_single --arm force --strategy preset --watch
+             ├─28337 sleep 1
+             └─28373 
+
+Jul 31 13:14:45 rock-5b-plus bash[1346]: [2026-07-31 13:14:45] Press Ctrl+C to stop both
+Jul 31 13:14:45 rock-5b-plus bash[1898]: 2026-07-31 13:14:45 settings persist daemon start
+Jul 31 13:14:46 rock-5b-plus bash[1899]: [2026-07-31 13:14:46] Applying object preset: active
+Jul 31 13:14:49 rock-5b-plus bash[1899]: [2026-07-31 13:14:49] Object preset applied: active
+Jul 31 13:24:09 rock-5b-plus bash[1898]: 2026-07-31 13:24:09 skip persist: runtime armed ptzArmed=True controlMode=ptz
+Jul 31 13:24:11 rock-5b-plus bash[1898]: 2026-07-31 13:24:11 skip persist: runtime armed ptzArmed=True controlMode=ptz
+Jul 31 13:24:13 rock-5b-plus bash[1898]: 2026-07-31 13:24:13 skip persist: runtime armed ptzArmed=True controlMode=ptz
+Jul 31 13:24:15 rock-5b-plus bash[1898]: 2026-07-31 13:24:15 skip persist: runtime armed ptzArmed=True controlMode=ptz
+Jul 31 13:24:17 rock-5b-plus bash[1898]: 2026-07-31 13:24:17 skip persist: runtime armed ptzArmed=True controlMode=ptz
+Jul 31 13:24:19 rock-5b-plus bash[1898]: 2026-07-31 13:24:19 skip persist: runtime armed ptzArmed=True controlMode=ptz

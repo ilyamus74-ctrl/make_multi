@@ -1,0 +1,229 @@
+{
+    "objectPresetsCustom": {
+        "person_single": {
+            "label": "\u0427\u0415\u041b\u041e\u0412\u0415\u041a",
+            "classes": [
+                0
+            ],
+            "detection_mode": "full_frame",
+            "max_detections": 5,
+            "max_raw_candidates": 25,
+            "detect_every_n_frames": 1,
+            "tracking_mode": "single_auto",
+            "loss_behavior": "continuous_wide_scan_x",
+            "ptz": {
+                "target_x": 0.5,
+                "target_y": 0.46,
+                "auto_zoom_enable": true,
+                "auto_zoom_target_h": 0.68,
+                "auto_zoom_deadzone": 0.08,
+                "auto_zoom_cmd": 10,
+                "auto_zoom_sign": 1,
+                "auto_zoom_period_ms": 350
+            }
+        },
+        "people": {
+            "label": "\u041b\u042e\u0414\u0418",
+            "classes": [
+                0
+            ],
+            "detection_mode": "full_frame",
+            "max_detections": 10,
+            "max_raw_candidates": 50,
+            "detect_every_n_frames": 1,
+            "tracking_mode": "multi_operator",
+            "loss_behavior": "operator_select",
+            "ptz": {
+                "target_x": 0.5,
+                "target_y": 0.47,
+                "auto_zoom_enable": true,
+                "auto_zoom_target_h": 0.58,
+                "auto_zoom_deadzone": 0.1,
+                "auto_zoom_cmd": 8,
+                "auto_zoom_sign": 1,
+                "auto_zoom_period_ms": 450
+            }
+        },
+        "car_single": {
+            "label": "\u041c\u0410\u0428\u0418\u041d\u0410",
+            "classes": [
+                2,
+                3,
+                5,
+                7
+            ],
+            "detection_mode": "full_frame",
+            "max_detections": 10,
+            "max_raw_candidates": 50,
+            "detect_every_n_frames": 1,
+            "tracking_mode": "single_auto",
+            "loss_behavior": "continuous_wide_scan_x",
+            "ptz": {
+                "target_x": 0.5,
+                "target_y": 0.5,
+                "auto_zoom_enable": true,
+                "auto_zoom_target_h": 0.48,
+                "auto_zoom_deadzone": 0.1,
+                "auto_zoom_cmd": 8,
+                "auto_zoom_sign": 1,
+                "auto_zoom_period_ms": 450
+            }
+        },
+        "cars": {
+            "label": "\u041c\u0410\u0428\u0418\u041d\u042b",
+            "classes": [
+                2,
+                3,
+                5,
+                7
+            ],
+            "detection_mode": "tiled",
+            "max_detections": 15,
+            "max_raw_candidates": 80,
+            "detect_every_n_frames": 1,
+            "tracking_mode": "multi_operator",
+            "loss_behavior": "operator_select",
+            "ptz": {
+                "target_x": 0.5,
+                "target_y": 0.5,
+                "auto_zoom_enable": true,
+                "auto_zoom_target_h": 0.42,
+                "auto_zoom_deadzone": 0.12,
+                "auto_zoom_cmd": 8,
+                "auto_zoom_sign": 1,
+                "auto_zoom_period_ms": 500
+            }
+        },
+        "airplane_single": {
+            "label": "\u0421\u0410\u041c\u041e\u041b\u0401\u0422",
+            "classes": [
+                4
+            ],
+            "detection_mode": "hybrid",
+            "max_detections": 8,
+            "max_raw_candidates": 60,
+            "detect_every_n_frames": 1,
+            "tracking_mode": "single_auto",
+            "loss_behavior": "continuous_wide_scan_x",
+            "ptz": {
+                "target_x": 0.5,
+                "target_y": 0.45,
+                "auto_zoom_enable": true,
+                "auto_zoom_target_h": 0.3,
+                "auto_zoom_deadzone": 0.08,
+                "auto_zoom_cmd": 10,
+                "auto_zoom_sign": 1,
+                "auto_zoom_period_ms": 350
+            }
+        },
+        "airplanes": {
+            "label": "\u0421\u0410\u041c\u041e\u041b\u0401\u0422\u042b",
+            "classes": [
+                4
+            ],
+            "detection_mode": "hybrid",
+            "max_detections": 15,
+            "max_raw_candidates": 100,
+            "detect_every_n_frames": 1,
+            "tracking_mode": "multi_operator",
+            "loss_behavior": "operator_select",
+            "ptz": {
+                "target_x": 0.5,
+                "target_y": 0.45,
+                "auto_zoom_enable": true,
+                "auto_zoom_target_h": 0.25,
+                "auto_zoom_deadzone": 0.1,
+                "auto_zoom_cmd": 10,
+                "auto_zoom_sign": 1,
+                "auto_zoom_period_ms": 400
+            }
+        },
+        "bird_single": {
+            "label": "\u041f\u0422\u0418\u0426\u0410",
+            "classes": [
+                14
+            ],
+            "detection_mode": "hybrid",
+            "max_detections": 10,
+            "max_raw_candidates": 80,
+            "detect_every_n_frames": 1,
+            "tracking_mode": "single_auto",
+            "loss_behavior": "continuous_wide_scan_x",
+            "ptz": {
+                "target_x": 0.5,
+                "target_y": 0.45,
+                "auto_zoom_enable": true,
+                "auto_zoom_target_h": 0.24,
+                "auto_zoom_deadzone": 0.07,
+                "auto_zoom_cmd": 12,
+                "auto_zoom_sign": 1,
+                "auto_zoom_period_ms": 300
+            }
+        },
+        "birds": {
+            "label": "\u041f\u0422\u0418\u0426\u042b",
+            "classes": [
+                14
+            ],
+            "detection_mode": "hybrid",
+            "max_detections": 20,
+            "max_raw_candidates": 120,
+            "detect_every_n_frames": 1,
+            "tracking_mode": "multi_operator",
+            "loss_behavior": "operator_select",
+            "ptz": {
+                "target_x": 0.5,
+                "target_y": 0.45,
+                "auto_zoom_enable": true,
+                "auto_zoom_target_h": 0.2,
+                "auto_zoom_deadzone": 0.08,
+                "auto_zoom_cmd": 12,
+                "auto_zoom_sign": 1,
+                "auto_zoom_period_ms": 300
+            }
+        }
+    },
+    "activeObjectPreset": "car_single",
+    "detectorEnabled": true,
+    "detectorSelectedClasses": [
+        2,
+        3,
+        5,
+        7
+    ],
+    "operatorModel": "/root/new_yolo8/model_rknn/yolov8s_800x800_9out_fp32.rknn",
+    "operatorDetectionLimit": 10,
+    "operatorDetectEvery": 1,
+    "operatorDetectionAreaMode": "full_frame",
+    "config_version": 16,
+    "activeSearchPreset": "lost_step_wait",
+    "ptzArmed": true,
+    "controlMode": "ptz",
+    "objectPresetTrackingMode": "single_auto",
+    "objectPresetLossBehavior": "continuous_wide_scan_x",
+    "targetPolicyProfile": "moving_near_sticky",
+    "ptzConfig": {
+        "target_x": 0.5,
+        "target_y": 0.5,
+        "min_pan": null,
+        "min_tilt": null
+    },
+    "ptzAutoZoom": {
+        "target_x": 0.5,
+        "target_y": 0.5,
+        "auto_zoom_enable": true,
+        "auto_zoom_target_h": 0.48,
+        "auto_zoom_deadzone": 0.1,
+        "auto_zoom_cmd": 8,
+        "auto_zoom_sign": 1,
+        "auto_zoom_period_ms": 450
+    },
+    "lastAppliedObjectPreset": {
+        "name": "car_single",
+        "label": "\u041c\u0410\u0428\u0418\u041d\u0410",
+        "tracking_mode": "single_auto",
+        "loss_behavior": "continuous_wide_scan_x",
+        "targetPolicyProfile": "moving_near_sticky",
+        "ts": 1785504249
+    }
+}

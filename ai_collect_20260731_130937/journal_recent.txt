@@ -1,0 +1,303 @@
+### journalctl -u maklertour-ptz.service --no-pager -n 300
+Journal file /var/log/journal/81801fdec3624a31bc21c6a441dc6bb0/system@0006387acc104b4f-be752bf2aee9cc23.journal~ is truncated, ignoring file.
+Jul 31 12:58:42 rock-5b-plus bash[1936]: 2026-07-31 12:58:42 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:58:44 rock-5b-plus bash[1936]: 2026-07-31 12:58:44 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:58:46 rock-5b-plus bash[1936]: 2026-07-31 12:58:46 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:58:48 rock-5b-plus bash[1936]: 2026-07-31 12:58:48 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:58:50 rock-5b-plus bash[1936]: 2026-07-31 12:58:50 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:58:52 rock-5b-plus bash[1936]: 2026-07-31 12:58:52 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:58:54 rock-5b-plus bash[1936]: 2026-07-31 12:58:54 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:58:56 rock-5b-plus bash[1936]: 2026-07-31 12:58:56 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:58:58 rock-5b-plus bash[1936]: 2026-07-31 12:58:58 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:00 rock-5b-plus bash[1936]: 2026-07-31 12:59:00 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:02 rock-5b-plus bash[1936]: 2026-07-31 12:59:02 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:04 rock-5b-plus bash[1936]: 2026-07-31 12:59:04 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:06 rock-5b-plus bash[1936]: 2026-07-31 12:59:06 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:08 rock-5b-plus bash[1936]: 2026-07-31 12:59:08 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:10 rock-5b-plus bash[1936]: 2026-07-31 12:59:10 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:12 rock-5b-plus bash[1936]: 2026-07-31 12:59:12 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:14 rock-5b-plus bash[1936]: 2026-07-31 12:59:14 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:16 rock-5b-plus bash[1936]: 2026-07-31 12:59:16 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:18 rock-5b-plus bash[1936]: 2026-07-31 12:59:18 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:20 rock-5b-plus bash[1936]: 2026-07-31 12:59:20 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:22 rock-5b-plus bash[1936]: 2026-07-31 12:59:22 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:24 rock-5b-plus bash[1936]: 2026-07-31 12:59:24 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:26 rock-5b-plus bash[1936]: 2026-07-31 12:59:26 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:28 rock-5b-plus bash[1936]: 2026-07-31 12:59:28 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:30 rock-5b-plus bash[1936]: 2026-07-31 12:59:30 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:32 rock-5b-plus bash[1936]: 2026-07-31 12:59:32 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:34 rock-5b-plus bash[1936]: 2026-07-31 12:59:34 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:36 rock-5b-plus bash[1936]: 2026-07-31 12:59:36 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:38 rock-5b-plus bash[1936]: 2026-07-31 12:59:38 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:40 rock-5b-plus bash[1936]: 2026-07-31 12:59:40 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:42 rock-5b-plus bash[1936]: 2026-07-31 12:59:42 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:44 rock-5b-plus bash[1936]: 2026-07-31 12:59:44 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:46 rock-5b-plus bash[1936]: 2026-07-31 12:59:46 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:48 rock-5b-plus bash[1936]: 2026-07-31 12:59:48 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:50 rock-5b-plus bash[1936]: 2026-07-31 12:59:50 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:52 rock-5b-plus bash[1936]: 2026-07-31 12:59:52 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:54 rock-5b-plus bash[1936]: 2026-07-31 12:59:54 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:56 rock-5b-plus bash[1936]: 2026-07-31 12:59:56 skip persist: objectPresetsCustom missing or empty
+Jul 31 12:59:58 rock-5b-plus bash[1936]: 2026-07-31 12:59:58 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:00 rock-5b-plus bash[1936]: 2026-07-31 13:00:00 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:02 rock-5b-plus bash[1936]: 2026-07-31 13:00:02 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:04 rock-5b-plus bash[1936]: 2026-07-31 13:00:04 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:06 rock-5b-plus bash[1936]: 2026-07-31 13:00:06 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:08 rock-5b-plus bash[1936]: 2026-07-31 13:00:08 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:10 rock-5b-plus bash[1936]: 2026-07-31 13:00:10 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:12 rock-5b-plus bash[1936]: 2026-07-31 13:00:12 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:14 rock-5b-plus bash[1936]: 2026-07-31 13:00:14 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:16 rock-5b-plus bash[1936]: 2026-07-31 13:00:16 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:18 rock-5b-plus bash[1936]: 2026-07-31 13:00:18 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:20 rock-5b-plus bash[1936]: 2026-07-31 13:00:20 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:22 rock-5b-plus bash[1936]: 2026-07-31 13:00:22 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:24 rock-5b-plus bash[1936]: 2026-07-31 13:00:24 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:26 rock-5b-plus bash[1936]: 2026-07-31 13:00:26 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:28 rock-5b-plus bash[1936]: 2026-07-31 13:00:28 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:30 rock-5b-plus bash[1936]: 2026-07-31 13:00:30 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:32 rock-5b-plus bash[1936]: 2026-07-31 13:00:32 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:34 rock-5b-plus bash[1936]: 2026-07-31 13:00:34 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:36 rock-5b-plus bash[1936]: 2026-07-31 13:00:36 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:38 rock-5b-plus bash[1936]: 2026-07-31 13:00:38 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:40 rock-5b-plus bash[1936]: 2026-07-31 13:00:40 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:42 rock-5b-plus bash[1936]: 2026-07-31 13:00:42 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:44 rock-5b-plus bash[1936]: 2026-07-31 13:00:44 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:46 rock-5b-plus bash[1936]: 2026-07-31 13:00:46 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:48 rock-5b-plus bash[1936]: 2026-07-31 13:00:48 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:50 rock-5b-plus bash[1936]: 2026-07-31 13:00:50 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:52 rock-5b-plus bash[1936]: 2026-07-31 13:00:52 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:54 rock-5b-plus bash[1936]: 2026-07-31 13:00:54 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:56 rock-5b-plus bash[1936]: 2026-07-31 13:00:56 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:00:58 rock-5b-plus bash[1936]: 2026-07-31 13:00:58 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:00 rock-5b-plus bash[1936]: 2026-07-31 13:01:00 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:02 rock-5b-plus bash[1936]: 2026-07-31 13:01:02 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:04 rock-5b-plus bash[1936]: 2026-07-31 13:01:04 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:06 rock-5b-plus bash[1936]: 2026-07-31 13:01:06 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:08 rock-5b-plus bash[1936]: 2026-07-31 13:01:08 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:10 rock-5b-plus bash[1936]: 2026-07-31 13:01:10 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:12 rock-5b-plus bash[1936]: 2026-07-31 13:01:12 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:14 rock-5b-plus bash[1936]: 2026-07-31 13:01:14 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:16 rock-5b-plus bash[1936]: 2026-07-31 13:01:16 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:18 rock-5b-plus bash[1936]: 2026-07-31 13:01:18 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:20 rock-5b-plus bash[1936]: 2026-07-31 13:01:20 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:22 rock-5b-plus bash[1936]: 2026-07-31 13:01:22 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:24 rock-5b-plus bash[1936]: 2026-07-31 13:01:24 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:26 rock-5b-plus bash[1936]: 2026-07-31 13:01:26 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:28 rock-5b-plus bash[1936]: 2026-07-31 13:01:28 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:31 rock-5b-plus bash[1936]: 2026-07-31 13:01:30 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:32 rock-5b-plus bash[1936]: 2026-07-31 13:01:32 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:34 rock-5b-plus bash[1936]: 2026-07-31 13:01:34 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:36 rock-5b-plus bash[1936]: 2026-07-31 13:01:36 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:38 rock-5b-plus bash[1936]: 2026-07-31 13:01:38 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:40 rock-5b-plus bash[1936]: 2026-07-31 13:01:40 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:42 rock-5b-plus bash[1936]: 2026-07-31 13:01:42 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:44 rock-5b-plus bash[1936]: 2026-07-31 13:01:44 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:46 rock-5b-plus bash[1936]: 2026-07-31 13:01:46 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:48 rock-5b-plus bash[1936]: 2026-07-31 13:01:48 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:50 rock-5b-plus bash[1936]: 2026-07-31 13:01:50 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:52 rock-5b-plus bash[1936]: 2026-07-31 13:01:52 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:54 rock-5b-plus bash[1936]: 2026-07-31 13:01:54 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:56 rock-5b-plus bash[1936]: 2026-07-31 13:01:56 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:01:58 rock-5b-plus bash[1936]: 2026-07-31 13:01:58 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:00 rock-5b-plus bash[1936]: 2026-07-31 13:02:00 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:02 rock-5b-plus bash[1936]: 2026-07-31 13:02:02 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:04 rock-5b-plus bash[1936]: 2026-07-31 13:02:04 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:06 rock-5b-plus bash[1936]: 2026-07-31 13:02:06 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:08 rock-5b-plus bash[1936]: 2026-07-31 13:02:08 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:10 rock-5b-plus bash[1936]: 2026-07-31 13:02:10 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:12 rock-5b-plus bash[1936]: 2026-07-31 13:02:12 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:14 rock-5b-plus bash[1936]: 2026-07-31 13:02:14 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:16 rock-5b-plus bash[1936]: 2026-07-31 13:02:16 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:18 rock-5b-plus bash[1936]: 2026-07-31 13:02:18 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:20 rock-5b-plus bash[1936]: 2026-07-31 13:02:20 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:22 rock-5b-plus bash[1936]: 2026-07-31 13:02:22 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:24 rock-5b-plus bash[1936]: 2026-07-31 13:02:24 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:26 rock-5b-plus bash[1936]: 2026-07-31 13:02:26 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:28 rock-5b-plus bash[1936]: 2026-07-31 13:02:28 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:30 rock-5b-plus bash[1936]: 2026-07-31 13:02:30 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:32 rock-5b-plus bash[1936]: 2026-07-31 13:02:32 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:34 rock-5b-plus bash[1936]: 2026-07-31 13:02:34 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:36 rock-5b-plus bash[1936]: 2026-07-31 13:02:36 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:38 rock-5b-plus bash[1936]: 2026-07-31 13:02:38 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:40 rock-5b-plus bash[1936]: 2026-07-31 13:02:40 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:42 rock-5b-plus bash[1936]: 2026-07-31 13:02:42 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:44 rock-5b-plus bash[1936]: 2026-07-31 13:02:44 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:46 rock-5b-plus bash[1936]: 2026-07-31 13:02:46 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:48 rock-5b-plus bash[1936]: 2026-07-31 13:02:48 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:50 rock-5b-plus bash[1936]: 2026-07-31 13:02:50 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:52 rock-5b-plus bash[1936]: 2026-07-31 13:02:52 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:54 rock-5b-plus bash[1936]: 2026-07-31 13:02:54 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:56 rock-5b-plus bash[1936]: 2026-07-31 13:02:56 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:02:58 rock-5b-plus bash[1936]: 2026-07-31 13:02:58 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:00 rock-5b-plus bash[1936]: 2026-07-31 13:03:00 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:02 rock-5b-plus bash[1936]: 2026-07-31 13:03:02 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:04 rock-5b-plus bash[1936]: 2026-07-31 13:03:04 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:06 rock-5b-plus bash[1936]: 2026-07-31 13:03:06 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:08 rock-5b-plus bash[1936]: 2026-07-31 13:03:08 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:10 rock-5b-plus bash[1936]: 2026-07-31 13:03:10 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:13 rock-5b-plus bash[1936]: 2026-07-31 13:03:12 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:14 rock-5b-plus bash[1936]: 2026-07-31 13:03:14 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:16 rock-5b-plus bash[1936]: 2026-07-31 13:03:16 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:18 rock-5b-plus bash[1936]: 2026-07-31 13:03:18 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:20 rock-5b-plus bash[1936]: 2026-07-31 13:03:20 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:22 rock-5b-plus bash[1936]: 2026-07-31 13:03:22 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:24 rock-5b-plus bash[1936]: 2026-07-31 13:03:24 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:26 rock-5b-plus bash[1936]: 2026-07-31 13:03:26 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:28 rock-5b-plus bash[1936]: 2026-07-31 13:03:28 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:30 rock-5b-plus bash[1936]: 2026-07-31 13:03:30 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:32 rock-5b-plus bash[1936]: 2026-07-31 13:03:32 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:34 rock-5b-plus bash[1936]: 2026-07-31 13:03:34 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:36 rock-5b-plus bash[1936]: 2026-07-31 13:03:36 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:38 rock-5b-plus bash[1936]: 2026-07-31 13:03:38 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:41 rock-5b-plus bash[1936]: 2026-07-31 13:03:40 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:43 rock-5b-plus bash[1936]: 2026-07-31 13:03:42 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:45 rock-5b-plus bash[1936]: 2026-07-31 13:03:45 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:47 rock-5b-plus bash[1936]: 2026-07-31 13:03:47 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:49 rock-5b-plus bash[1936]: 2026-07-31 13:03:49 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:51 rock-5b-plus bash[1936]: 2026-07-31 13:03:51 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:53 rock-5b-plus bash[1936]: 2026-07-31 13:03:53 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:55 rock-5b-plus bash[1936]: 2026-07-31 13:03:55 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:57 rock-5b-plus bash[1936]: 2026-07-31 13:03:57 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:03:59 rock-5b-plus bash[1936]: 2026-07-31 13:03:59 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:01 rock-5b-plus bash[1936]: 2026-07-31 13:04:01 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:03 rock-5b-plus bash[1936]: 2026-07-31 13:04:03 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:05 rock-5b-plus bash[1936]: 2026-07-31 13:04:05 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:07 rock-5b-plus bash[1936]: 2026-07-31 13:04:07 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:09 rock-5b-plus bash[1936]: 2026-07-31 13:04:09 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:11 rock-5b-plus bash[1936]: 2026-07-31 13:04:11 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:13 rock-5b-plus bash[1936]: 2026-07-31 13:04:13 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:15 rock-5b-plus bash[1936]: 2026-07-31 13:04:15 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:17 rock-5b-plus bash[1936]: 2026-07-31 13:04:17 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:19 rock-5b-plus bash[1936]: 2026-07-31 13:04:19 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:21 rock-5b-plus bash[1936]: 2026-07-31 13:04:21 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:23 rock-5b-plus bash[1936]: 2026-07-31 13:04:23 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:25 rock-5b-plus bash[1936]: 2026-07-31 13:04:25 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:27 rock-5b-plus bash[1936]: 2026-07-31 13:04:27 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:29 rock-5b-plus bash[1936]: 2026-07-31 13:04:29 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:31 rock-5b-plus bash[1936]: 2026-07-31 13:04:31 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:33 rock-5b-plus bash[1936]: 2026-07-31 13:04:33 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:35 rock-5b-plus bash[1936]: 2026-07-31 13:04:35 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:37 rock-5b-plus bash[1936]: 2026-07-31 13:04:37 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:39 rock-5b-plus bash[1936]: 2026-07-31 13:04:39 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:41 rock-5b-plus bash[1936]: 2026-07-31 13:04:41 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:43 rock-5b-plus bash[1936]: 2026-07-31 13:04:43 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:45 rock-5b-plus bash[1936]: 2026-07-31 13:04:45 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:47 rock-5b-plus bash[1936]: 2026-07-31 13:04:47 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:49 rock-5b-plus bash[1936]: 2026-07-31 13:04:49 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:51 rock-5b-plus bash[1936]: 2026-07-31 13:04:51 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:53 rock-5b-plus bash[1936]: 2026-07-31 13:04:53 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:55 rock-5b-plus bash[1936]: 2026-07-31 13:04:55 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:57 rock-5b-plus bash[1936]: 2026-07-31 13:04:57 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:04:59 rock-5b-plus bash[1936]: 2026-07-31 13:04:59 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:01 rock-5b-plus bash[1936]: 2026-07-31 13:05:01 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:03 rock-5b-plus bash[1936]: 2026-07-31 13:05:03 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:05 rock-5b-plus bash[1936]: 2026-07-31 13:05:05 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:07 rock-5b-plus bash[1936]: 2026-07-31 13:05:07 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:09 rock-5b-plus bash[1936]: 2026-07-31 13:05:09 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:11 rock-5b-plus bash[1936]: 2026-07-31 13:05:11 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:13 rock-5b-plus bash[1936]: 2026-07-31 13:05:13 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:15 rock-5b-plus bash[1936]: 2026-07-31 13:05:15 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:17 rock-5b-plus bash[1936]: 2026-07-31 13:05:17 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:19 rock-5b-plus bash[1936]: 2026-07-31 13:05:19 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:21 rock-5b-plus bash[1936]: 2026-07-31 13:05:21 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:23 rock-5b-plus bash[1936]: 2026-07-31 13:05:23 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:25 rock-5b-plus bash[1936]: 2026-07-31 13:05:25 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:27 rock-5b-plus bash[1936]: 2026-07-31 13:05:27 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:29 rock-5b-plus bash[1936]: 2026-07-31 13:05:29 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:31 rock-5b-plus bash[1936]: 2026-07-31 13:05:31 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:33 rock-5b-plus bash[1936]: 2026-07-31 13:05:33 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:35 rock-5b-plus bash[1936]: 2026-07-31 13:05:35 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:37 rock-5b-plus bash[1936]: 2026-07-31 13:05:37 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:39 rock-5b-plus bash[1936]: 2026-07-31 13:05:39 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:41 rock-5b-plus bash[1936]: 2026-07-31 13:05:41 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:43 rock-5b-plus bash[1936]: 2026-07-31 13:05:43 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:45 rock-5b-plus bash[1936]: 2026-07-31 13:05:45 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:47 rock-5b-plus bash[1936]: 2026-07-31 13:05:47 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:49 rock-5b-plus bash[1936]: 2026-07-31 13:05:49 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:51 rock-5b-plus bash[1936]: 2026-07-31 13:05:51 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:53 rock-5b-plus bash[1936]: 2026-07-31 13:05:53 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:55 rock-5b-plus bash[1936]: 2026-07-31 13:05:55 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:57 rock-5b-plus bash[1936]: 2026-07-31 13:05:57 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:05:59 rock-5b-plus bash[1936]: 2026-07-31 13:05:59 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:06:01 rock-5b-plus bash[1936]: 2026-07-31 13:06:01 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:06:03 rock-5b-plus bash[1936]: 2026-07-31 13:06:03 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:06:05 rock-5b-plus bash[1936]: 2026-07-31 13:06:05 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:06:07 rock-5b-plus bash[1936]: 2026-07-31 13:06:07 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:06:09 rock-5b-plus bash[1936]: 2026-07-31 13:06:09 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:06:11 rock-5b-plus bash[1936]: 2026-07-31 13:06:11 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:06:13 rock-5b-plus bash[1936]: 2026-07-31 13:06:13 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:06:15 rock-5b-plus bash[1936]: 2026-07-31 13:06:15 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:06:17 rock-5b-plus bash[1936]: 2026-07-31 13:06:17 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:06:19 rock-5b-plus bash[1936]: 2026-07-31 13:06:19 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:06:21 rock-5b-plus bash[1936]: 2026-07-31 13:06:21 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:06:23 rock-5b-plus bash[1936]: 2026-07-31 13:06:23 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:06:25 rock-5b-plus bash[1936]: 2026-07-31 13:06:25 skip persist: objectPresetsCustom missing or empty
+-- Boot 4ff538b899d84fcbb42d2d28a3fe8281 --
+Jul 31 13:05:51 rock-5b-plus systemd[1]: Started maklertour-ptz.service - MaklerTour PTZ/YOLO stack.
+Jul 31 13:05:52 rock-5b-plus bash[1354]: [2026-07-31 13:05:52] Starting MJPEG server: /root/new_yolo8/.build/mjpeg_rknn_http
+Jul 31 13:05:52 rock-5b-plus bash[1354]: [2026-07-31 13:05:52] MJPEG pid=1438 (log: /root/new_yolo8/.logs/mjpeg.log)
+Jul 31 13:05:52 rock-5b-plus bash[1354]: [2026-07-31 13:05:52] MJPEG nice set to 5, cpuset=4-7 for pid=1438
+Jul 31 13:05:52 rock-5b-plus bash[1354]: [2026-07-31 13:05:52] MJPEG renice watchdog pid=1657 nice=5 interval=1s
+Jul 31 13:05:52 rock-5b-plus bash[1354]: [2026-07-31 13:05:52] Starting bridge: /root/new_yolo8/web/ws_uart_bridge /dev/ttyUSB0 115200 8765
+Jul 31 13:05:52 rock-5b-plus bash[1354]: [2026-07-31 13:05:52] Bridge pid=1671 (log: /root/new_yolo8/.logs/bridge.log)
+Jul 31 13:05:52 rock-5b-plus bash[1354]: [2026-07-31 13:05:52] Starting autopilot: /root/new_yolo8/.build/ptz_autopilot
+Jul 31 13:05:52 rock-5b-plus bash[1354]: [2026-07-31 13:05:52] Autopilot pid=1679 (log: /root/new_yolo8/.logs/autopilot.log)
+Jul 31 13:05:52 rock-5b-plus bash[1354]: [launcher] hydrate runtime settings
+Jul 31 13:07:31 rock-5b-plus bash[1681]: Traceback (most recent call last):
+Jul 31 13:07:31 rock-5b-plus bash[1681]:   File "/root/new_yolo8/hydrate_runtime_settings.py", line 321, in <module>
+Jul 31 13:07:31 rock-5b-plus bash[1681]:     main()
+Jul 31 13:07:31 rock-5b-plus bash[1681]:   File "/root/new_yolo8/hydrate_runtime_settings.py", line 260, in main
+Jul 31 13:07:31 rock-5b-plus bash[1681]:     runtime_settings = wait_for_api_settings()
+Jul 31 13:07:31 rock-5b-plus bash[1681]:                        ^^^^^^^^^^^^^^^^^^^^^^^
+Jul 31 13:07:31 rock-5b-plus bash[1681]:   File "/root/new_yolo8/hydrate_runtime_settings.py", line 153, in wait_for_api_settings
+Jul 31 13:07:31 rock-5b-plus bash[1681]:     raise RuntimeError(f'/api/settings not ready: {last}')
+Jul 31 13:07:31 rock-5b-plus bash[1681]: RuntimeError: /api/settings not ready: <urlopen error [Errno 111] Connection refused>
+Jul 31 13:07:31 rock-5b-plus bash[1354]: [launcher] start settings persist daemon
+Jul 31 13:07:31 rock-5b-plus bash[1354]: [launcher] settings persist daemon pid=1864
+Jul 31 13:07:31 rock-5b-plus bash[1354]: [2026-07-31 13:07:31] Starting object log server on port 8091
+Jul 31 13:07:31 rock-5b-plus bash[1354]: [2026-07-31 13:07:31] Object log server PID: 1869
+Jul 31 13:07:31 rock-5b-plus bash[1354]: [2026-07-31 13:07:31] Starting object tracking daemon: /root/new_yolo8/object_tracking_daemon.py
+Jul 31 13:07:31 rock-5b-plus bash[1354]: [2026-07-31 13:07:31] Object tracking daemon PID: 1872
+Jul 31 13:07:31 rock-5b-plus bash[1354]: [2026-07-31 13:07:31] Services are up
+Jul 31 13:07:31 rock-5b-plus bash[1354]: [2026-07-31 13:07:31]   MJPEG:  http://0.0.0.0:8080/
+Jul 31 13:07:31 rock-5b-plus bash[1354]: [2026-07-31 13:07:31]   Bridge: ws://0.0.0.0:8765/ws
+Jul 31 13:07:31 rock-5b-plus bash[1354]: [2026-07-31 13:07:31]   Command limits: pan=±20, tilt=±20, zoom=±34
+Jul 31 13:07:31 rock-5b-plus bash[1354]: [2026-07-31 13:07:31]   Auto-restart MJPEG: 1 (delay=2s, max=0)
+Jul 31 13:07:31 rock-5b-plus bash[1354]: [2026-07-31 13:07:31] Press Ctrl+C to stop both
+Jul 31 13:07:31 rock-5b-plus bash[1864]: 2026-07-31 13:07:31 settings persist daemon start
+Jul 31 13:07:32 rock-5b-plus bash[1865]: [2026-07-31 13:07:32] Applying object preset: active
+Jul 31 13:07:40 rock-5b-plus bash[1865]: [2026-07-31 13:07:40] WARN: object preset apply failed: active. See /root/new_yolo8/.logs/autopilot.log
+Jul 31 13:07:40 rock-5b-plus bash[1864]: 2026-07-31 13:07:40 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:07:42 rock-5b-plus bash[1864]: 2026-07-31 13:07:42 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:07:44 rock-5b-plus bash[1864]: 2026-07-31 13:07:44 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:07:46 rock-5b-plus bash[1864]: 2026-07-31 13:07:46 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:07:48 rock-5b-plus bash[1864]: 2026-07-31 13:07:48 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:07:50 rock-5b-plus bash[1864]: 2026-07-31 13:07:50 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:07:52 rock-5b-plus bash[1864]: 2026-07-31 13:07:52 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:07:54 rock-5b-plus bash[1864]: 2026-07-31 13:07:54 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:07:56 rock-5b-plus bash[1864]: 2026-07-31 13:07:56 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:07:58 rock-5b-plus bash[1864]: 2026-07-31 13:07:58 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:00 rock-5b-plus bash[1864]: 2026-07-31 13:08:00 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:02 rock-5b-plus bash[1864]: 2026-07-31 13:08:02 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:04 rock-5b-plus bash[1864]: 2026-07-31 13:08:04 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:06 rock-5b-plus bash[1864]: 2026-07-31 13:08:06 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:08 rock-5b-plus bash[1864]: 2026-07-31 13:08:08 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:10 rock-5b-plus bash[1864]: 2026-07-31 13:08:10 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:12 rock-5b-plus bash[1864]: 2026-07-31 13:08:12 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:14 rock-5b-plus bash[1864]: 2026-07-31 13:08:14 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:16 rock-5b-plus bash[1864]: 2026-07-31 13:08:16 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:18 rock-5b-plus bash[1864]: 2026-07-31 13:08:18 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:20 rock-5b-plus bash[1864]: 2026-07-31 13:08:20 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:22 rock-5b-plus bash[1864]: 2026-07-31 13:08:22 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:24 rock-5b-plus bash[1864]: 2026-07-31 13:08:24 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:26 rock-5b-plus bash[1864]: 2026-07-31 13:08:26 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:28 rock-5b-plus bash[1864]: 2026-07-31 13:08:28 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:30 rock-5b-plus bash[1864]: 2026-07-31 13:08:30 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:32 rock-5b-plus bash[1864]: 2026-07-31 13:08:32 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:34 rock-5b-plus bash[1864]: 2026-07-31 13:08:34 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:36 rock-5b-plus bash[1864]: 2026-07-31 13:08:36 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:38 rock-5b-plus bash[1864]: 2026-07-31 13:08:38 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:40 rock-5b-plus bash[1864]: 2026-07-31 13:08:40 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:42 rock-5b-plus bash[1864]: 2026-07-31 13:08:42 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:44 rock-5b-plus bash[1864]: 2026-07-31 13:08:44 skip persist: objectPresetsCustom missing or empty
+Jul 31 13:08:46 rock-5b-plus bash[1864]: 2026-07-31 13:08:46 persisted settings active=car_single search=lost_step_wait custom=['airplane_single', 'airplanes', 'bird_single', 'birds', 'car_single', 'cars', 'people', 'person_single']

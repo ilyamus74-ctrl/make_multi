@@ -1,0 +1,7 @@
+{
+  "ts": 1785503465.133,
+  "event": "armed_running",
+  "preset": "car_single",
+  "search_preset": "lost_step_wait",
+  "pid": 8831
+}
